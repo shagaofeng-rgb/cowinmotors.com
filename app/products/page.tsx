@@ -3,7 +3,14 @@ import { Header } from "@/components/Header";
 import { ProductBrowser } from "@/components/ProductBrowser";
 import { products } from "@/lib/products";
 
-export default function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; make?: string; q?: string; year?: string }>;
+}) {
+  const params = await searchParams;
+  const searchTerms = [params.year, params.q].filter(Boolean).join(" ");
+
   return (
     <>
       <Header />
@@ -29,7 +36,12 @@ export default function ProductsPage() {
               <p>Each card opens a local detail page first, with a separate link to the live store product.</p>
             </div>
           </div>
-          <ProductBrowser products={products} />
+          <ProductBrowser
+            products={products}
+            initialBrand={params.make || "all"}
+            initialCategory={params.category || ""}
+            initialSearch={searchTerms}
+          />
         </section>
       </main>
     </>

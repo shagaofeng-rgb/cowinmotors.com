@@ -415,6 +415,20 @@ p {
   gap: 22px;
 }
 
+.no-results {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.no-results p {
+  margin-bottom: 4px;
+}
+
 .product-card {
   position: relative;
   display: grid;
