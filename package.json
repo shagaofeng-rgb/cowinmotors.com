@@ -1,0 +1,11 @@
+{
+  "name": "cowinmotors.com",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static multi-page website for Cowinmotors automotive headlights, exhaust systems, and body kits.",
+  "scripts": {
+    "dev": "python3 -m http.server 4173",
+    "start": "python3 -m http.server 8080",
+    "preview": "python3 -m http.server 4173"
+  }
+}
