@@ -6,8 +6,9 @@ export function generateStaticParams() {
   return products.map((product) => ({ id: String(product.__id) }));
 }
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = products[Number(params.id)] || products[0];
+export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const product = products[Number(id)] || products[0];
 
   return (
     <>
