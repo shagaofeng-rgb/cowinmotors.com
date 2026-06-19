@@ -1,0 +1,37 @@
+import { FinderForm } from "@/components/FinderForm";
+import { Header } from "@/components/Header";
+import { ProductBrowser } from "@/components/ProductBrowser";
+import { products } from "@/lib/products";
+
+export default function ProductsPage() {
+  return (
+    <>
+      <Header />
+      <main>
+        <section className="page-hero">
+          <p className="eyebrow">All Products</p>
+          <h1>Browse by vehicle, category, and brand.</h1>
+          <p>Use this catalog page for full product discovery. Product detail pages keep compatibility, shipping, QC, and RFQ actions clear.</p>
+        </section>
+        <section className="vehicle-finder page-finder">
+          <div className="finder-copy">
+            <p className="eyebrow">Shop by Vehicle</p>
+            <h2>Filter the catalog.</h2>
+            <p>Search by make, model, engine, year, category, or feature.</p>
+          </div>
+          <FinderForm />
+        </section>
+        <section className="section products-section">
+          <div className="section-title-row">
+            <div>
+              <p className="eyebrow">Catalog</p>
+              <h2>All available listings.</h2>
+              <p>Each card opens a local detail page first, with a separate link to the live store product.</p>
+            </div>
+          </div>
+          <ProductBrowser products={products} />
+        </section>
+      </main>
+    </>
+  );
+}
