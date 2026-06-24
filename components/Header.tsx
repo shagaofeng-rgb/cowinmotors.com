@@ -1,15 +1,13 @@
 import Link from "next/link";
 
 export function Header({
-  announcement = "30-day postage paid returns | Worldwide shipping support | Trade supplier with QC inspection",
   cta = "Request wholesale quote",
 }: {
-  announcement?: string;
   cta?: string;
 }) {
   return (
     <>
-      <div className="announcement">{announcement}</div>
+      <div className="announcement">Factory Direct Manufacturer | Worldwide Shipping | Strict QC Inspection</div>
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Cowinmotors home">
           <img src="/assets/live/logo.jpg" alt="Cowinmotors logo" />

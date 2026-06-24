@@ -12,7 +12,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <Header announcement="Please confirm compatibility before ordering." cta="Request quote" />
+      <Header cta="Request quote" />
       <main className="section">
         <nav className="breadcrumbs" aria-label="Breadcrumb">
           <Link href="/">Home</Link><span>/</span><Link href="/products">Products</Link><span>/</span><span>{product.category}</span>

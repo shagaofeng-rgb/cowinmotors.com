@@ -384,6 +384,62 @@ p {
   background: var(--paper);
 }
 
+.price-band {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(240px, 0.45fr);
+  gap: clamp(24px, 5vw, 70px);
+  align-items: center;
+  color: #ffffff;
+  background: #141414;
+}
+
+.price-band h2,
+.price-band p {
+  color: #ffffff;
+}
+
+.price-band p:not(.eyebrow) {
+  color: #dce8f2;
+}
+
+.price-callout {
+  display: grid;
+  gap: 8px;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: var(--radius);
+  color: var(--ink);
+}
+
+.price-callout span {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.price-callout strong {
+  font-size: clamp(36px, 4vw, 54px);
+  line-height: 1;
+}
+
+.price-callout small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.workshop-section {
+  background: #ffffff;
+}
+
+.workshop-section img {
+  width: 100%;
+  aspect-ratio: 3 / 1.48;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -845,6 +901,7 @@ p {
   .category-hero,
   .pdp,
   .support-columns,
+  .price-band,
   .rfq-section,
   .company-section,
   .site-footer {

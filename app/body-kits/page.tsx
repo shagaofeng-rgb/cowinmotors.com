@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 export default function BodyKitsPage() {
   return (
     <>
-      <Header announcement="Body kits usually need RFQ because of size, paint, fitment, and shipping class." cta="Request body kit quote" />
+      <Header cta="Request body kit quote" />
       <main>
         <section className="page-hero category-hero">
           <div>

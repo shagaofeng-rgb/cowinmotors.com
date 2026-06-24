@@ -5,7 +5,7 @@ import { products } from "@/lib/products";
 export default function HeadlightsPage() {
   return (
     <>
-      <Header announcement="Headlights require fitment, connector, LHD/RHD and certification confirmation." cta="Request quote" />
+      <Header cta="Request quote" />
       <main>
         <section className="page-hero category-hero">
           <div>

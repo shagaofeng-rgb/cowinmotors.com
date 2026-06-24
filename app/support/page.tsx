@@ -3,7 +3,7 @@ import { Header } from "@/components/Header";
 export default function SupportPage() {
   return (
     <>
-      <Header announcement="Support helps buyers confirm fitment, shipping, returns, warranty and installation information." cta="Request quote" />
+      <Header cta="Request quote" />
       <main>
         <section className="page-hero">
           <p className="eyebrow">Support Center</p>

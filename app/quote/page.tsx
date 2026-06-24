@@ -6,7 +6,7 @@ export default async function QuotePage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <Header announcement="RFQ is recommended for wholesale, bulky, painted, custom, or mixed-container orders." cta="Request quote" />
+      <Header cta="Request quote" />
       <main>
         <section className="section rfq-section quote-page">
           <div className="rfq-copy">
