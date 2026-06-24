@@ -30,10 +30,10 @@ export async function POST(request: Request) {
     requirement: clean(body.requirement),
   });
 
-  const emailResult = await sendInquiryEmail(inquiry).catch((error) => ({
+  const emailResult = await sendInquiryEmail(inquiry).catch(() => ({
     sent: false,
     provider: "error",
-    reason: error instanceof Error ? error.message : "Email delivery failed.",
+    reason: "Email delivery failed. Please check SMTP credentials and provider settings.",
   }));
 
   return NextResponse.json({
