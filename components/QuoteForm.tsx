@@ -35,6 +35,20 @@ export function QuoteForm({ initialProduct = "" }: { initialProduct?: string }) 
         });
 
         if (response.ok) {
+          window.dispatchEvent(new CustomEvent("cowinmotors:form-submit", { detail: payload }));
+          fetch("/api/analytics/track", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "form_submit",
+              page: window.location.pathname,
+              pageTitle: document.title,
+              targetText: payload.product || payload.productType,
+              visitorId: window.localStorage.getItem("cowinmotors_visitor_id") || "anonymous",
+              sessionId: window.sessionStorage.getItem("cowinmotors_session_id") || "session",
+            }),
+            keepalive: true,
+          }).catch(() => {});
           form.reset();
           setNote("RFQ received. Our team will review fitment, MOQ, lead time, and shipping details.");
         } else {

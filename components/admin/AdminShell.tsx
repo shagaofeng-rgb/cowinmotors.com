@@ -6,9 +6,15 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/admin", label: "数据总览" },
+  { href: "/admin/analytics", label: "流量分析" },
+  { href: "/admin/visitors", label: "访客记录" },
+  { href: "/admin/pages", label: "页面表现" },
+  { href: "/admin/journeys", label: "访问路径" },
   { href: "/admin/products", label: "产品数据" },
   { href: "/admin/inquiries", label: "询盘数据" },
-  { href: "/admin/seo", label: "SEO 页面" },
+  { href: "/admin/search-console", label: "SEO 数据" },
+  { href: "/admin/link-audit", label: "内外链审计" },
+  { href: "/admin/settings", label: "系统设置" },
 ];
 
 export function AdminShell({ children, email }: { children: ReactNode; email: string }) {
