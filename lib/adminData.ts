@@ -60,6 +60,17 @@ export function saveInquiry(input: Omit<InquiryRecord, "id" | "createdAt" | "sou
   return record;
 }
 
+export function saveInquiryWithSource(input: Omit<InquiryRecord, "id" | "createdAt">) {
+  const record: InquiryRecord = {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    ...input,
+  };
+  const records = [record, ...getInquiries()].slice(0, 300);
+  writeJsonFile(inquiryFile, records);
+  return record;
+}
+
 export function getAdminProducts() {
   return products.map((product) => ({
     ...product,

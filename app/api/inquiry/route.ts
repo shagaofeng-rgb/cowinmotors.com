@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { saveInquiry } from "@/lib/adminData";
+import { saveInquiryWithSource } from "@/lib/adminData";
+import { sendInquiryEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Name and email are required." }, { status: 400 });
   }
 
-  const inquiry = saveInquiry({
+  const inquiry = saveInquiryWithSource({
+    source: clean(body.source) || "website-rfq-form",
     name,
     email,
     country: clean(body.country),
@@ -28,5 +30,17 @@ export async function POST(request: Request) {
     requirement: clean(body.requirement),
   });
 
-  return NextResponse.json({ ok: true, id: inquiry.id });
+  const emailResult = await sendInquiryEmail(inquiry).catch((error) => ({
+    sent: false,
+    provider: "error",
+    reason: error instanceof Error ? error.message : "Email delivery failed.",
+  }));
+
+  return NextResponse.json({
+    ok: true,
+    id: inquiry.id,
+    emailSent: emailResult.sent,
+    emailProvider: emailResult.provider,
+    emailWarning: emailResult.sent ? "" : emailResult.reason,
+  });
 }

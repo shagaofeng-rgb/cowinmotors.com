@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FinderForm } from "@/components/FinderForm";
 import { Header } from "@/components/Header";
+import { MissingModelForm } from "@/components/MissingModelForm";
 import { ProductBrowser } from "@/components/ProductBrowser";
 import { products } from "@/lib/products";
 
@@ -85,6 +86,18 @@ export default function HomePage() {
             <Link className="catalog-link" href="/products">View all products</Link>
           </div>
           <ProductBrowser products={products} pageType="home" limit={8} />
+        </section>
+
+        <section className="section missing-model-section">
+          <div>
+            <p className="eyebrow">Can not find your model?</p>
+            <h2>Tell us what you need. We will contact you with a solution.</h2>
+            <p>
+              If the exact vehicle model or part type is not listed on our website, submit the details here.
+              Our team will check fitment, supplier availability, MOQ, lead time, and shipping options for you.
+            </p>
+          </div>
+          <MissingModelForm />
         </section>
 
         <section className="section support-columns">

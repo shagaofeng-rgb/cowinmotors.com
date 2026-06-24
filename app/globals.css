@@ -384,6 +384,28 @@ p {
   background: var(--paper);
 }
 
+.missing-model-section {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.84fr) minmax(320px, 1fr);
+  gap: clamp(28px, 5vw, 70px);
+  align-items: center;
+  color: #ffffff;
+  background: #141414;
+}
+
+.missing-model-section h2,
+.missing-model-section p {
+  color: #ffffff;
+}
+
+.missing-model-section p:not(.eyebrow) {
+  color: #dce8f2;
+}
+
+.missing-model-form {
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.26);
+}
+
 .price-band {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(240px, 0.45fr);
@@ -1385,6 +1407,7 @@ body:has(.admin-login-page) .whatsapp-float {
   .pdp,
   .support-columns,
   .price-band,
+  .missing-model-section,
   .rfq-section,
   .company-section,
   .site-footer {

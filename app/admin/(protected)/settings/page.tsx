@@ -24,7 +24,12 @@ export default function AdminSettingsPage() {
     ["GOOGLE_CLIENT_EMAIL", configured(process.env.GOOGLE_CLIENT_EMAIL)],
     ["GOOGLE_PRIVATE_KEY", configured(process.env.GOOGLE_PRIVATE_KEY)],
     ["INQUIRY_TO_EMAIL", process.env.INQUIRY_TO_EMAIL || "-"],
+    ["INQUIRY_CC_EMAIL", process.env.INQUIRY_CC_EMAIL || "-"],
     ["SMTP_HOST", process.env.SMTP_HOST || "-"],
+    ["SMTP_PORT", process.env.SMTP_PORT || "-"],
+    ["SMTP_USER", configured(process.env.SMTP_USER)],
+    ["SMTP_PASSWORD / SMTP_PASS", configured(process.env.SMTP_PASSWORD || process.env.SMTP_PASS)],
+    ["RESEND_API_KEY", configured(process.env.RESEND_API_KEY)],
   ];
 
   return (
