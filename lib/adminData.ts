@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
 import { categorySlug, inferBuyingPath, products } from "@/lib/products";
 
 export type InquiryRecord = {
@@ -44,30 +45,101 @@ function writeJsonFile<T>(filePath: string, value: T) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
 }
 
-export function getInquiries() {
+type InquiryRow = {
+  id: string;
+  created_at: string | Date;
+  name: string;
+  email: string;
+  country: string | null;
+  product_type: string | null;
+  product: string | null;
+  vehicle_info: string | null;
+  quantity: string | null;
+  requirement: string | null;
+  source: string | null;
+};
+
+function inquiryFromRow(row: InquiryRow): InquiryRecord {
+  return {
+    id: row.id,
+    createdAt: new Date(row.created_at).toISOString(),
+    source: row.source || "website-rfq-form",
+    name: row.name,
+    email: row.email,
+    country: row.country || "",
+    productType: row.product_type || "",
+    product: row.product || "",
+    vehicleInfo: row.vehicle_info || "",
+    quantity: row.quantity || "",
+    requirement: row.requirement || "",
+  };
+}
+
+export async function getInquiries(): Promise<InquiryRecord[]> {
+  const sql = getSql();
+
+  if (sql) {
+    await ensureCoreSchema();
+    const rows = await sql`
+      SELECT id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
+      FROM cowin_inquiries
+      ORDER BY created_at DESC
+      LIMIT 300
+    ` as InquiryRow[];
+    return rows.map(inquiryFromRow);
+  }
+
   return readJsonFile<InquiryRecord[]>(inquiryFile, []).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function saveInquiry(input: Omit<InquiryRecord, "id" | "createdAt" | "source">) {
+async function persistInquiry(record: InquiryRecord) {
+  const sql = getSql();
+
+  if (sql) {
+    await ensureCoreSchema();
+    await sql`
+      INSERT INTO cowin_inquiries (
+        id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
+      ) VALUES (
+        ${record.id},
+        ${record.createdAt},
+        ${record.source},
+        ${record.name},
+        ${record.email},
+        ${record.country},
+        ${record.productType},
+        ${record.product},
+        ${record.vehicleInfo},
+        ${record.quantity},
+        ${record.requirement}
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+    return;
+  }
+
+  const records = [record, ...readJsonFile<InquiryRecord[]>(inquiryFile, [])].slice(0, 300);
+  writeJsonFile(inquiryFile, records);
+}
+
+export async function saveInquiry(input: Omit<InquiryRecord, "id" | "createdAt" | "source">): Promise<InquiryRecord> {
   const record: InquiryRecord = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     source: "website-rfq-form",
     ...input,
   };
-  const records = [record, ...getInquiries()].slice(0, 300);
-  writeJsonFile(inquiryFile, records);
+  await persistInquiry(record);
   return record;
 }
 
-export function saveInquiryWithSource(input: Omit<InquiryRecord, "id" | "createdAt">) {
+export async function saveInquiryWithSource(input: Omit<InquiryRecord, "id" | "createdAt">): Promise<InquiryRecord> {
   const record: InquiryRecord = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     ...input,
   };
-  const records = [record, ...getInquiries()].slice(0, 300);
-  writeJsonFile(inquiryFile, records);
+  await persistInquiry(record);
   return record;
 }
 
@@ -102,16 +174,16 @@ export function getCategoryStats() {
   return [...stats.values()].sort((a, b) => b.count - a.count);
 }
 
-export function getAdminOverview() {
+export async function getAdminOverview() {
   const adminProducts = getAdminProducts();
-  const inquiries = getInquiries();
+  const inquiries = await getInquiries();
   const missingImages = adminProducts.filter((product) => !product.imageExists);
   const directOrRfq = adminProducts.filter((product) => product.buyingPath === "Direct / RFQ").length;
   const rfqOnly = adminProducts.filter((product) => product.buyingPath === "RFQ").length;
 
   return {
     generatedAt: new Date().toISOString(),
-    storageMode: "temporary file storage",
+    storageMode: isDatabaseConfigured() ? "postgres" : "temporary file storage",
     metrics: {
       products: adminProducts.length,
       categories: getCategoryStats().length,

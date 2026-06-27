@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Name and email are required." }, { status: 400 });
   }
 
-  const inquiry = saveInquiryWithSource({
+  const inquiry = await saveInquiryWithSource({
     source: clean(body.source) || "website-rfq-form",
     name,
     email,

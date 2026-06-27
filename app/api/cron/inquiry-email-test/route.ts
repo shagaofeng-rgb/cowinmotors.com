@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const inquiry = saveInquiryWithSource({
+  const inquiry = await saveInquiryWithSource({
     source: "monthly-email-delivery-check",
     name: "Cowinmotors Monthly Form Test",
     email: process.env.INQUIRY_TO_EMAIL || "davidsha@cowinmotors.com",

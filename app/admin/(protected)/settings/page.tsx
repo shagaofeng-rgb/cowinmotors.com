@@ -1,5 +1,6 @@
 import { hashAdminPassword, isAdminAuthConfigured } from "@/lib/adminAuth";
 import { getAnalyticsStorageMode } from "@/lib/analyticsStore";
+import { isDatabaseConfigured } from "@/lib/database";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default function AdminSettingsPage() {
     ["ADMIN_PASSWORD", configured(process.env.ADMIN_PASSWORD)],
     ["ADMIN_JWT_SECRET", configured(process.env.ADMIN_JWT_SECRET)],
     ["Analytics storage", getAnalyticsStorageMode()],
+    ["Persistent database", isDatabaseConfigured() ? "已启用" : "未启用"],
     ["DATABASE_URL", configured(process.env.DATABASE_URL)],
     ["GOOGLE_SEARCH_CONSOLE_SITE_URL", process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "-"],
     ["GOOGLE_CLIENT_EMAIL", configured(process.env.GOOGLE_CLIENT_EMAIL)],

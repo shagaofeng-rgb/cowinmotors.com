@@ -6,8 +6,8 @@ export const metadata = {
   title: "询盘数据 | Cowinmotors 后台",
 };
 
-export default function AdminInquiriesPage() {
-  const inquiries = getInquiries();
+export default async function AdminInquiriesPage() {
+  const inquiries = await getInquiries();
 
   return (
     <div className="admin-page">

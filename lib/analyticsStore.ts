@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveDateRange, type AdminDateRange } from "@/lib/adminDateRange";
+import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
 
 export type AnalyticsEvent = {
   id: string;
@@ -29,6 +30,35 @@ export type AnalyticsEvent = {
   sourceDetail: string;
   timestamp: string;
   clientTimestamp: string;
+};
+
+type AnalyticsEventRow = {
+  id: string;
+  type: AnalyticsEvent["type"];
+  visitor_id: string;
+  session_id: string;
+  page: string;
+  previous_page: string | null;
+  page_title: string | null;
+  referrer: string | null;
+  outbound_url: string | null;
+  target_text: string | null;
+  scroll_depth: number | null;
+  duration: number | null;
+  utm: Record<string, string> | string | null;
+  browser: string | null;
+  os: string | null;
+  device: string | null;
+  user_agent: string | null;
+  ip: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  channel: string | null;
+  source_platform: string | null;
+  source_detail: string | null;
+  timestamp: string | Date;
+  client_timestamp: string | null;
 };
 
 const dataDir = process.env.VERCEL ? path.join("/tmp", "cowinmotors-analytics") : path.join(process.cwd(), ".data");
@@ -129,6 +159,7 @@ function sourceDetail(event: Pick<AnalyticsEvent, "utm" | "referrer">) {
 }
 
 export function getAnalyticsStorageMode() {
+  if (isDatabaseConfigured()) return "postgres";
   return process.env.VERCEL ? "server-file-fallback" : "local-file";
 }
 
@@ -176,12 +207,98 @@ export function normalizeAnalyticsEvent(payload: Record<string, any>, request: R
 }
 
 export async function appendAnalyticsEvent(event: AnalyticsEvent) {
+  const sql = getSql();
+
+  if (sql) {
+    await ensureCoreSchema();
+    await sql`
+      INSERT INTO cowin_analytics_events (
+        id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+        scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+        channel, source_platform, source_detail, timestamp, client_timestamp
+      ) VALUES (
+        ${event.id},
+        ${event.type},
+        ${event.visitorId},
+        ${event.sessionId},
+        ${event.page},
+        ${event.previousPage},
+        ${event.pageTitle},
+        ${event.referrer},
+        ${event.outboundUrl},
+        ${event.targetText},
+        ${event.scrollDepth},
+        ${event.duration},
+        ${JSON.stringify(event.utm)}::jsonb,
+        ${event.browser},
+        ${event.os},
+        ${event.device},
+        ${event.userAgent},
+        ${event.ip},
+        ${event.country},
+        ${event.region},
+        ${event.city},
+        ${event.channel},
+        ${event.sourcePlatform},
+        ${event.sourceDetail},
+        ${event.timestamp},
+        ${event.clientTimestamp}
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+    return { ok: true, storageMode: getAnalyticsStorageMode() };
+  }
+
   await fs.mkdir(dataDir, { recursive: true });
   await fs.appendFile(eventFile, `${JSON.stringify(event)}\n`, "utf8");
   return { ok: true, storageMode: getAnalyticsStorageMode() };
 }
 
 export async function readAnalyticsEvents() {
+  const sql = getSql();
+
+  if (sql) {
+    await ensureCoreSchema();
+    const rows = await sql`
+      SELECT
+        id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+        scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+        channel, source_platform, source_detail, timestamp, client_timestamp
+      FROM cowin_analytics_events
+      ORDER BY timestamp DESC
+      LIMIT 10000
+    ` as AnalyticsEventRow[];
+
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      visitorId: row.visitor_id,
+      sessionId: row.session_id,
+      page: row.page,
+      previousPage: row.previous_page || "",
+      pageTitle: row.page_title || "",
+      referrer: row.referrer || "",
+      outboundUrl: row.outbound_url || "",
+      targetText: row.target_text || "",
+      scrollDepth: Number(row.scroll_depth || 0),
+      duration: Number(row.duration || 0),
+      utm: typeof row.utm === "string" ? JSON.parse(row.utm || "{}") : row.utm || {},
+      browser: row.browser || "",
+      os: row.os || "",
+      device: row.device || "",
+      userAgent: row.user_agent || "",
+      ip: row.ip || "",
+      country: row.country || "",
+      region: row.region || "",
+      city: row.city || "",
+      channel: row.channel || "",
+      sourcePlatform: row.source_platform || "",
+      sourceDetail: row.source_detail || "",
+      timestamp: new Date(row.timestamp).toISOString(),
+      clientTimestamp: row.client_timestamp || "",
+    })) as AnalyticsEvent[];
+  }
+
   try {
     const text = await fs.readFile(eventFile, "utf8");
     return text.split(/\r?\n/).map(safeJson).filter(Boolean) as AnalyticsEvent[];

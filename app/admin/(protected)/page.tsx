@@ -18,7 +18,7 @@ export default async function AdminOverviewPage({
 }) {
   const range = getAdminDateRange(await searchParams);
   const analytics = await getAnalyticsSnapshot(range);
-  const data = getAdminOverview();
+  const data = await getAdminOverview();
   const metrics = [
     { label: "PV", value: analytics.overview.pageViews, note: `${range.days}天页面浏览` },
     { label: "UV", value: analytics.overview.uniqueVisitors, note: "匿名访客" },

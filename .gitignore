@@ -9,3 +9,4 @@ build/
 *.log
 tsconfig.tsbuildinfo
 *.zip
+.env*
