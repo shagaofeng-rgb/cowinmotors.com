@@ -15,6 +15,7 @@ export function Header({
         <nav className="main-nav" aria-label="Primary navigation">
           <Link href="/products">Shop by Vehicle</Link>
           <Link href="/headlights">Headlights</Link>
+          <Link href="/tail-lights">Tail Lights</Link>
           <Link href="/exhaust">Exhaust</Link>
           <Link href="/body-kits">Body Kits</Link>
           <Link href="/support">Support</Link>

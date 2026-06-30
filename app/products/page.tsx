@@ -1,15 +1,28 @@
 import { FinderForm } from "@/components/FinderForm";
 import { Header } from "@/components/Header";
 import { ProductBrowser } from "@/components/ProductBrowser";
-import { products } from "@/lib/products";
+import { filterProducts, paginateProducts, productCardData } from "@/lib/products";
+
+export const metadata = {
+  title: "Automotive Headlights, Tail Lights, Exhaust & OEM Parts Catalog",
+  description:
+    "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, exhaust systems, and OEM replacement parts.",
+};
 
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; make?: string; q?: string; year?: string }>;
+  searchParams: Promise<{ category?: string; make?: string; q?: string; year?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const searchTerms = [params.year, params.q].filter(Boolean).join(" ");
+  const filtered = filterProducts({
+    category: params.category || "",
+    brand: params.make || "",
+    query: searchTerms,
+  });
+  const page = Number(params.page || 1);
+  const paged = paginateProducts(filtered, page, 60);
 
   return (
     <>
@@ -37,10 +50,13 @@ export default async function ProductsPage({
             </div>
           </div>
           <ProductBrowser
-            products={products}
+            products={productCardData(paged.items)}
             initialBrand={params.make || "all"}
             initialCategory={params.category || ""}
             initialSearch={searchTerms}
+            totalCount={paged.total}
+            currentPage={paged.currentPage}
+            totalPages={paged.totalPages}
           />
         </section>
       </main>

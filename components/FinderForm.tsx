@@ -20,7 +20,9 @@ export function FinderForm() {
         if (year) params.set("year", year);
         if (make) params.set("make", make);
         if (type === "Automotive Lighting") params.set("category", "headlights");
+        if (type === "Tail Lights") params.set("category", "tail-lights");
         if (type === "Exhaust Systems") params.set("category", "exhaust");
+        if (type === "OEM Replacement Parts") params.set("category", "oem-parts");
         if (type === "Body Kits") params.set("category", "body-kits");
         if (search) params.set("q", search);
         router.push(`/products${params.toString() ? `?${params}` : ""}`);
@@ -39,7 +41,7 @@ export function FinderForm() {
         Make
         <select id="makeSelect" value={make} onChange={(event) => setMake(event.target.value)}>
           <option value="">Any make</option>
-          {["BMW", "Mercedes-Benz", "Audi", "Porsche", "Nissan", "Toyota", "Chevrolet", "Ford", "Maserati"].map((item) => (
+          {["BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla", "Ford", "Toyota", "Land Rover"].map((item) => (
             <option key={item}>{item}</option>
           ))}
         </select>
@@ -49,7 +51,9 @@ export function FinderForm() {
         <select id="typeSelect" value={type} onChange={(event) => setType(event.target.value)}>
           <option value="">Any part</option>
           <option value="Automotive Lighting">Automotive Lighting</option>
+          <option value="Tail Lights">Tail Lights</option>
           <option value="Exhaust Systems">Exhaust Systems</option>
+          <option value="OEM Replacement Parts">OEM Replacement Parts</option>
           <option value="Body Kits">Body Kits</option>
         </select>
       </label>

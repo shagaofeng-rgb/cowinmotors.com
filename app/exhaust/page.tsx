@@ -1,8 +1,21 @@
 import { Header } from "@/components/Header";
 import { ProductBrowser } from "@/components/ProductBrowser";
-import { products } from "@/lib/products";
+import { filterProducts, paginateProducts, productCardData } from "@/lib/products";
 
-export default function ExhaustPage() {
+export const metadata = {
+  title: "Performance Exhaust Systems and Downpipes",
+  description:
+    "Browse SS304 performance exhaust systems, catback exhausts, downpipes, and replacement exhaust products with RFQ support.",
+};
+
+export default async function ExhaustPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ make?: string; q?: string; page?: string }>;
+}) {
+  const params = await searchParams;
+  const paged = paginateProducts(filterProducts({ category: "exhaust", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 60);
+
   return (
     <>
       <Header cta="Request quote" />
@@ -43,7 +56,17 @@ export default function ExhaustPage() {
         </section>
         <section className="section products-section" id="exhaust-products">
           <div className="section-title-row"><div><p className="eyebrow">Exhaust Listings</p><h2>Performance exhaust products.</h2></div></div>
-          <ProductBrowser products={products} pageType="exhaust" />
+          <ProductBrowser
+            products={productCardData(paged.items)}
+            pageType="exhaust"
+            initialBrand={params.make || "all"}
+            initialCategory="exhaust"
+            initialSearch={params.q || ""}
+            totalCount={paged.total}
+            currentPage={paged.currentPage}
+            totalPages={paged.totalPages}
+            basePath="/exhaust"
+          />
         </section>
       </main>
     </>

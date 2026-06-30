@@ -85,6 +85,11 @@ textarea {
   font-weight: 800;
 }
 
+.main-nav a {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .main-nav a,
 .site-footer a {
   border-bottom: 2px solid transparent;
@@ -469,7 +474,11 @@ p {
   margin-bottom: 28px;
 }
 
-.filter-row button {
+.filter-row button,
+.filter-row a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 40px;
   padding: 0 16px;
   border: 1px solid #c8ccd0;
@@ -478,10 +487,13 @@ p {
   background: #ffffff;
   cursor: pointer;
   font-weight: 850;
+  text-decoration: none;
 }
 
 .filter-row button.active,
-.filter-row button:hover {
+.filter-row button:hover,
+.filter-row a.active,
+.filter-row a:hover {
   color: #ffffff;
   background: var(--accent);
   border-color: var(--accent);
@@ -533,6 +545,15 @@ p {
   object-fit: contain;
   padding: 14px;
   transition: transform 160ms ease;
+}
+
+.product-info h3 {
+  display: -webkit-box;
+  min-height: 4.65em;
+  overflow: hidden;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .product-card:hover img {
@@ -777,6 +798,49 @@ p {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.pdp-description {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+  color: var(--muted);
+}
+
+.pdp-description h2 {
+  color: var(--ink);
+  font-size: 22px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 30px;
+}
+
+.pagination a,
+.pagination span {
+  min-height: 40px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.pagination a:hover {
+  color: #ffffff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pagination .disabled {
+  pointer-events: none;
+  opacity: 0.45;
 }
 
 .quote-page {
@@ -1367,6 +1431,11 @@ body:has(.admin-login-page) .whatsapp-float {
     justify-content: flex-start;
     overflow-x: auto;
     padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .main-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .header-cta {
@@ -1458,8 +1527,12 @@ body:has(.admin-login-page) .whatsapp-float {
   }
 
   .main-nav {
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, max-content);
+    gap: 12px 18px;
     font-size: 13px;
+    width: 100%;
+    overflow: visible;
   }
 
   h1 {

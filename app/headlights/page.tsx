@@ -1,8 +1,21 @@
 import { Header } from "@/components/Header";
 import { ProductBrowser } from "@/components/ProductBrowser";
-import { products } from "@/lib/products";
+import { filterProducts, paginateProducts, productCardData } from "@/lib/products";
 
-export default function HeadlightsPage() {
+export const metadata = {
+  title: "Automotive LED Headlights by Vehicle Fitment",
+  description:
+    "Browse LED headlight assemblies and upgrade kits for BMW, Mercedes-Benz, Audi, Porsche, Volkswagen, Tesla, and other vehicle applications.",
+};
+
+export default async function HeadlightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ make?: string; q?: string; page?: string }>;
+}) {
+  const params = await searchParams;
+  const paged = paginateProducts(filterProducts({ category: "headlights", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 60);
+
   return (
     <>
       <Header cta="Request quote" />
@@ -17,7 +30,17 @@ export default function HeadlightsPage() {
         </section>
         <section className="section products-section">
           <div className="section-title-row"><div><p className="eyebrow">Headlight Listings</p><h2>Lighting products.</h2></div></div>
-          <ProductBrowser products={products} pageType="headlights" />
+          <ProductBrowser
+            products={productCardData(paged.items)}
+            pageType="headlights"
+            initialBrand={params.make || "all"}
+            initialCategory="headlights"
+            initialSearch={params.q || ""}
+            totalCount={paged.total}
+            currentPage={paged.currentPage}
+            totalPages={paged.totalPages}
+            basePath="/headlights"
+          />
         </section>
       </main>
     </>

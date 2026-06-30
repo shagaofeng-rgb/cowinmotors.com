@@ -1,26 +1,41 @@
 import Link from "next/link";
-import { inferBuyingPath, type Product } from "@/lib/products";
+import type { Product } from "@/lib/products";
+
+function productPath(product: Product) {
+  return `/product/${product.slug || product.__id}`;
+}
+
+function inferBuyingPath(product: Product) {
+  const title = product.title.toLowerCase();
+  if (title.includes("body") || title.includes("kit") || title.includes("paint") || title.includes("titanium") || title.includes("wholesale")) {
+    return "RFQ";
+  }
+  return "Direct / RFQ";
+}
 
 export function ProductCard({ product, showLive = false }: { product: Product; showLive?: boolean }) {
   return (
     <article className="product-card">
       {product.status ? <span className="badge">{product.status}</span> : null}
       <span className="quote-badge">{inferBuyingPath(product)}</span>
-      <Link className="image-wrap" href={`/product/${product.__id}`}>
+      <Link className="image-wrap" href={productPath(product)}>
         <img src={product.localImage} alt={product.title} loading="lazy" />
       </Link>
       <div className="product-info">
         <h3>{product.title}</h3>
-        <span className="fitment-line">{product.category || "Automotive Parts"} | Confirm fitment before order</span>
+        <span className="fitment-line">
+          {[product.brand, product.model, product.yearRange].filter(Boolean).join(" / ") || product.category || "Automotive Parts"}
+        </span>
+        {product.partNumbers?.length ? <span className="fitment-line">Part No. {product.partNumbers.slice(0, 2).join(" / ")}</span> : null}
         <div className="price-row">
           <span className="price">{product.price || "Request quote"}</span>
           {product.compareAt ? <span className="compare">{product.compareAt}</span> : null}
         </div>
         <div className="product-actions">
-          <Link className="product-link" href={`/product/${product.__id}`}>
+          <Link className="product-link" href={productPath(product)}>
             View details
           </Link>
-          {showLive ? (
+          {showLive && product.url ? (
             <a className="quote-link" href={product.url} target="_blank" rel="noreferrer">
               Live store
             </a>

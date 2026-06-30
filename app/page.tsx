@@ -3,9 +3,13 @@ import { FinderForm } from "@/components/FinderForm";
 import { Header } from "@/components/Header";
 import { MissingModelForm } from "@/components/MissingModelForm";
 import { ProductBrowser } from "@/components/ProductBrowser";
-import { products } from "@/lib/products";
+import { productCardData, products } from "@/lib/products";
 
 export default function HomePage() {
+  const featuredProducts = products
+    .filter((product) => ["Automotive Lighting", "Tail Lights", "Exhaust Systems"].includes(product.category))
+    .slice(0, 24);
+
   return (
     <>
       <Header />
@@ -60,13 +64,23 @@ export default function HomePage() {
           <div className="category-grid">
             <Link className="category-card" href="/headlights">
               <img src="/assets/live/category-lighting.png" alt="Automotive Lighting" />
-              <span>Automotive Lighting</span>
+              <span>Headlights</span>
               <small>Certification, connector, LHD/RHD, DRL and turn-signal behavior.</small>
+            </Link>
+            <Link className="category-card" href="/tail-lights">
+              <img src="/assets/live/category-lighting.png" alt="Automotive tail lights" />
+              <span>Tail Lights</span>
+              <small>Outer/inner rear lamps, side, OE number, connector and compliance confirmation.</small>
             </Link>
             <Link className="category-card" href="/exhaust">
               <img src="/assets/live/category-exhaust.png" alt="Exhaust Systems" />
               <span>Exhaust Pipes</span>
               <small>Cat-back, axle-back, downpipe, material, sound level and compliance notes.</small>
+            </Link>
+            <Link className="category-card" href="/products?category=oem-parts">
+              <img src="/assets/live/logo.jpg" alt="OEM automotive replacement parts" />
+              <span>OEM Parts</span>
+              <small>Search factory part numbers for BMW and Mercedes-Benz replacement parts.</small>
             </Link>
             <Link className="category-card" href="/body-kits">
               <img src="/assets/live/category-body-kits.png" alt="Body Kits" />
@@ -85,7 +99,7 @@ export default function HomePage() {
             </div>
             <Link className="catalog-link" href="/products">View all products</Link>
           </div>
-          <ProductBrowser products={products} pageType="home" limit={8} />
+          <ProductBrowser products={productCardData(featuredProducts)} pageType="home" limit={8} />
         </section>
 
         <section className="section missing-model-section">
