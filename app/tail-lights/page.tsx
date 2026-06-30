@@ -6,6 +6,7 @@ export const metadata = {
   title: "Automotive LED Tail Lights by Vehicle Fitment",
   description:
     "Browse OEM replacement and upgrade LED tail lights for BMW, Mercedes-Benz, Audi, Porsche, Volkswagen, and other vehicle applications.",
+  alternates: { canonical: "/tail-lights" },
 };
 
 export default async function TailLightsPage({

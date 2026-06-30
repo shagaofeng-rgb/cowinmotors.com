@@ -6,6 +6,7 @@ export const metadata = {
   title: "Automotive LED Headlights by Vehicle Fitment",
   description:
     "Browse LED headlight assemblies and upgrade kits for BMW, Mercedes-Benz, Audi, Porsche, Volkswagen, Tesla, and other vehicle applications.",
+  alternates: { canonical: "/headlights" },
 };
 
 export default async function HeadlightsPage({

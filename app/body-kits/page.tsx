@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 
+export const metadata = {
+  title: "Automotive Body Kits and Exterior Styling RFQ",
+  description:
+    "Request quotes for automotive body kits and exterior styling parts with fitment, material, finish, paint, packaging, and oversized shipping confirmation.",
+  alternates: { canonical: "/body-kits" },
+};
+
 export default function BodyKitsPage() {
   return (
     <>

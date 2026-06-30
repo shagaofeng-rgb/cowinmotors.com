@@ -1,5 +1,12 @@
 import { Header } from "@/components/Header";
 
+export const metadata = {
+  title: "Automotive Parts Order Support",
+  description:
+    "Get support for Cowinmotors automotive parts orders, including fitment confirmation, shipping, payment, warranty, returns, tracking, and installation documents.",
+  alternates: { canonical: "/support" },
+};
+
 export default function SupportPage() {
   return (
     <>

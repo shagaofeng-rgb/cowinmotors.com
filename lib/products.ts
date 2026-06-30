@@ -86,12 +86,13 @@ export function filterProducts({
   query?: string;
 }) {
   const q = query.trim().toLowerCase();
+  const terms = q.split(/\s+/).filter(Boolean);
   const b = brand.trim().toLowerCase();
 
   return products.filter((product) => {
     if (category && categorySlug(product) !== category) return false;
     if (b && b !== "all" && String(product.brand || "").toLowerCase() !== b) return false;
-    if (!q) return true;
+    if (!terms.length) return true;
     const haystack = [
       product.title,
       product.brand,
@@ -103,7 +104,7 @@ export function filterProducts({
       ...(product.features || []),
       ...(product.partNumbers || []),
     ].join(" ").toLowerCase();
-    return haystack.includes(q);
+    return terms.every((term) => haystack.includes(term));
   });
 }
 

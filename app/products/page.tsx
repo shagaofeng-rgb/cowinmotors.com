@@ -7,6 +7,7 @@ export const metadata = {
   title: "Automotive Headlights, Tail Lights and Exhaust Products Catalog",
   description:
     "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, and exhaust systems.",
+  alternates: { canonical: "/products" },
 };
 
 export default async function ProductsPage({

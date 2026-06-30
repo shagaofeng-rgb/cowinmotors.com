@@ -6,6 +6,7 @@ export const metadata = {
   title: "Performance Exhaust Systems and Downpipes",
   description:
     "Browse SS304 performance exhaust systems, catback exhausts, downpipes, and replacement exhaust products with RFQ support.",
+  alternates: { canonical: "/exhaust" },
 };
 
 export default async function ExhaustPage({

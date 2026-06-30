@@ -530,7 +530,7 @@ p {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #ffffff;
-  color: var(--text);
+  color: var(--ink);
   font: inherit;
 }
 
@@ -541,9 +541,9 @@ p {
   justify-content: center;
   min-height: 46px;
   padding: 0 18px;
-  border: 1px solid var(--dark);
+  border: 1px solid var(--accent);
   border-radius: 6px;
-  background: var(--dark);
+  background: var(--accent);
   color: #ffffff;
   font-weight: 800;
   text-decoration: none;

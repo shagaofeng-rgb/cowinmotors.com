@@ -79,14 +79,18 @@ export async function getInquiries(): Promise<InquiryRecord[]> {
   const sql = getSql();
 
   if (sql) {
-    await ensureCoreSchema();
-    const rows = await sql`
-      SELECT id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
-      FROM cowin_inquiries
-      ORDER BY created_at DESC
-      LIMIT 300
-    ` as InquiryRow[];
-    return rows.map(inquiryFromRow);
+    try {
+      await ensureCoreSchema();
+      const rows = await sql`
+        SELECT id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
+        FROM cowin_inquiries
+        ORDER BY created_at DESC
+        LIMIT 300
+      ` as InquiryRow[];
+      return rows.map(inquiryFromRow);
+    } catch (error) {
+      console.error("Inquiry database read failed; using file fallback.", error);
+    }
   }
 
   return readJsonFile<InquiryRecord[]>(inquiryFile, []).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -96,26 +100,30 @@ async function persistInquiry(record: InquiryRecord) {
   const sql = getSql();
 
   if (sql) {
-    await ensureCoreSchema();
-    await sql`
-      INSERT INTO cowin_inquiries (
-        id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
-      ) VALUES (
-        ${record.id},
-        ${record.createdAt},
-        ${record.source},
-        ${record.name},
-        ${record.email},
-        ${record.country},
-        ${record.productType},
-        ${record.product},
-        ${record.vehicleInfo},
-        ${record.quantity},
-        ${record.requirement}
-      )
-      ON CONFLICT (id) DO NOTHING
-    `;
-    return;
+    try {
+      await ensureCoreSchema();
+      await sql`
+        INSERT INTO cowin_inquiries (
+          id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
+        ) VALUES (
+          ${record.id},
+          ${record.createdAt},
+          ${record.source},
+          ${record.name},
+          ${record.email},
+          ${record.country},
+          ${record.productType},
+          ${record.product},
+          ${record.vehicleInfo},
+          ${record.quantity},
+          ${record.requirement}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+      return;
+    } catch (error) {
+      console.error("Inquiry database write failed; using file fallback.", error);
+    }
   }
 
   const records = [record, ...readJsonFile<InquiryRecord[]>(inquiryFile, [])].slice(0, 300);

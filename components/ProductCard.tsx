@@ -13,7 +13,20 @@ function inferBuyingPath(product: Product) {
   return "Direct / RFQ";
 }
 
+function listingUrl(url?: string) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url, "https://www.cowinmotors.com");
+    if (parsed.hostname.replace(/^www\./, "") === "cowinmotors.com") return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
 export function ProductCard({ product, showLive = false }: { product: Product; showLive?: boolean }) {
+  const externalListingUrl = listingUrl(product.url);
+
   return (
     <article className="product-card">
       {product.status ? <span className="badge">{product.status}</span> : null}
@@ -35,8 +48,8 @@ export function ProductCard({ product, showLive = false }: { product: Product; s
           <Link className="product-link" href={productPath(product)}>
             View details
           </Link>
-          {showLive && product.url ? (
-            <a className="quote-link" href={product.url} target="_blank" rel="noreferrer">
+          {showLive && externalListingUrl ? (
+            <a className="quote-link" href={externalListingUrl} target="_blank" rel="noreferrer">
               Product listing
             </a>
           ) : null}

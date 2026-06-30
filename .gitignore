@@ -10,3 +10,7 @@ build/
 tsconfig.tsbuildinfo
 *.zip
 .env*
+.data/
+.facebook_ads*_cache/
+facebook_ads_output*/
+facebook_reference_ads/

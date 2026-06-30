@@ -28,11 +28,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
+function listingUrl(url?: string) {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url, "https://www.cowinmotors.com");
+    if (parsed.hostname.replace(/^www\./, "") === "cowinmotors.com") return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const product = findProduct(id);
   if (!product) notFound();
   const imagePath = product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`;
+  const externalListingUrl = listingUrl(product.url);
   const schema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -71,7 +83,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </div>
             <div className="pdp-actions">
               <Link className="button primary" href={`/quote?product=${encodeURIComponent(product.title)}`}>Request quote</Link>
-              {product.url ? <a className="button secondary" href={product.url} target="_blank" rel="noreferrer">View product listing</a> : null}
+              {externalListingUrl ? <a className="button secondary" href={externalListingUrl} target="_blank" rel="noreferrer">View product listing</a> : null}
             </div>
             <dl className="spec-table">
               <div><dt>Buying path</dt><dd>{inferBuyingPath(product)}</dd></div>

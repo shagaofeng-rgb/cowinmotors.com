@@ -1,6 +1,13 @@
 import { Header } from "@/components/Header";
 import { QuoteForm } from "@/components/QuoteForm";
 
+export const metadata = {
+  title: "Request a Wholesale Automotive Parts Quote",
+  description:
+    "Send vehicle fitment, product type, quantity, destination country, and packaging requirements to request a Cowinmotors wholesale quote.",
+  alternates: { canonical: "/quote" },
+};
+
 export default async function QuotePage({ searchParams }: { searchParams: Promise<{ product?: string }> }) {
   const params = await searchParams;
 

@@ -210,43 +210,47 @@ export async function appendAnalyticsEvent(event: AnalyticsEvent) {
   const sql = getSql();
 
   if (sql) {
-    await ensureCoreSchema();
-    await sql`
-      INSERT INTO cowin_analytics_events (
-        id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
-        scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
-        channel, source_platform, source_detail, timestamp, client_timestamp
-      ) VALUES (
-        ${event.id},
-        ${event.type},
-        ${event.visitorId},
-        ${event.sessionId},
-        ${event.page},
-        ${event.previousPage},
-        ${event.pageTitle},
-        ${event.referrer},
-        ${event.outboundUrl},
-        ${event.targetText},
-        ${event.scrollDepth},
-        ${event.duration},
-        ${JSON.stringify(event.utm)}::jsonb,
-        ${event.browser},
-        ${event.os},
-        ${event.device},
-        ${event.userAgent},
-        ${event.ip},
-        ${event.country},
-        ${event.region},
-        ${event.city},
-        ${event.channel},
-        ${event.sourcePlatform},
-        ${event.sourceDetail},
-        ${event.timestamp},
-        ${event.clientTimestamp}
-      )
-      ON CONFLICT (id) DO NOTHING
-    `;
-    return { ok: true, storageMode: getAnalyticsStorageMode() };
+    try {
+      await ensureCoreSchema();
+      await sql`
+        INSERT INTO cowin_analytics_events (
+          id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+          scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+          channel, source_platform, source_detail, timestamp, client_timestamp
+        ) VALUES (
+          ${event.id},
+          ${event.type},
+          ${event.visitorId},
+          ${event.sessionId},
+          ${event.page},
+          ${event.previousPage},
+          ${event.pageTitle},
+          ${event.referrer},
+          ${event.outboundUrl},
+          ${event.targetText},
+          ${event.scrollDepth},
+          ${event.duration},
+          ${JSON.stringify(event.utm)}::jsonb,
+          ${event.browser},
+          ${event.os},
+          ${event.device},
+          ${event.userAgent},
+          ${event.ip},
+          ${event.country},
+          ${event.region},
+          ${event.city},
+          ${event.channel},
+          ${event.sourcePlatform},
+          ${event.sourceDetail},
+          ${event.timestamp},
+          ${event.clientTimestamp}
+        )
+        ON CONFLICT (id) DO NOTHING
+      `;
+      return { ok: true, storageMode: getAnalyticsStorageMode() };
+    } catch (error) {
+      console.error("Analytics database write failed; using file fallback.", error);
+    }
   }
 
   await fs.mkdir(dataDir, { recursive: true });
@@ -258,45 +262,49 @@ export async function readAnalyticsEvents() {
   const sql = getSql();
 
   if (sql) {
-    await ensureCoreSchema();
-    const rows = await sql`
-      SELECT
-        id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
-        scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
-        channel, source_platform, source_detail, timestamp, client_timestamp
-      FROM cowin_analytics_events
-      ORDER BY timestamp DESC
-      LIMIT 10000
-    ` as AnalyticsEventRow[];
+    try {
+      await ensureCoreSchema();
+      const rows = await sql`
+        SELECT
+          id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+          scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+          channel, source_platform, source_detail, timestamp, client_timestamp
+        FROM cowin_analytics_events
+        ORDER BY timestamp DESC
+        LIMIT 10000
+      ` as AnalyticsEventRow[];
 
-    return rows.map((row) => ({
-      id: row.id,
-      type: row.type,
-      visitorId: row.visitor_id,
-      sessionId: row.session_id,
-      page: row.page,
-      previousPage: row.previous_page || "",
-      pageTitle: row.page_title || "",
-      referrer: row.referrer || "",
-      outboundUrl: row.outbound_url || "",
-      targetText: row.target_text || "",
-      scrollDepth: Number(row.scroll_depth || 0),
-      duration: Number(row.duration || 0),
-      utm: typeof row.utm === "string" ? JSON.parse(row.utm || "{}") : row.utm || {},
-      browser: row.browser || "",
-      os: row.os || "",
-      device: row.device || "",
-      userAgent: row.user_agent || "",
-      ip: row.ip || "",
-      country: row.country || "",
-      region: row.region || "",
-      city: row.city || "",
-      channel: row.channel || "",
-      sourcePlatform: row.source_platform || "",
-      sourceDetail: row.source_detail || "",
-      timestamp: new Date(row.timestamp).toISOString(),
-      clientTimestamp: row.client_timestamp || "",
-    })) as AnalyticsEvent[];
+      return rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        visitorId: row.visitor_id,
+        sessionId: row.session_id,
+        page: row.page,
+        previousPage: row.previous_page || "",
+        pageTitle: row.page_title || "",
+        referrer: row.referrer || "",
+        outboundUrl: row.outbound_url || "",
+        targetText: row.target_text || "",
+        scrollDepth: Number(row.scroll_depth || 0),
+        duration: Number(row.duration || 0),
+        utm: typeof row.utm === "string" ? JSON.parse(row.utm || "{}") : row.utm || {},
+        browser: row.browser || "",
+        os: row.os || "",
+        device: row.device || "",
+        userAgent: row.user_agent || "",
+        ip: row.ip || "",
+        country: row.country || "",
+        region: row.region || "",
+        city: row.city || "",
+        channel: row.channel || "",
+        sourcePlatform: row.source_platform || "",
+        sourceDetail: row.source_detail || "",
+        timestamp: new Date(row.timestamp).toISOString(),
+        clientTimestamp: row.client_timestamp || "",
+      })) as AnalyticsEvent[];
+    } catch (error) {
+      console.error("Analytics database read failed; using file fallback.", error);
+    }
   }
 
   try {
