@@ -37,7 +37,7 @@ export function ProductCard({ product, showLive = false }: { product: Product; s
           </Link>
           {showLive && product.url ? (
             <a className="quote-link" href={product.url} target="_blank" rel="noreferrer">
-              Live store
+              Product listing
             </a>
           ) : null}
           <Link className="quote-link" href={`/quote?product=${encodeURIComponent(product.title)}`}>

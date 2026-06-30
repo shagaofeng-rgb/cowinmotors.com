@@ -49,7 +49,7 @@ export default async function ExhaustPage({
             <div>
               <p className="eyebrow">Production Workshop</p>
               <h2>Welding, packing, and stocked export inventory.</h2>
-              <p>Show buyers the operational side of the exhaust supply chain: fabrication workstations, packaging workflow, warehouse storage, and export-ready cartons.</p>
+              <p>Production and packing support covers fabrication workstations, warehouse storage, protective packaging, and export-ready cartons.</p>
             </div>
           </div>
           <img src="/assets/live/exhaust-workshop.webp" alt="Exhaust production workshop, packaging area, and warehouse inventory" loading="lazy" />

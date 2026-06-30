@@ -71,7 +71,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </div>
             <div className="pdp-actions">
               <Link className="button primary" href={`/quote?product=${encodeURIComponent(product.title)}`}>Request quote</Link>
-              {product.url ? <a className="button secondary" href={product.url} target="_blank" rel="noreferrer">Open live store product</a> : null}
+              {product.url ? <a className="button secondary" href={product.url} target="_blank" rel="noreferrer">View product listing</a> : null}
             </div>
             <dl className="spec-table">
               <div><dt>Buying path</dt><dd>{inferBuyingPath(product)}</dd></div>
@@ -83,13 +83,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               {product.moq ? <div><dt>MOQ</dt><dd>{product.moq}</dd></div> : null}
               {product.features?.length ? <div><dt>Features</dt><dd>{product.features.join(", ")}</dd></div> : null}
               <div><dt>Lead time</dt><dd>Estimated before dispatch. Confirm with sales for wholesale or custom orders.</dd></div>
-              <div><dt>Shipping</dt><dd>Destination, carton size, tax/VAT and customs duties should be confirmed before payment.</dd></div>
+              <div><dt>Shipping</dt><dd>Destination, carton size, tax/VAT, and customs duties are confirmed before payment.</dd></div>
               <div><dt>QC</dt><dd>Product and packaging checks can be arranged before shipment.</dd></div>
             </dl>
             <section className="pdp-description">
-              <h2>Product sourcing notes</h2>
+              <h2>Fitment and quotation notes</h2>
               <p>{product.description}</p>
-              <p>For GEO and AI-search clarity, send the exact vehicle year, market region, trim, left/right side, OE part number if available, and target quantity. Cowinmotors will confirm fitment, availability, packaging, and export shipping before quotation.</p>
+              <p>For an accurate quotation, send the vehicle year, market region, trim, left/right side, OE part number if available, and target quantity. Cowinmotors will confirm fitment, availability, packaging, and export shipping before quotation.</p>
             </section>
           </div>
         </section>

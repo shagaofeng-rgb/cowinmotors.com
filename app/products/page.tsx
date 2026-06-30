@@ -31,7 +31,7 @@ export default async function ProductsPage({
         <section className="page-hero">
           <p className="eyebrow">All Products</p>
           <h1>Browse by vehicle, category, and brand.</h1>
-          <p>Use this catalog page for full product discovery. Product detail pages keep compatibility, shipping, QC, and RFQ actions clear.</p>
+          <p>Search lighting, exhaust, and exterior parts by vehicle fitment, product category, brand, year, and part number.</p>
         </section>
         <section className="vehicle-finder page-finder">
           <div className="finder-copy">
@@ -46,7 +46,7 @@ export default async function ProductsPage({
             <div>
               <p className="eyebrow">Catalog</p>
               <h2>All available listings.</h2>
-              <p>Each card opens a local detail page first, with a separate link to the live store product.</p>
+              <p>Open a product page to review fitment notes, available images, and quotation details.</p>
             </div>
           </div>
           <ProductBrowser

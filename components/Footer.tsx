@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="site-footer">
       <div>
         <strong>Cowinmotors</strong>
-        <span>Automotive headlights, exhaust pipes, and body kits for global buyers.</span>
+        <span>Automotive headlights, exhaust systems, and body kits for international orders.</span>
       </div>
       <nav aria-label="Footer navigation">
         <Link href="/products">Shop by Vehicle</Link>

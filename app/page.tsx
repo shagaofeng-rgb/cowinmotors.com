@@ -90,7 +90,7 @@ export default function HomePage() {
             <div>
               <p className="eyebrow">Featured Products</p>
               <h2>Featured stocked and quote-ready products.</h2>
-              <p>Homepage only shows representative SKUs. Keep the full catalog on product pages.</p>
+              <p>Explore popular lighting and exhaust applications, then open the full catalog for more vehicle fitments.</p>
             </div>
             <Link className="catalog-link" href="/products">View all products</Link>
           </div>
@@ -99,11 +99,11 @@ export default function HomePage() {
 
         <section className="section missing-model-section">
           <div>
-            <p className="eyebrow">Can not find your model?</p>
-            <h2>Tell us what you need. We will contact you with a solution.</h2>
+            <p className="eyebrow">Need a specific fitment?</p>
+            <h2>Submit the vehicle details for a matching solution.</h2>
             <p>
-              If the exact vehicle model or part type is not listed on our website, submit the details here.
-              Our team will check fitment, supplier availability, MOQ, lead time, and shipping options for you.
+              If the exact vehicle model or part type is not listed, send the details here.
+              Cowinmotors will check fitment, availability, MOQ, lead time, and shipping options.
             </p>
           </div>
           <MissingModelForm />
@@ -111,14 +111,14 @@ export default function HomePage() {
 
         <section className="section support-columns">
           <div>
-            <p className="eyebrow">Quote-only logic</p>
-            <h2>Body kits need fitment and shipping confirmation.</h2>
+            <p className="eyebrow">Custom RFQ</p>
+            <h2>Body kits require fitment and shipping confirmation.</h2>
             <p>
-              Oversized, paint-required, custom-finish, or mixed-supplier orders should use RFQ instead of a normal cart.
+              Oversized parts, paint-required kits, custom finishes, and mixed-supplier orders are confirmed by quotation before payment.
             </p>
           </div>
           <div className="support-card">
-            <h3>Body kit RFQ fields</h3>
+            <h3>Information needed for a quote</h3>
             <ul>
               <li>Vehicle year, make, model, trim and body type</li>
               <li>Front / rear / side / full kit requirement</li>
@@ -130,13 +130,12 @@ export default function HomePage() {
 
         <section className="section company-section">
           <div>
-            <p className="eyebrow">Company Role</p>
-            <h2>Transparent trading and export partner.</h2>
+            <p className="eyebrow">Export Support</p>
+            <h2>Sourcing, inspection, packaging, and shipment coordination.</h2>
           </div>
           <p>
-            Cowinmotors should avoid vague factory claims unless factory-owned evidence is provided. The stronger trust
-            position is clear: supplier sourcing, QC inspection, packaging support, sample coordination, OEM/ODM options,
-            export handling, and responsive after-sales communication.
+            Cowinmotors supports overseas buyers with supplier coordination, product checks, sample handling,
+            packaging confirmation, OEM/ODM communication, export documentation, and responsive after-sales follow-up.
           </p>
         </section>
       </main>
