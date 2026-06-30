@@ -75,18 +75,20 @@ export function ProductBrowser({
           ? `Showing ${visible.length} selected products from ${products.length}.`
           : `${visible.length} products shown${activeCriteria.length ? ` for ${activeCriteria.join(" / ")}` : ""}`}
       </div>
-      <div className="filter-row" aria-label="Quick filters">
-        {brandFilters.map((brand) => (
-          <Link
-            className={activeBrand === brand ? "active" : ""}
-            data-filter={brand}
-            href={makeHref({ make: brand === "all" ? "" : brand, page: 1 })}
-            key={brand}
-          >
-            {brand === "all" ? "All" : brand}
-          </Link>
-        ))}
-      </div>
+      {pageType !== "home" ? (
+        <div className="filter-row" aria-label="Quick filters">
+          {brandFilters.map((brand) => (
+            <Link
+              className={activeBrand === brand ? "active" : ""}
+              data-filter={brand}
+              href={makeHref({ make: brand === "all" ? "" : brand, page: 1 })}
+              key={brand}
+            >
+              {brand === "all" ? "All" : brand}
+            </Link>
+          ))}
+        </div>
+      ) : null}
       {visible.length ? (
         <div className="product-grid" id="productGrid">
           {visible.map((product) => (

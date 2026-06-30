@@ -58,8 +58,8 @@ export default function HomePage() {
         <section className="section" id="categories">
           <div className="section-heading">
             <p className="eyebrow">Primary Categories</p>
-            <h2>Clean catalog entry points.</h2>
-            <p>Each category is built around compatibility, product specs, support documents, and clear buying path.</p>
+            <h2>Shop by product category.</h2>
+            <p>Start from the part type first, then narrow by vehicle model, year, fitment, side, material, and MOQ.</p>
           </div>
           <div className="category-grid">
             <Link className="category-card" href="/headlights">
@@ -68,13 +68,13 @@ export default function HomePage() {
               <small>Certification, connector, LHD/RHD, DRL and turn-signal behavior.</small>
             </Link>
             <Link className="category-card" href="/tail-lights">
-              <img src="/assets/live/category-lighting.png" alt="Automotive tail lights" />
+              <img src="/assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp" alt="Automotive LED tail lights" />
               <span>Tail Lights</span>
               <small>Outer/inner rear lamps, side, OE number, connector and compliance confirmation.</small>
             </Link>
             <Link className="category-card" href="/exhaust">
               <img src="/assets/live/category-exhaust.png" alt="Exhaust Systems" />
-              <span>Exhaust Pipes</span>
+              <span>Exhaust Systems</span>
               <small>Cat-back, axle-back, downpipe, material, sound level and compliance notes.</small>
             </Link>
             <Link className="category-card" href="/body-kits">

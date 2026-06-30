@@ -356,27 +356,43 @@ p {
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .category-card {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  grid-template-rows: minmax(180px, 0.78fr) auto auto;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
   background: #ffffff;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.category-card:hover {
+  transform: translateY(-2px);
+  border-color: #cad3dc;
+  box-shadow: 0 16px 34px rgba(20, 29, 36, 0.08);
 }
 
 .category-card img {
   width: 100%;
-  aspect-ratio: 1 / 0.72;
+  height: 100%;
+  min-height: 180px;
+  max-height: 230px;
   object-fit: contain;
+  padding: 8px;
+  background: #fafafa;
+  border-radius: 6px;
 }
 
 .category-card span {
-  font-size: 20px;
+  color: var(--ink);
+  font-size: 19px;
   font-weight: 900;
 }
 
@@ -1495,6 +1511,20 @@ body:has(.admin-login-page) .whatsapp-float {
   .support-grid,
   .admin-metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .category-card {
+    grid-template-rows: minmax(150px, 0.7fr) auto auto;
+  }
+
+  .category-card img {
+    min-height: 150px;
+    max-height: 190px;
   }
 }
 
