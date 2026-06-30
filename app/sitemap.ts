@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { categorySlug, products } from "@/lib/products";
+import { products } from "@/lib/products";
 
 const siteUrl = "https://www.cowinmotors.com";
 
@@ -21,7 +21,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const productPages = products
-    .filter((product) => categorySlug(product) !== "catalog-reference")
     .slice(0, 2500)
     .map((product) => ({
       url: `${siteUrl}/product/${product.slug || product.__id}`,

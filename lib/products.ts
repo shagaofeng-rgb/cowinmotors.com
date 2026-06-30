@@ -52,7 +52,6 @@ export function categorySlug(product: Product) {
   if (product.category.includes("Tail")) return "tail-lights";
   if (product.category.includes("Exhaust")) return "exhaust";
   if (product.category.includes("Body")) return "body-kits";
-  if (product.category.includes("Catalog")) return "catalog-reference";
   return "products";
 }
 
@@ -74,7 +73,6 @@ export const productCategoryOptions = [
   { slug: "headlights", label: "Headlights" },
   { slug: "tail-lights", label: "Tail Lights" },
   { slug: "exhaust", label: "Exhaust Systems" },
-  { slug: "catalog-reference", label: "Catalog Reference" },
   { slug: "body-kits", label: "Body Kits" },
 ];
 

@@ -26,7 +26,7 @@ export default async function TailLightsPage({
             <h1>LED tail lights and rear lamp assemblies by vehicle fitment.</h1>
             <p>Confirm year, trim, LHD/RHD, connector, outer/inner lamp position, side, part number, and compliance before order.</p>
           </div>
-          <img src="/assets/live/category-lighting.png" alt="Automotive LED tail light product" />
+          <img src="/assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp" alt="Automotive LED tail light assembly" />
         </section>
         <section className="section products-section">
           <div className="section-title-row"><div><p className="eyebrow">Tail Light Listings</p><h2>Rear lighting products.</h2></div></div>

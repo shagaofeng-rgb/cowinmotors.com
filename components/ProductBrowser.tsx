@@ -5,7 +5,7 @@ import type { Product } from "@/lib/products";
 import { ProductCard } from "./ProductCard";
 
 const brandFilters = ["all", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla"];
-const categoryFilters = ["headlights", "tail-lights", "exhaust", "catalog-reference", "body-kits"];
+const categoryFilters = ["headlights", "tail-lights", "exhaust", "body-kits"];
 
 export function ProductBrowser({
   products,

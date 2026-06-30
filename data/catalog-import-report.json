@@ -1,28 +1,32 @@
 {
-  "totalProducts": 1152,
-  "removedProducts": 12934,
-  "rules": [
-    "Removed all OEM Replacement Parts products.",
-    "Removed products without an existing local image file.",
-    "Removed products that used logo, category, or generic placeholder images.",
-    "Kept catalog-extracted images and existing cowinmotors.com product images."
-  ],
+  "totalProducts": 1016,
+  "removedProducts": 72,
   "categoryCounts": {
     "Tail Lights": 533,
     "Automotive Lighting": 468,
-    "Catalog Reference": 136,
     "Exhaust Systems": 15
   },
   "brandCounts": {
-    "BMW": 499,
-    "Mercedes-Benz": 409,
-    "Porsche": 117,
-    "Audi": 66,
-    "Volkswagen": 60,
+    "BMW": 483,
+    "Mercedes-Benz": 389,
+    "Audi": 56,
+    "Volkswagen": 46,
+    "Porsche": 41,
     "Tesla": 1
   },
-  "imageCounts": {
-    "assets/catalog": 1129,
-    "existingWebsiteImages": 23
-  }
+  "imageChecks": {
+    "missingImages": 0,
+    "placeholderImages": 0,
+    "catalogImages": 993,
+    "existingWebsiteImages": 23,
+    "removedUnusedCatalogImages": 516,
+    "remainingCatalogAssetFiles": 808
+  },
+  "categoryMismatchCount": 0,
+  "rules": [
+    "Removed Catalog Reference records from public product listings because they are catalog pages, not precise products.",
+    "Removed products without existing real images or with generic placeholder images.",
+    "Normalized categories by title and product type keywords: Headlights, Tail Lights, Exhaust Systems.",
+    "Category page hero images use real matching category images."
+  ]
 }

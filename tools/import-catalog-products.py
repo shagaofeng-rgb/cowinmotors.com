@@ -82,7 +82,7 @@ MODEL_CN = {
 
 PLACEHOLDERS = {
     "Automotive Lighting": "assets/live/category-lighting.png",
-    "Tail Lights": "assets/live/category-lighting.png",
+    "Tail Lights": "assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp",
     "Exhaust Systems": "assets/live/category-exhaust.png",
     "Body Kits": "assets/live/category-body-kits.png",
     "OEM Replacement Parts": "assets/live/logo.jpg",
@@ -549,8 +549,26 @@ def dedupe(products: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def normalized_product_category(product: dict[str, Any]) -> str:
+    title = f"{product.get('title', '')} {product.get('productType', '')}".lower()
+    if "tail light" in title or "rear lamp" in title:
+        return "Tail Lights"
+    if any(term in title for term in ("exhaust", "catback", "downpipe", "muffler")):
+        return "Exhaust Systems"
+    if any(term in title for term in ("headlight", "automotive lighting", "lighting assembly")):
+        return "Automotive Lighting"
+    return str(product.get("category", ""))
+
+
 def is_publishable_product(product: dict[str, Any]) -> bool:
-    if product.get("category") == "OEM Replacement Parts":
+    original_category = str(product.get("category", ""))
+    if original_category in {"OEM Replacement Parts", "Catalog Reference"}:
+        return False
+
+    category = normalized_product_category(product)
+    product["category"] = category
+
+    if category == "OEM Replacement Parts":
         return False
 
     image = str(product.get("localImage", ""))
@@ -564,6 +582,24 @@ def is_publishable_product(product: dict[str, Any]) -> bool:
         return True
 
     return False
+
+
+def prune_unreferenced_catalog_assets(products: list[dict[str, Any]]) -> int:
+    referenced = {str(product.get("localImage", "")) for product in products if product.get("localImage")}
+    referenced.add(PLACEHOLDERS["Tail Lights"])
+    removed = 0
+    for path in sorted(ASSET_DIR.rglob("*"), reverse=True):
+        if path.is_file():
+            rel = str(path.relative_to(PUBLIC))
+            if rel not in referenced:
+                path.unlink()
+                removed += 1
+        elif path.is_dir():
+            try:
+                path.rmdir()
+            except OSError:
+                pass
+    return removed
 
 
 def main() -> None:
@@ -598,6 +634,7 @@ def main() -> None:
     before_publishable_filter = len(products)
     products = [product for product in products if is_publishable_product(product)]
     stats["removed_unpublishable"] = before_publishable_filter - len(products)
+    stats["removed_unused_catalog_images"] = prune_unreferenced_catalog_assets(products)
     products.sort(key=lambda p: (p.get("category", ""), p.get("brand", ""), p.get("model", ""), p.get("title", "")))
     data = json.loads(DATA_FILE.read_text())
     data["products"] = products
