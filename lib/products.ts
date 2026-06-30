@@ -52,7 +52,6 @@ export function categorySlug(product: Product) {
   if (product.category.includes("Tail")) return "tail-lights";
   if (product.category.includes("Exhaust")) return "exhaust";
   if (product.category.includes("Body")) return "body-kits";
-  if (product.category.includes("OEM")) return "oem-parts";
   if (product.category.includes("Catalog")) return "catalog-reference";
   return "products";
 }
@@ -75,7 +74,6 @@ export const productCategoryOptions = [
   { slug: "headlights", label: "Headlights" },
   { slug: "tail-lights", label: "Tail Lights" },
   { slug: "exhaust", label: "Exhaust Systems" },
-  { slug: "oem-parts", label: "OEM Replacement Parts" },
   { slug: "catalog-reference", label: "Catalog Reference" },
   { slug: "body-kits", label: "Body Kits" },
 ];
@@ -103,13 +101,15 @@ export function filterProducts({
       product.yearRange,
       product.productType,
       product.category,
+      product.description,
+      ...(product.features || []),
       ...(product.partNumbers || []),
     ].join(" ").toLowerCase();
     return haystack.includes(q);
   });
 }
 
-export function paginateProducts(list: Product[], page = 1, pageSize = 60) {
+export function paginateProducts(list: Product[], page = 1, pageSize = 25) {
   const safePage = Math.max(1, Number.isFinite(page) ? page : 1);
   const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
   const currentPage = Math.min(safePage, totalPages);

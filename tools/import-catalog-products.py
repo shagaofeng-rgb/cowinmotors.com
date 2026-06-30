@@ -514,10 +514,12 @@ def import_exhaust_pdf(path: Path) -> list[dict[str, Any]]:
     return products
 
 
-def import_pdf_visual_refs(path: Path, source: str, brand: str, category_hint: str) -> list[dict[str, Any]]:
+def import_pdf_visual_refs(path: Path, source: str, brand: str, category_hint: str, max_pages: int | None = None) -> list[dict[str, Any]]:
     reader = PdfReader(path)
     products = []
     for index, page in enumerate(reader.pages, start=1):
+        if max_pages and index > max_pages:
+            break
         rel = ""
         try:
             images = sorted(page.images, key=lambda img: len(img.data), reverse=True)
@@ -547,6 +549,23 @@ def dedupe(products: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def is_publishable_product(product: dict[str, Any]) -> bool:
+    if product.get("category") == "OEM Replacement Parts":
+        return False
+
+    image = str(product.get("localImage", ""))
+    if image.startswith("assets/catalog/"):
+        return True
+
+    source = str(product.get("source", ""))
+    if source.startswith("https://cowinmotors.com") and (
+        image.startswith("assets/live/product-") or image.startswith("assets/products/headlight-")
+    ):
+        return True
+
+    return False
+
+
 def main() -> None:
     if ASSET_DIR.exists():
         shutil.rmtree(ASSET_DIR)
@@ -566,7 +585,7 @@ def main() -> None:
         ("akd_audi", lambda: import_pdf_visual_refs(SOURCES["akd_audi"], "AKD AUDI Catalogue 2026.pdf", "Audi", "Lighting")),
         ("akd_vw", lambda: import_pdf_visual_refs(SOURCES["akd_vw"], "AKD VW Catalogue.pdf", "Volkswagen", "Lighting")),
         ("akd_porsche", lambda: import_pdf_visual_refs(SOURCES["akd_porsche"], "AKD Porsche Catalogue.pdf", "Porsche", "Lighting")),
-        ("linlur", lambda: import_pdf_visual_refs(SOURCES["linlur"], "南通玲路汽车有限公司.pdf", "Porsche", "Headlight, Tail Light and Body Kit")),
+        ("linlur", lambda: import_pdf_visual_refs(SOURCES["linlur"], "南通玲路汽车有限公司.pdf", "Porsche", "Headlight, Tail Light and Body Kit", max_pages=72)),
     ]
     for key, fn in importers:
         before = len(products)
@@ -576,6 +595,9 @@ def main() -> None:
         except Exception as error:
             stats[key] = f"ERROR: {error}"
     products = dedupe(products)
+    before_publishable_filter = len(products)
+    products = [product for product in products if is_publishable_product(product)]
+    stats["removed_unpublishable"] = before_publishable_filter - len(products)
     products.sort(key=lambda p: (p.get("category", ""), p.get("brand", ""), p.get("model", ""), p.get("title", "")))
     data = json.loads(DATA_FILE.read_text())
     data["products"] = products

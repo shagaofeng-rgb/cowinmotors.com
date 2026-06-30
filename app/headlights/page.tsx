@@ -14,7 +14,7 @@ export default async function HeadlightsPage({
   searchParams: Promise<{ make?: string; q?: string; page?: string }>;
 }) {
   const params = await searchParams;
-  const paged = paginateProducts(filterProducts({ category: "headlights", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 60);
+  const paged = paginateProducts(filterProducts({ category: "headlights", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 25);
 
   return (
     <>

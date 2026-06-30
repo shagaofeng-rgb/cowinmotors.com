@@ -1,22 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import { ProductCard } from "./ProductCard";
 
 const brandFilters = ["all", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla"];
-const categoryFilters = ["headlights", "tail-lights", "exhaust", "oem-parts", "catalog-reference", "body-kits"];
-
-function categorySlug(product: Product) {
-  if (product.category.includes("Lighting")) return "headlights";
-  if (product.category.includes("Tail")) return "tail-lights";
-  if (product.category.includes("Exhaust")) return "exhaust";
-  if (product.category.includes("Body")) return "body-kits";
-  if (product.category.includes("OEM")) return "oem-parts";
-  if (product.category.includes("Catalog")) return "catalog-reference";
-  return "products";
-}
+const categoryFilters = ["headlights", "tail-lights", "exhaust", "catalog-reference", "body-kits"];
 
 export function ProductBrowser({
   products,
@@ -31,7 +20,7 @@ export function ProductBrowser({
   basePath = "/products",
 }: {
   products: Product[];
-  pageType?: "home" | "products" | "headlights" | "exhaust";
+  pageType?: "home" | "products" | "headlights" | "tail-lights" | "exhaust";
   limit?: number;
   initialBrand?: string;
   initialCategory?: string;
@@ -41,32 +30,15 @@ export function ProductBrowser({
   totalPages?: number;
   basePath?: string;
 }) {
-  const startingBrand = brandFilters.includes(initialBrand) ? initialBrand : "all";
+  const activeBrand = brandFilters.includes(initialBrand) ? initialBrand : "all";
   const startingCategory = categoryFilters.includes(initialCategory) ? initialCategory : "";
-  const [activeFilter, setActiveFilter] = useState(startingBrand);
-
-  const filtered = useMemo(() => {
-    const query = initialSearch.trim().toLowerCase();
-
-    return products.filter((product) => {
-      const title = product.title.toLowerCase();
-      const brandOk = activeFilter === "all" || title.includes(activeFilter.toLowerCase());
-      if (!brandOk) return false;
-      if (query && !title.includes(query)) return false;
-      if (pageType === "headlights") return categorySlug(product) === "headlights";
-      if (pageType === "exhaust") return categorySlug(product) === "exhaust";
-      if (startingCategory) return categorySlug(product) === startingCategory;
-      return true;
-    });
-  }, [activeFilter, initialSearch, pageType, products, startingCategory]);
-
-  const visible = limit ? filtered.slice(0, limit) : filtered;
-  const activeCriteria = [startingCategory, initialSearch.trim(), activeFilter !== "all" ? activeFilter : ""].filter(Boolean);
+  const visible = limit ? products.slice(0, limit) : products;
+  const activeCriteria = [startingCategory, initialSearch.trim(), activeBrand !== "all" ? activeBrand : ""].filter(Boolean);
   const makeHref = (params: Record<string, string | number>) => {
     const search = new URLSearchParams();
     if (startingCategory) search.set("category", startingCategory);
     if (initialSearch.trim()) search.set("q", initialSearch.trim());
-    if (activeFilter !== "all") search.set("make", activeFilter);
+    if (activeBrand !== "all") search.set("make", activeBrand);
     Object.entries(params).forEach(([key, value]) => {
       if (value) search.set(key, String(value));
       else search.delete(key);
@@ -77,21 +49,39 @@ export function ProductBrowser({
 
   return (
     <>
+      {pageType !== "home" ? (
+        <form className="product-search" action={basePath}>
+          {startingCategory ? <input type="hidden" name="category" value={startingCategory} /> : null}
+          {activeBrand !== "all" ? <input type="hidden" name="make" value={activeBrand} /> : null}
+          <input
+            name="q"
+            type="search"
+            defaultValue={initialSearch}
+            placeholder="Search by model, year, part number, product type..."
+            aria-label="Search products"
+          />
+          <button type="submit">Search</button>
+          {initialSearch.trim() ? (
+            <Link className="search-reset" href={makeHref({ q: "", page: 1 })}>
+              Clear
+            </Link>
+          ) : null}
+        </form>
+      ) : null}
       <div className="result-count" id="resultCount">
         {typeof totalCount === "number"
           ? `Showing ${visible.length} of ${totalCount} catalog products${activeCriteria.length ? ` for ${activeCriteria.join(" / ")}` : ""}.`
-          : limit && filtered.length > limit
-          ? `Showing ${visible.length} selected products from ${filtered.length}.`
+          : limit && products.length > limit
+          ? `Showing ${visible.length} selected products from ${products.length}.`
           : `${visible.length} products shown${activeCriteria.length ? ` for ${activeCriteria.join(" / ")}` : ""}`}
       </div>
       <div className="filter-row" aria-label="Quick filters">
         {brandFilters.map((brand) => (
           <Link
-            className={activeFilter === brand ? "active" : ""}
+            className={activeBrand === brand ? "active" : ""}
             data-filter={brand}
             href={makeHref({ make: brand === "all" ? "" : brand, page: 1 })}
             key={brand}
-            onClick={() => setActiveFilter(brand)}
           >
             {brand === "all" ? "All" : brand}
           </Link>

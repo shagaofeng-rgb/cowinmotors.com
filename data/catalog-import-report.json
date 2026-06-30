@@ -1,36 +1,28 @@
 {
-  "totalProducts": 14086,
-  "stats": {
-    "existing": 32,
-    "benz_oem": 5397,
-    "bmw_oem": 7402,
-    "bmw_headlights": 107,
-    "benz_headlights": 170,
-    "tail_lights": 362,
-    "tianju": 262,
-    "lima": 289,
-    "exhaust_pdf": 54,
-    "akd_bmw": 16,
-    "akd_benz": 20,
-    "akd_audi": 10,
-    "akd_vw": 14,
-    "akd_porsche": 4,
-    "linlur": 80
-  },
+  "totalProducts": 1152,
+  "removedProducts": 12934,
+  "rules": [
+    "Removed all OEM Replacement Parts products.",
+    "Removed products without an existing local image file.",
+    "Removed products that used logo, category, or generic placeholder images.",
+    "Kept catalog-extracted images and existing cowinmotors.com product images."
+  ],
   "categoryCounts": {
-    "Automotive Lighting": 537,
-    "Catalog Reference": 144,
-    "Exhaust Systems": 78,
-    "OEM Replacement Parts": 12792,
-    "Tail Lights": 535
+    "Tail Lights": 533,
+    "Automotive Lighting": 468,
+    "Catalog Reference": 136,
+    "Exhaust Systems": 15
   },
   "brandCounts": {
-    "": 9,
-    "Audi": 67,
-    "BMW": 7950,
-    "Mercedes-Benz": 5871,
-    "Porsche": 127,
-    "Tesla": 1,
-    "Volkswagen": 61
+    "BMW": 499,
+    "Mercedes-Benz": 409,
+    "Porsche": 117,
+    "Audi": 66,
+    "Volkswagen": 60,
+    "Tesla": 1
+  },
+  "imageCounts": {
+    "assets/catalog": 1129,
+    "existingWebsiteImages": 23
   }
 }

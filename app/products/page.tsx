@@ -4,9 +4,9 @@ import { ProductBrowser } from "@/components/ProductBrowser";
 import { filterProducts, paginateProducts, productCardData } from "@/lib/products";
 
 export const metadata = {
-  title: "Automotive Headlights, Tail Lights, Exhaust & OEM Parts Catalog",
+  title: "Automotive Headlights, Tail Lights and Exhaust Products Catalog",
   description:
-    "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, exhaust systems, and OEM replacement parts.",
+    "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, and exhaust systems.",
 };
 
 export default async function ProductsPage({
@@ -22,7 +22,7 @@ export default async function ProductsPage({
     query: searchTerms,
   });
   const page = Number(params.page || 1);
-  const paged = paginateProducts(filtered, page, 60);
+  const paged = paginateProducts(filtered, page, 25);
 
   return (
     <>

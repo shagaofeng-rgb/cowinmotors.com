@@ -27,7 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${siteUrl}/product/${product.slug || product.__id}`,
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
-      priority: categorySlug(product) === "oem-parts" ? 0.45 : 0.65,
+      priority: 0.65,
     }));
 
   return [...staticPages, ...productPages];

@@ -77,11 +77,6 @@ export default function HomePage() {
               <span>Exhaust Pipes</span>
               <small>Cat-back, axle-back, downpipe, material, sound level and compliance notes.</small>
             </Link>
-            <Link className="category-card" href="/products?category=oem-parts">
-              <img src="/assets/live/logo.jpg" alt="OEM automotive replacement parts" />
-              <span>OEM Parts</span>
-              <small>Search factory part numbers for BMW and Mercedes-Benz replacement parts.</small>
-            </Link>
             <Link className="category-card" href="/body-kits">
               <img src="/assets/live/category-body-kits.png" alt="Body Kits" />
               <span>Body Kits</span>
