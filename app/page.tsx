@@ -6,9 +6,45 @@ import { ProductBrowser } from "@/components/ProductBrowser";
 import { productCardData, products } from "@/lib/products";
 
 export default function HomePage() {
-  const featuredProducts = products
-    .filter((product) => ["Automotive Lighting", "Tail Lights", "Exhaust Systems"].includes(product.category))
-    .slice(0, 24);
+  const featuredGroups = [
+    {
+      category: "Automotive Lighting",
+      label: "Headlights",
+      eyebrow: "Headlight Picks",
+      title: "10 recommended headlight applications.",
+      description: "Popular LED headlight assemblies and upgrade applications with vehicle fitment confirmation.",
+      href: "/headlights",
+    },
+    {
+      category: "Tail Lights",
+      label: "Tail Lights",
+      eyebrow: "Tail Light Picks",
+      title: "10 recommended tail light applications.",
+      description: "Rear lamp assemblies and sequential LED tail light upgrades for common export vehicle models.",
+      href: "/tail-lights",
+    },
+    {
+      category: "Exhaust Systems",
+      label: "Exhaust Systems",
+      eyebrow: "Exhaust Picks",
+      title: "10 recommended exhaust system applications.",
+      description: "SS304 and performance exhaust listings with material, fitment, packaging, and shipping confirmation.",
+      href: "/exhaust",
+    },
+    {
+      category: "Body Kits",
+      label: "Body Kits",
+      eyebrow: "Body Kit Picks",
+      title: "10 recommended body kit applications.",
+      description: "Exterior styling parts will be added after confirmed product images and fitment data are ready.",
+      href: "/body-kits",
+    },
+  ]
+    .map((group) => ({
+      ...group,
+      items: products.filter((product) => product.category === group.category).slice(0, 10),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <>
@@ -89,12 +125,28 @@ export default function HomePage() {
           <div className="section-title-row">
             <div>
               <p className="eyebrow">Featured Products</p>
-              <h2>Featured stocked and quote-ready products.</h2>
-              <p>Explore popular lighting and exhaust applications, then open the full catalog for more vehicle fitments.</p>
+              <h2>Recommended products by category.</h2>
+              <p>Each live category highlights 10 quote-ready products. Body kits will be shown after confirmed product images and fitment data are ready.</p>
             </div>
             <Link className="catalog-link" href="/products">View all products</Link>
           </div>
-          <ProductBrowser products={productCardData(featuredProducts)} pageType="home" limit={8} />
+          <div className="featured-category-stack">
+            {featuredGroups.map((group) => (
+              <section className="featured-category-panel" key={group.category} aria-labelledby={`${group.category}-featured`}>
+                <div className="featured-category-head">
+                  <div>
+                    <p className="eyebrow">{group.eyebrow}</p>
+                    <h3 id={`${group.category}-featured`}>{group.title}</h3>
+                    <p>{group.description}</p>
+                  </div>
+                  <Link className="catalog-link" href={group.href}>
+                    View {group.label}
+                  </Link>
+                </div>
+                <ProductBrowser products={productCardData(group.items)} pageType="home" />
+              </section>
+            ))}
+          </div>
         </section>
 
         <section className="section missing-model-section">
@@ -109,34 +161,42 @@ export default function HomePage() {
           <MissingModelForm />
         </section>
 
-        <section className="section support-columns">
+        <section className="section support-columns process-section">
           <div>
             <p className="eyebrow">Custom RFQ</p>
-            <h2>Body kits require fitment and shipping confirmation.</h2>
+            <h2>Custom fitment, packaging, and shipping are confirmed before quotation.</h2>
             <p>
-              Oversized parts, paint-required kits, custom finishes, and mixed-supplier orders are confirmed by quotation before payment.
+              For body kits, mixed-supplier orders, special finishes, and bulk shipments, Cowinmotors confirms the vehicle data, product photos, packaging method, carton size, and destination before final quotation.
             </p>
           </div>
-          <div className="support-card">
-            <h3>Information needed for a quote</h3>
-            <ul>
-              <li>Vehicle year, make, model, trim and body type</li>
-              <li>Front / rear / side / full kit requirement</li>
-              <li>Material, finish, paint requirement and drilling requirement</li>
-              <li>Destination country, quantity, carton size and shipping method</li>
-            </ul>
+          <div className="process-media-grid">
+            <article className="process-card">
+              <img src="/assets/live/category-body-kits.png" alt="Body kit exterior styling parts for custom RFQ" loading="lazy" />
+              <div>
+                <h3>Custom fitment confirmation</h3>
+                <p>Send year, make, model, trim, body type, side, finish, paint requirement, and sample or wholesale quantity.</p>
+              </div>
+            </article>
+            <article className="process-card">
+              <img src="/assets/live/exhaust-workshop.webp" alt="Automotive parts packing area and export inventory" loading="lazy" />
+              <div>
+                <h3>Packing and export shipping</h3>
+                <p>Carton size, protective packaging, lead time, destination country, and shipping method are checked before payment.</p>
+              </div>
+            </article>
           </div>
         </section>
 
         <section className="section company-section">
-          <div>
+          <div className="company-copy">
             <p className="eyebrow">Export Support</p>
             <h2>Sourcing, inspection, packaging, and shipment coordination.</h2>
+            <p>
+              Cowinmotors supports overseas buyers with supplier coordination, product checks, sample handling,
+              packaging confirmation, OEM/ODM communication, export documentation, and responsive after-sales follow-up.
+            </p>
           </div>
-          <p>
-            Cowinmotors supports overseas buyers with supplier coordination, product checks, sample handling,
-            packaging confirmation, OEM/ODM communication, export documentation, and responsive after-sales follow-up.
-          </p>
+          <img src="/assets/live/exhaust-workshop.webp" alt="Export-ready automotive parts workshop and packing support" loading="lazy" />
         </section>
       </main>
     </>
