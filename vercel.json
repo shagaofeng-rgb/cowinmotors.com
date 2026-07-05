@@ -5,6 +5,10 @@
     {
       "path": "/api/cron/inquiry-email-test",
       "schedule": "0 1 1 * *"
+    },
+    {
+      "path": "/api/cron/news-automation",
+      "schedule": "0 */6 * * *"
     }
   ],
   "headers": [

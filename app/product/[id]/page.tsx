@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
+import { NewsCard } from "@/components/NewsCard";
+import { getRelatedNewsForProduct } from "@/lib/news";
 import { categorySlug, findProduct, inferBuyingPath, products } from "@/lib/products";
 
 export function generateStaticParams() {
@@ -43,6 +45,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const product = findProduct(id);
   if (!product) notFound();
+  const relatedNews = await getRelatedNewsForProduct(product, 3);
   const imagePath = product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`;
   const externalListingUrl = listingUrl(product.url);
   const schema = {
@@ -105,6 +108,19 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </section>
           </div>
         </section>
+        {relatedNews.length ? (
+          <section className="related-news-section">
+            <div className="section-title-row compact">
+              <div>
+                <p className="eyebrow">Related News</p>
+                <h2>Market updates linked to this product.</h2>
+              </div>
+            </div>
+            <div className="news-grid">
+              {relatedNews.map((article) => <NewsCard article={article} key={article.id} />)}
+            </div>
+          </section>
+        ) : null}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
       </main>
     </>

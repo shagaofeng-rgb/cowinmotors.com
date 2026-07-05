@@ -12,6 +12,7 @@ const links = [
   { href: "/admin/journeys", label: "访问路径" },
   { href: "/admin/products", label: "产品数据" },
   { href: "/admin/inquiries", label: "询盘数据" },
+  { href: "/admin/news", label: "News 自动发布" },
   { href: "/admin/search-console", label: "SEO 数据" },
   { href: "/admin/link-audit", label: "内外链审计" },
   { href: "/admin/settings", label: "系统设置" },

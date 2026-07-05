@@ -16,9 +16,10 @@ export function Header({
           <Link href="/products">Shop by Vehicle</Link>
           <Link href="/headlights">Headlights</Link>
           <Link href="/tail-lights">Tail Lights</Link>
-          <Link href="/exhaust">Exhaust</Link>
-          <Link href="/body-kits">Body Kits</Link>
-          <Link href="/support">Support</Link>
+        <Link href="/exhaust">Exhaust</Link>
+        <Link href="/body-kits">Body Kits</Link>
+        <Link href="/news">News</Link>
+        <Link href="/support">Support</Link>
         </nav>
         <Link className="header-cta" href="/quote">
           {cta}

@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
+import { getPublishedNews } from "@/lib/news";
 import { products } from "@/lib/products";
 
 const siteUrl = "https://www.cowinmotors.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     "",
     "/products",
@@ -13,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/body-kits",
     "/quote",
     "/support",
+    "/news",
   ].map((path) => ({
     url: `${siteUrl}${path}`,
     lastModified: new Date(),
@@ -29,5 +31,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.65,
     }));
 
-  return [...staticPages, ...productPages];
+  const newsPages = (await getPublishedNews({ limit: 1000 })).map((article) => ({
+    url: `${siteUrl}/news/${article.slug}`,
+    lastModified: new Date(article.updatedAt || article.publishedAt),
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...productPages, ...newsPages];
 }

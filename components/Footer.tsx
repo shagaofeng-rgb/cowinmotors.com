@@ -18,6 +18,7 @@ export function Footer() {
         <Link href="/tail-lights">Tail Lights</Link>
         <Link href="/exhaust">Exhaust Systems</Link>
         <Link href="/body-kits">Body Kit RFQ</Link>
+        <Link href="/news">News</Link>
       </nav>
       <nav aria-label="Footer contact navigation">
         <span>Contact</span>
