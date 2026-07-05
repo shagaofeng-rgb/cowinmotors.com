@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import crypto from "node:crypto";
 import { resolveDateRange, type AdminDateRange } from "@/lib/adminDateRange";
 import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
 
@@ -462,15 +463,192 @@ export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 14 })
   };
 }
 
-export function getSearchConsoleSnapshot() {
+type SearchConsoleRow = {
+  keys?: string[];
+  clicks?: number;
+  impressions?: number;
+  ctr?: number;
+  position?: number;
+};
+
+let searchConsoleToken: { value: string; expiresAt: number } | null = null;
+
+function cleanPrivateKey(value = "") {
+  return value.trim().replace(/\\n/g, "\n");
+}
+
+function base64UrlJson(value: unknown) {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function gscDate(offsetDays: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - offsetDays);
+  return date.toISOString().slice(0, 10);
+}
+
+async function getSearchConsoleAccessToken() {
+  if (searchConsoleToken && searchConsoleToken.expiresAt > Date.now() + 60_000) {
+    return searchConsoleToken.value;
+  }
+
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = cleanPrivateKey(process.env.GOOGLE_PRIVATE_KEY);
+
+  if (!clientEmail || !privateKey) {
+    throw new Error("GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY is not configured.");
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = [
+    base64UrlJson({ alg: "RS256", typ: "JWT" }),
+    base64UrlJson({
+      iss: clientEmail,
+      scope: "https://www.googleapis.com/auth/webmasters.readonly",
+      aud: "https://oauth2.googleapis.com/token",
+      iat: now,
+      exp: now + 3600,
+    }),
+  ].join(".");
+  const signature = crypto.createSign("RSA-SHA256").update(unsigned).sign(privateKey, "base64url");
+  const assertion = `${unsigned}.${signature}`;
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) {
+    throw new Error(payload.error_description || payload.error || `Google OAuth failed: ${response.status}`);
+  }
+
+  searchConsoleToken = {
+    value: payload.access_token,
+    expiresAt: Date.now() + Number(payload.expires_in || 3600) * 1000,
+  };
+  return searchConsoleToken.value;
+}
+
+async function searchConsoleQuery({
+  siteUrl,
+  startDate,
+  endDate,
+  dimensions = [],
+  rowLimit = 10,
+}: {
+  siteUrl: string;
+  startDate: string;
+  endDate: string;
+  dimensions?: string[];
+  rowLimit?: number;
+}) {
+  const token = await getSearchConsoleAccessToken();
+  const response = await fetch(
+    `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        startDate,
+        endDate,
+        dimensions,
+        rowLimit,
+        searchType: "web",
+      }),
+    },
+  );
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.error?.message || `Search Console API failed: ${response.status}`);
+  }
+  return (payload.rows || []) as SearchConsoleRow[];
+}
+
+function round(value: number, digits = 1) {
+  return Number(value.toFixed(digits));
+}
+
+function dimensionRows(rows: SearchConsoleRow[], key: "query" | "page" | "country" | "device") {
+  return rows.map((row) => ({
+    [key]: row.keys?.[0] || "-",
+    clicks: Math.round(row.clicks || 0),
+    impressions: Math.round(row.impressions || 0),
+    ctr: round((row.ctr || 0) * 100),
+    position: round(row.position || 0),
+  }));
+}
+
+export async function getSearchConsoleSnapshot() {
   const configured = Boolean(
     process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL && process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
   );
+  const siteUrl = process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "https://www.cowinmotors.com/";
+  const endDate = gscDate(3);
+  const startDate = gscDate(31);
+
+  if (configured) {
+    try {
+      const [overviewRows, queryRows, pageRows, countryRows, deviceRows] = await Promise.all([
+        searchConsoleQuery({ siteUrl, startDate, endDate, rowLimit: 1 }),
+        searchConsoleQuery({ siteUrl, startDate, endDate, dimensions: ["query"], rowLimit: 20 }),
+        searchConsoleQuery({ siteUrl, startDate, endDate, dimensions: ["page"], rowLimit: 20 }),
+        searchConsoleQuery({ siteUrl, startDate, endDate, dimensions: ["country"], rowLimit: 12 }),
+        searchConsoleQuery({ siteUrl, startDate, endDate, dimensions: ["device"], rowLimit: 8 }),
+      ]);
+      const overview = overviewRows[0] || {};
+
+      return {
+        configured,
+        live: true,
+        error: "",
+        siteUrl,
+        dateRange: { startDate, endDate },
+        overview: {
+          clicks: Math.round(overview.clicks || 0),
+          impressions: Math.round(overview.impressions || 0),
+          ctr: round((overview.ctr || 0) * 100),
+          position: round(overview.position || 0),
+          indexedPages: 0,
+          notIndexedPages: 0,
+        },
+        queries: dimensionRows(queryRows, "query"),
+        pages: dimensionRows(pageRows, "page"),
+        countries: dimensionRows(countryRows, "country"),
+        devices: dimensionRows(deviceRows, "device"),
+        indexingStatus: [],
+      };
+    } catch (error) {
+      return {
+        configured,
+        live: false,
+        error: error instanceof Error ? error.message : "Search Console API connection failed.",
+        siteUrl,
+        dateRange: { startDate, endDate },
+        overview: { clicks: 0, impressions: 0, ctr: 0, position: 0, indexedPages: 0, notIndexedPages: 0 },
+        queries: [],
+        pages: [],
+        countries: [],
+        devices: [],
+        indexingStatus: [],
+      };
+    }
+  }
 
   return {
     configured,
     live: false,
-    siteUrl: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "https://www.cowinmotors.com/",
+    error: "Search Console environment variables are not configured.",
+    siteUrl,
+    dateRange: { startDate, endDate },
     overview: { clicks: 0, impressions: 0, ctr: 0, position: 0, indexedPages: 0, notIndexedPages: 0 },
     queries: [],
     pages: [],

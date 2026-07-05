@@ -19,5 +19,5 @@ export async function analyticsResponse(selector: ((snapshot: Awaited<ReturnType
 export async function searchConsoleResponse() {
   const unauthorized = await requireAdminApi();
   if (unauthorized) return unauthorized;
-  return Response.json(getSearchConsoleSnapshot());
+  return Response.json(await getSearchConsoleSnapshot());
 }
