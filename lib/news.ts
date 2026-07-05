@@ -13,6 +13,7 @@ const DEFAULT_DAILY_TARGET = 4;
 const DEFAULT_LOOKBACK_HOURS = 72;
 const DEFAULT_DEDUP_DAYS = 7;
 const DEFAULT_RELEVANCE_THRESHOLD = 3;
+let newsSchemaReady: Promise<boolean> | null = null;
 
 type NewsStatus =
   | "discovered"
@@ -567,9 +568,13 @@ function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): N
 export async function ensureNewsSchema() {
   const sql = getSql();
   if (!sql) return false;
-  await ensureCoreSchema();
-  await sql`
-    CREATE TABLE IF NOT EXISTS news_articles (
+  if (!newsSchemaReady) {
+    newsSchemaReady = (async () => {
+      await ensureCoreSchema();
+      await sql`SELECT pg_advisory_lock(86422026)`;
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS news_articles (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       slug TEXT NOT NULL UNIQUE,
@@ -614,20 +619,20 @@ export async function ensureNewsSchema() {
       generation_model TEXT NOT NULL DEFAULT '',
       generation_prompt_version TEXT NOT NULL DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS news_products (
+          )
+        `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS news_products (
       news_id TEXT NOT NULL REFERENCES news_articles(id) ON DELETE CASCADE,
       product_id TEXT NOT NULL,
       relevance_score INTEGER NOT NULL DEFAULT 0,
       relationship_reason TEXT NOT NULL DEFAULT '',
       display_order INTEGER NOT NULL DEFAULT 1,
       PRIMARY KEY (news_id, product_id)
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS news_sources (
+          )
+        `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS news_sources (
       id TEXT PRIMARY KEY,
       domain TEXT NOT NULL,
       publisher_name TEXT NOT NULL,
@@ -640,10 +645,10 @@ export async function ensureNewsSchema() {
       allowed_for_auto_publish BOOLEAN NOT NULL DEFAULT true,
       last_fetched_at TIMESTAMPTZ,
       failure_count INTEGER NOT NULL DEFAULT 0
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS news_jobs (
+          )
+        `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS news_jobs (
       id TEXT PRIMARY KEY,
       job_type TEXT NOT NULL,
       status TEXT NOT NULL,
@@ -653,10 +658,10 @@ export async function ensureNewsSchema() {
       retry_count INTEGER NOT NULL DEFAULT 0,
       error_message TEXT NOT NULL DEFAULT '',
       metadata JSONB NOT NULL DEFAULT '{}'::jsonb
-    )
-  `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS news_publication_audits (
+          )
+        `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS news_publication_audits (
       id TEXT PRIMARY KEY,
       date TEXT NOT NULL,
       timezone TEXT NOT NULL,
@@ -665,18 +670,18 @@ export async function ensureNewsSchema() {
       missing_count INTEGER NOT NULL,
       status TEXT NOT NULL,
       checked_at TIMESTAMPTZ NOT NULL
-    )
-  `;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_status_idx ON news_articles (status)`;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_published_at_idx ON news_articles (published_at DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_source_published_at_idx ON news_articles (source_published_at DESC)`;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_canonical_source_url_idx ON news_articles (canonical_source_url)`;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_source_fingerprint_idx ON news_articles (source_fingerprint)`;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_event_fingerprint_idx ON news_articles (event_fingerprint)`;
-  await sql`CREATE INDEX IF NOT EXISTS news_articles_slug_idx ON news_articles (slug)`;
+          )
+        `;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_status_idx ON news_articles (status)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_published_at_idx ON news_articles (published_at DESC)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_source_published_at_idx ON news_articles (source_published_at DESC)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_canonical_source_url_idx ON news_articles (canonical_source_url)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_source_fingerprint_idx ON news_articles (source_fingerprint)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_event_fingerprint_idx ON news_articles (event_fingerprint)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_slug_idx ON news_articles (slug)`;
 
-  for (const source of getConfiguredSources()) {
-    await sql`
+        for (const source of getConfiguredSources()) {
+          await sql`
       INSERT INTO news_sources (
         id, domain, publisher_name, source_type, rss_url, language, country, credibility_score, enabled, allowed_for_auto_publish
       ) VALUES (
@@ -690,9 +695,18 @@ export async function ensureNewsSchema() {
         credibility_score = EXCLUDED.credibility_score,
         enabled = EXCLUDED.enabled,
         allowed_for_auto_publish = EXCLUDED.allowed_for_auto_publish
-    `;
+          `;
+        }
+      } finally {
+        await sql`SELECT pg_advisory_unlock(86422026)`;
+      }
+      return true;
+    })().catch((error) => {
+      newsSchemaReady = null;
+      throw error;
+    });
   }
-  return true;
+  return newsSchemaReady;
 }
 
 function getConfiguredSources() {
