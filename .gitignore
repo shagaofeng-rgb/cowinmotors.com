@@ -14,3 +14,4 @@ tsconfig.tsbuildinfo
 .facebook_ads*_cache/
 facebook_ads_output*/
 facebook_reference_ads/
+.vercel

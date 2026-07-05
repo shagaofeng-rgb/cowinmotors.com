@@ -15,6 +15,53 @@ const DEFAULT_DEDUP_DAYS = 7;
 const DEFAULT_RELEVANCE_THRESHOLD = 3;
 let newsSchemaReady: Promise<boolean> | null = null;
 
+const commercialIntentTerms = [
+  "aftermarket",
+  "auto parts",
+  "parts",
+  "replacement",
+  "repair",
+  "supplier",
+  "supply chain",
+  "body shop",
+  "collision",
+  "accessory",
+  "accessories",
+  "headlight",
+  "headlights",
+  "tail light",
+  "tail lights",
+  "lamp",
+  "lighting",
+  "exhaust",
+  "muffler",
+  "downpipe",
+  "cat-back",
+  "catback",
+  "bumper",
+  "spoiler",
+  "body kit",
+  "fitment",
+  "oem",
+  "certification",
+  "inventory",
+  "distributor",
+  "wholesale",
+];
+
+const vehicleBrandTerms = ["bmw", "mercedes", "benz", "audi", "porsche", "volkswagen", "vw", "tesla"];
+
+const lowValueTopicTerms = [
+  "culture war",
+  "getaway cars",
+  "classic ferrari",
+  "best-looking model",
+  "road trip",
+  "celebrity",
+  "auction",
+  "motorsport history",
+];
+
 type NewsStatus =
   | "discovered"
   | "fetched"
@@ -195,26 +242,26 @@ type RelationRow = {
 
 const defaultSources: NewsSource[] = [
   {
-    id: "motor1-news",
-    domain: "motor1.com",
-    publisherName: "Motor1",
+    id: "aftermarket-news",
+    domain: "aftermarketnews.com",
+    publisherName: "AftermarketNews",
     sourceType: "rss",
-    rssUrl: "https://www.motor1.com/rss/news/all/",
+    rssUrl: "https://www.aftermarketnews.com/feed/",
     language: "en",
-    country: "Global",
-    credibilityScore: 82,
+    country: "United States",
+    credibilityScore: 84,
     enabled: true,
     allowedForAutoPublish: true,
   },
   {
-    id: "autocar-news",
-    domain: "autocar.co.uk",
-    publisherName: "Autocar",
+    id: "aftermarket-matters",
+    domain: "aftermarketmatters.com",
+    publisherName: "Aftermarket Matters",
     sourceType: "rss",
-    rssUrl: "https://www.autocar.co.uk/rss",
+    rssUrl: "https://www.aftermarketmatters.com/feed/",
     language: "en",
-    country: "United Kingdom",
-    credibilityScore: 80,
+    country: "United States",
+    credibilityScore: 78,
     enabled: true,
     allowedForAutoPublish: true,
   },
@@ -450,6 +497,19 @@ function productKeywords(product: Product) {
     .filter((term) => term.length >= 3);
 }
 
+function hasAnyTerm(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term));
+}
+
+function hasCommercialPartsIntent(candidate: Candidate) {
+  const text = `${candidate.title} ${candidate.description}`.toLowerCase();
+  if (hasAnyTerm(text, lowValueTopicTerms)) return false;
+  const hasCommercialTerm = hasAnyTerm(text, commercialIntentTerms);
+  const hasSupportedBrand = hasAnyTerm(text, vehicleBrandTerms);
+  const hasPartCategory = hasAnyTerm(text, commercialIntentTerms.slice(12));
+  return hasCommercialTerm || (hasSupportedBrand && hasPartCategory);
+}
+
 function scoreCandidate(candidate: Candidate) {
   const text = `${candidate.title} ${candidate.description}`.toLowerCase();
   const categoryBoosts = [
@@ -514,7 +574,7 @@ function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): N
 
   return {
     id: crypto.randomUUID(),
-    title: `${candidate.title} - sourcing impact for aftermarket parts buyers`.slice(0, 120),
+    title: `${candidate.title} - aftermarket parts sourcing note`.slice(0, 120),
     slug,
     excerpt: `${candidate.source.publisherName} reported a recent automotive update. Cowinmotors explains why it matters for fitment, sourcing, and quotation planning.`.slice(0, 260),
     content,
@@ -1098,6 +1158,10 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
 
     for (const rawCandidate of candidates) {
       if (published.length >= missing) break;
+      if (!hasCommercialPartsIntent(rawCandidate)) {
+        rejected.push({ title: rawCandidate.title, reason: "outside aftermarket parts sourcing focus" });
+        continue;
+      }
       if (await isDuplicate(rawCandidate, dedupDays)) {
         rejected.push({ title: rawCandidate.title, reason: "duplicate within dedup window" });
         continue;
