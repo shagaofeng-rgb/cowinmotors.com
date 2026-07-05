@@ -3,6 +3,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { resolveDateRange, type AdminDateRange } from "@/lib/adminDateRange";
 import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
+import {
+  getGoogleSearchConsoleConnectionStatus,
+  getGoogleSearchConsoleOAuthAccessToken,
+  getSearchConsoleSiteUrl,
+} from "@/lib/googleSearchConsoleOAuth";
 
 export type AnalyticsEvent = {
   id: string;
@@ -496,7 +501,7 @@ async function getSearchConsoleAccessToken() {
   const privateKey = cleanPrivateKey(process.env.GOOGLE_PRIVATE_KEY);
 
   if (!clientEmail || !privateKey) {
-    throw new Error("GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY is not configured.");
+    return getGoogleSearchConsoleOAuthAccessToken();
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -588,10 +593,12 @@ function dimensionRows(rows: SearchConsoleRow[], key: "query" | "page" | "countr
 }
 
 export async function getSearchConsoleSnapshot() {
+  const oauthStatus = await getGoogleSearchConsoleConnectionStatus();
   const configured = Boolean(
-    process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL && process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
+    (process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL && process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) ||
+      (oauthStatus.oauthConfigured && oauthStatus.connected)
   );
-  const siteUrl = process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "https://www.cowinmotors.com/";
+  const siteUrl = getSearchConsoleSiteUrl();
   const endDate = gscDate(3);
   const startDate = gscDate(31);
 
@@ -611,6 +618,7 @@ export async function getSearchConsoleSnapshot() {
         live: true,
         error: "",
         siteUrl,
+        oauth: oauthStatus,
         dateRange: { startDate, endDate },
         overview: {
           clicks: Math.round(overview.clicks || 0),
@@ -632,6 +640,7 @@ export async function getSearchConsoleSnapshot() {
         live: false,
         error: error instanceof Error ? error.message : "Search Console API connection failed.",
         siteUrl,
+        oauth: oauthStatus,
         dateRange: { startDate, endDate },
         overview: { clicks: 0, impressions: 0, ctr: 0, position: 0, indexedPages: 0, notIndexedPages: 0 },
         queries: [],
@@ -646,8 +655,11 @@ export async function getSearchConsoleSnapshot() {
   return {
     configured,
     live: false,
-    error: "Search Console environment variables are not configured.",
+    error: oauthStatus.oauthConfigured
+      ? "Google Search Console is not connected yet."
+      : "Google OAuth client is not configured yet.",
     siteUrl,
+    oauth: oauthStatus,
     dateRange: { startDate, endDate },
     overview: { clicks: 0, impressions: 0, ctr: 0, position: 0, indexedPages: 0, notIndexedPages: 0 },
     queries: [],

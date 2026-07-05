@@ -1,6 +1,7 @@
 import { hashAdminPassword, isAdminAuthConfigured } from "@/lib/adminAuth";
 import { getAnalyticsStorageMode } from "@/lib/analyticsStore";
 import { isDatabaseConfigured } from "@/lib/database";
+import { getGoogleOAuthConfig } from "@/lib/googleSearchConsoleOAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ function configured(value: unknown) {
 
 export default function AdminSettingsPage() {
   const authConfigured = isAdminAuthConfigured();
+  const googleOAuth = getGoogleOAuthConfig();
   const rows = [
     ["ADMIN_EMAIL", process.env.ADMIN_EMAIL || "admin@cowinmotors.com"],
     ["ADMIN_PASSWORD_HASH", configured(process.env.ADMIN_PASSWORD_HASH)],
@@ -23,6 +25,9 @@ export default function AdminSettingsPage() {
     ["Persistent database", isDatabaseConfigured() ? "已启用" : "未启用"],
     ["DATABASE_URL", configured(process.env.DATABASE_URL)],
     ["GOOGLE_SEARCH_CONSOLE_SITE_URL", process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "-"],
+    ["GOOGLE_OAUTH_CLIENT_ID", configured(googleOAuth.clientId)],
+    ["GOOGLE_OAUTH_CLIENT_SECRET", configured(googleOAuth.clientSecret)],
+    ["GOOGLE_OAUTH_REDIRECT_URI", googleOAuth.redirectUri],
     ["GOOGLE_CLIENT_EMAIL", configured(process.env.GOOGLE_CLIENT_EMAIL)],
     ["GOOGLE_PRIVATE_KEY", configured(process.env.GOOGLE_PRIVATE_KEY)],
     ["INQUIRY_TO_EMAIL", process.env.INQUIRY_TO_EMAIL || "-"],

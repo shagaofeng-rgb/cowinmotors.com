@@ -1,5 +1,6 @@
 import { BarList, MetricCard } from "@/components/admin/AdminWidgets";
 import { getSearchConsoleSnapshot } from "@/lib/analyticsStore";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,19 @@ function shortPage(url: string) {
   }
 }
 
-export default async function AdminSearchConsolePage() {
+export default async function AdminSearchConsolePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ gsc?: string; message?: string }>;
+}) {
+  const params = await searchParams;
   const data = await getSearchConsoleSnapshot();
   const dateNote = data.dateRange ? `${data.dateRange.startDate} 至 ${data.dateRange.endDate}` : "GSC 指标";
+  const statusMessage = params?.gsc === "connected"
+    ? "Google Search Console 已授权，后台正在读取真实数据。"
+    : params?.gsc === "disconnected"
+      ? "Google Search Console 连接已断开。"
+      : params?.message || "";
 
   return (
     <div className="admin-page">
@@ -28,8 +39,10 @@ export default async function AdminSearchConsolePage() {
           <h1>Search Console 数据</h1>
           <p>用于查看点击量、曝光量、点击率、平均排名、页面和关键词搜索表现。</p>
         </div>
-        <div className={data.live ? "admin-status good" : "admin-status"}>{data.live ? "GSC 已连接" : "GSC 未连接"}</div>
+        <div className={data.live ? "admin-status good" : "admin-status"}>{data.live ? "GSC 已连接" : "GSC 待连接"}</div>
       </header>
+
+      {statusMessage ? <div className={params?.gsc === "connected" ? "admin-alert good" : "admin-alert"}>{statusMessage}</div> : null}
 
       <section className="admin-metric-grid">
         <MetricCard label="点击量" value={data.overview.clicks} note={dateNote} />
@@ -52,19 +65,32 @@ export default async function AdminSearchConsolePage() {
               <div className="admin-status good">已读取真实 GSC 数据</div>
               <p className="admin-muted">站点资源：{data.siteUrl}</p>
               <p className="admin-muted">当前展示最近 28 天可用搜索数据。Google Search Console 通常会有 2-3 天数据延迟。</p>
+              <form action="/api/admin/search-console/oauth/disconnect" method="post">
+                <button className="admin-secondary-button" type="submit">断开 Google 授权</button>
+              </form>
             </div>
           ) : (
-            <>
+            <div className="admin-stack">
               <p className="admin-muted">
-                尚未读取到 Google Search Console API 数据。{data.error ? `当前状态：${data.error}` : ""}
+                尚未读取到 Google Search Console 真实数据。{data.error ? `当前状态：${data.error}` : ""}
               </p>
-              <ol className="admin-setup-list">
-                <li>启用 Google Search Console API。</li>
-                <li>创建 Service Account，并把邮箱加到 GSC 网站资源中。</li>
-                <li>在 Vercel 配置 GOOGLE_SEARCH_CONSOLE_SITE_URL、GOOGLE_CLIENT_EMAIL、GOOGLE_PRIVATE_KEY。</li>
-                <li>重新部署后后台自动读取真实关键词、页面、国家和设备数据。</li>
-              </ol>
-            </>
+              {data.oauth?.oauthConfigured ? (
+                <Link className="admin-primary-button" href="/api/admin/search-console/oauth/start">
+                  Connect Google Search Console
+                </Link>
+              ) : (
+                <div className="admin-alert">
+                  还需要配置 Google OAuth Client ID 和 Client Secret。配置后这里会出现一键授权按钮。
+                </div>
+              )}
+              <div className="admin-mini-record">
+                <strong>授权回调地址</strong>
+                <span>{data.oauth?.redirectUri || "https://www.cowinmotors.com/api/admin/search-console/oauth/callback"}</span>
+              </div>
+              <p className="admin-muted">
+                点连接后只需要用已绑定 Search Console 的 Google 账号确认一次授权，后台以后会自动同步关键词、页面、国家和设备数据。
+              </p>
+            </div>
           )}
         </article>
       </section>

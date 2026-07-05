@@ -1282,6 +1282,32 @@ body:has(.admin-login-page) .whatsapp-float {
   font-weight: 850;
 }
 
+.admin-primary-button,
+.admin-secondary-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-primary-button {
+  color: #ffffff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.admin-secondary-button {
+  color: #dbe8f5;
+  background: #20272f;
+  border: 1px solid #303944;
+}
+
 .admin-status {
   display: inline-flex;
   align-items: center;
@@ -1477,6 +1503,12 @@ body:has(.admin-login-page) .whatsapp-float {
   color: #ffe4ad;
   background: #3d2c11;
   border-color: #7d5f22;
+}
+
+.admin-alert.good {
+  color: #d9fbe8;
+  background: #153524;
+  border-color: #267047;
 }
 
 .admin-stack {
