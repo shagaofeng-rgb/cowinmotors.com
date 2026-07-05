@@ -20,6 +20,7 @@ export function QuoteForm({ initialProduct = "" }: { initialProduct?: string }) 
         const payload = {
           name: String(formData.get("name") || ""),
           email: String(formData.get("email") || ""),
+          phone: String(formData.get("phone") || ""),
           country: String(formData.get("country") || ""),
           productType: String(formData.get("productType") || ""),
           product: String(formData.get("product") || ""),
@@ -59,6 +60,7 @@ export function QuoteForm({ initialProduct = "" }: { initialProduct?: string }) 
     >
       <label>Name<input name="name" type="text" placeholder="Your name" required /></label>
       <label>Email<input name="email" type="email" placeholder="name@company.com" required /></label>
+      <label>Phone / WhatsApp<input name="phone" type="tel" placeholder="+1 555 000 0000" required /></label>
       <label>Country<input name="country" type="text" placeholder="United States" /></label>
       <label>Product Type<select name="productType"><option>Headlights</option><option>Exhaust Pipes</option><option>Body Kits</option><option>OEM / ODM / Private Label</option></select></label>
       <label className="wide">Product / SKU<input id="quoteProduct" name="product" type="text" placeholder="Product title or SKU" defaultValue={initialProduct} /></label>

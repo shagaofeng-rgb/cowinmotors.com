@@ -10,6 +10,7 @@ export type InquiryRecord = {
   createdAt: string;
   name: string;
   email: string;
+  phone: string;
   country: string;
   productType: string;
   product: string;
@@ -50,6 +51,7 @@ type InquiryRow = {
   created_at: string | Date;
   name: string;
   email: string;
+  phone: string | null;
   country: string | null;
   product_type: string | null;
   product: string | null;
@@ -66,6 +68,7 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
     source: row.source || "website-rfq-form",
     name: row.name,
     email: row.email,
+    phone: row.phone || "",
     country: row.country || "",
     productType: row.product_type || "",
     product: row.product || "",
@@ -82,7 +85,7 @@ export async function getInquiries(): Promise<InquiryRecord[]> {
     try {
       await ensureCoreSchema();
       const rows = await sql`
-        SELECT id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
+        SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement
         FROM cowin_inquiries
         ORDER BY created_at DESC
         LIMIT 300
@@ -104,13 +107,14 @@ async function persistInquiry(record: InquiryRecord) {
       await ensureCoreSchema();
       await sql`
         INSERT INTO cowin_inquiries (
-          id, created_at, source, name, email, country, product_type, product, vehicle_info, quantity, requirement
+          id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement
         ) VALUES (
           ${record.id},
           ${record.createdAt},
           ${record.source},
           ${record.name},
           ${record.email},
+          ${record.phone},
           ${record.country},
           ${record.productType},
           ${record.product},

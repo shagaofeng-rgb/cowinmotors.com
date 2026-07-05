@@ -24,6 +24,7 @@ function buildInquiryEmail(record: InquiryRecord) {
     ["Source", record.source],
     ["Name", record.name],
     ["Email", record.email],
+    ["Phone / WhatsApp", record.phone],
     ["Country", record.country],
     ["Product Type", record.productType],
     ["Product / Model", record.product],

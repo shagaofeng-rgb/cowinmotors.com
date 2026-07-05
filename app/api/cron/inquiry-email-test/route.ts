@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     source: "monthly-email-delivery-check",
     name: "Cowinmotors Monthly Form Test",
     email: process.env.INQUIRY_TO_EMAIL || "davidsha@cowinmotors.com",
+    phone: "+86 176 0125 5205",
     country: "Automated Monitoring",
     productType: "Website Form Delivery Test",
     product: "Monthly SMTP health check",

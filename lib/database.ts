@@ -28,6 +28,7 @@ export async function ensureCoreSchema() {
           source TEXT NOT NULL DEFAULT 'website-rfq-form',
           name TEXT NOT NULL,
           email TEXT NOT NULL,
+          phone TEXT NOT NULL DEFAULT '',
           country TEXT NOT NULL DEFAULT '',
           product_type TEXT NOT NULL DEFAULT '',
           product TEXT NOT NULL DEFAULT '',
@@ -35,6 +36,11 @@ export async function ensureCoreSchema() {
           quantity TEXT NOT NULL DEFAULT '',
           requirement TEXT NOT NULL DEFAULT ''
         )
+      `;
+
+      await sql`
+        ALTER TABLE cowin_inquiries
+        ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''
       `;
 
       await sql`

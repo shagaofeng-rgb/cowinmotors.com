@@ -20,6 +20,7 @@ export function MissingModelForm() {
           source: "homepage-missing-model",
           name: String(formData.get("name") || ""),
           email: String(formData.get("email") || ""),
+          phone: String(formData.get("phone") || ""),
           country: String(formData.get("country") || ""),
           productType: String(formData.get("productType") || ""),
           product: String(formData.get("product") || ""),
@@ -60,12 +61,13 @@ export function MissingModelForm() {
     >
       <label>Name<input name="name" type="text" placeholder="Your name" required /></label>
       <label>Email<input name="email" type="email" placeholder="name@company.com" required /></label>
+      <label>Phone / WhatsApp<input name="phone" type="tel" placeholder="+1 555 000 0000" required /></label>
       <label>Country<input name="country" type="text" placeholder="United States" /></label>
       <label>Product Type<select name="productType"><option>Headlights</option><option>Exhaust Pipes</option><option>Body Kits</option><option>Other Automotive Parts</option></select></label>
       <label className="wide">Vehicle / Model Needed<input name="product" type="text" placeholder="BMW G82 M4, Audi S5 B9, Porsche 718..." required /></label>
       <label className="wide">Vehicle Details<input name="vehicleInfo" type="text" placeholder="Year / make / model / trim / engine / LHD or RHD" /></label>
       <label>Quantity<input name="quantity" type="text" placeholder="1 set, sample, wholesale order..." /></label>
-      <label>Contact Phone / WhatsApp<input name="requirement" type="text" placeholder="+1..." /></label>
+      <label>Requirement<input name="requirement" type="text" placeholder="Special fitment, finish, shipping, or target price" /></label>
       <button className="wide" type="submit" disabled={submitting}>{submitting ? "Submitting..." : "Submit model request"}</button>
       <p className="form-note wide" role="status">{status}</p>
     </form>

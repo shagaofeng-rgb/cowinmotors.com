@@ -15,7 +15,7 @@ export default async function AdminInquiriesPage() {
         <div>
           <p className="eyebrow">询盘数据</p>
           <h1>RFQ 表单提交记录</h1>
-          <p>查看网站询盘表单提交的联系人、产品、车型、数量和需求说明。</p>
+          <p>查看网站询盘表单提交的联系人、电话、产品、车型、数量和需求说明。</p>
         </div>
         <span className="admin-status">{inquiries.length} records</span>
       </header>
@@ -28,6 +28,7 @@ export default async function AdminInquiriesPage() {
                 <tr>
                   <th>时间</th>
                   <th>联系人</th>
+                  <th>电话</th>
                   <th>产品</th>
                   <th>车型</th>
                   <th>数量</th>
@@ -42,6 +43,7 @@ export default async function AdminInquiriesPage() {
                       <strong>{inquiry.name}</strong>
                       <span className="admin-muted">{inquiry.email}</span>
                     </td>
+                    <td>{inquiry.phone || "-"}</td>
                     <td>{inquiry.product || inquiry.productType}</td>
                     <td>{inquiry.vehicleInfo || "-"}</td>
                     <td>{inquiry.quantity || "-"}</td>

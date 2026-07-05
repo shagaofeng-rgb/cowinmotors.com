@@ -13,15 +13,17 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const name = clean(body.name);
   const email = clean(body.email);
+  const phone = clean(body.phone);
 
-  if (!name || !email || !email.includes("@")) {
-    return NextResponse.json({ ok: false, error: "Name and email are required." }, { status: 400 });
+  if (!name || !email || !email.includes("@") || !phone) {
+    return NextResponse.json({ ok: false, error: "Name, email, and phone are required." }, { status: 400 });
   }
 
   const inquiry = await saveInquiryWithSource({
     source: clean(body.source) || "website-rfq-form",
     name,
     email,
+    phone,
     country: clean(body.country),
     productType: clean(body.productType),
     product: clean(body.product),
