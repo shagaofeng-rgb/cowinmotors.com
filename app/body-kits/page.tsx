@@ -53,7 +53,7 @@ export default function BodyKitsPage() {
         <section className="category-fitment-panel">
           <div>
             <p className="category-kicker">Find body kits for your vehicle</p>
-            <strong>Use this category as a fitment-led RFQ page until exact body kit SKUs are listed.</strong>
+            <strong>Submit vehicle details to receive matched body kit options, finish guidance, packaging notes, and shipping support.</strong>
           </div>
           <form action="/quote">
             <label>Year<input name="year" placeholder="Select Year" /></label>
@@ -85,7 +85,7 @@ export default function BodyKitsPage() {
             <div>
               <p className="category-kicker">Shop body kits</p>
               <h2>Quote-only sourcing categories.</h2>
-              <p>No body kit SKUs are published yet, so this page uses RFQ categories instead of fictitious products.</p>
+              <p>Select a body kit category and send your vehicle fitment requirements for a matched quotation.</p>
             </div>
             <div className="category-tabs">
               <span>All Body Kits</span>

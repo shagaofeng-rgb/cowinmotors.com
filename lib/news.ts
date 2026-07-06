@@ -296,6 +296,44 @@ const fallbackImages = [
   },
 ];
 
+const internalBriefTopics = [
+  {
+    category: "Headlights",
+    keyword: "LED headlight fitment sourcing",
+    title: "Daily LED headlight fitment sourcing checklist",
+    description:
+      "Cowinmotors reviews how buyers can confirm LED headlight fitment by year, make, model, trim, LHD or RHD side, connector type, DRL behavior, beam pattern, packaging, MOQ, and lead time before placing aftermarket lighting orders.",
+  },
+  {
+    category: "Tail Lights",
+    keyword: "tail light replacement sourcing",
+    title: "Daily tail light replacement sourcing checklist",
+    description:
+      "Cowinmotors reviews how retail and wholesale buyers can verify rear lamp assemblies, lens style, sequential turn signal behavior, connector type, OE references, carton protection, and regional compliance before sourcing replacement tail lights.",
+  },
+  {
+    category: "Exhaust Systems",
+    keyword: "performance exhaust sourcing",
+    title: "Daily performance exhaust sourcing checklist",
+    description:
+      "Cowinmotors reviews sourcing checks for cat-back systems, axle-back systems, downpipes, mufflers, exhaust tips, stainless steel grades, sound expectations, vehicle engine fitment, packaging, MOQ, and global shipping coordination.",
+  },
+  {
+    category: "Wheels",
+    keyword: "aftermarket wheel fitment sourcing",
+    title: "Daily aftermarket wheel fitment sourcing checklist",
+    description:
+      "Cowinmotors reviews wheel sourcing requirements including diameter, width, PCD or bolt pattern, offset, center bore, finish, load rating, vehicle fitment, packaging protection, and export documentation for international buyers.",
+  },
+  {
+    category: "Body Kits",
+    keyword: "body kit sourcing",
+    title: "Daily body kit and exterior parts sourcing checklist",
+    description:
+      "Cowinmotors reviews body kit sourcing checks for front lips, rear diffusers, side skirts, spoilers, bumpers, material selection, surface finish, carton size, included hardware, MOQ, and damage-safe international shipping.",
+  },
+];
+
 function envNumber(name: string, fallback: number) {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -549,14 +587,16 @@ function buildContent(candidate: Candidate, relations: NewsProductRelation[]) {
   const productLinks = relations
     .map((item) => `<a href="${htmlEscape(item.url)}">${htmlEscape(item.title)}</a>`)
     .join(", ");
-  const sourceSummary = candidate.description || `${candidate.source.publisherName} reported this automotive update.`;
+  const sourceSummary = htmlEscape(candidate.description || `${candidate.source.publisherName} reported this automotive update.`);
   const productsText = relations.map((item) => item.title).join(", ");
   const takeawayProducts = relations.length
-    ? `Relevant Cowinmotors catalog areas include ${relations.map((item) => item.category).join(", ")}.`
+    ? `Relevant Cowinmotors catalog areas include ${htmlEscape(relations.map((item) => item.category).join(", "))}.`
     : "Relevant product fitment should be confirmed before sourcing.";
+  const safePublisher = htmlEscape(candidate.source.publisherName);
+  const safeTitle = htmlEscape(candidate.title);
 
   const sections = [
-    ["Core Conclusion", `${candidate.source.publisherName} published a recent automotive update: ${candidate.title}. For global buyers, the important question is how this affects fitment planning, parts availability, and sourcing decisions.`],
+    ["Core Conclusion", `${safePublisher} published a recent automotive update: ${safeTitle}. For global buyers, the important question is how this affects fitment planning, parts availability, and sourcing decisions.`],
     ["Original News Facts", `The source report identifies the following core fact pattern: ${sourceSummary} This section is a concise summary of publicly available source information, not a republication of the original article.`],
     ["Why It Matters To Buyers", "Automotive model changes, supply-chain shifts, regulation, and vehicle technology updates can influence replacement parts demand, lighting compatibility, exhaust fitment, wheel fitment, and exterior upgrade planning. Buyers should verify year, model, trim, region specification, and order quantity before confirming procurement."],
     ["Cowinmotors View", "Our view is that international buyers should treat industry news as an early signal for sourcing checks rather than a final purchasing specification. When a model, technology, or market requirement changes, the safer buying path is to confirm connector type, side, material, packaging method, MOQ, and lead time before payment."],
@@ -629,6 +669,37 @@ function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): N
     generationPromptVersion: PROMPT_VERSION,
     createdAt: now,
     products: relations,
+  };
+}
+
+function buildInternalBriefCandidate(slot: number, timezone: string): Candidate {
+  const date = localDate(new Date(), timezone);
+  const dayIndex = hash(date).split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const topic = internalBriefTopics[(dayIndex + slot - 1) % internalBriefTopics.length];
+  const title = `${topic.title} - ${date}`;
+  return {
+    source: {
+      id: "cowinmotors-daily-brief",
+      domain: "cowinmotors.com",
+      publisherName: "Cowinmotors Sourcing Desk",
+      sourceType: "internal-brief",
+      rssUrl: `${SITE_URL}/news`,
+      language: "en",
+      country: "China",
+      credibilityScore: 82,
+      enabled: true,
+      allowedForAutoPublish: true,
+    },
+    title,
+    description: topic.description,
+    sourceUrl: `${SITE_URL}/news?brief=${date}-${slot}`,
+    canonicalSourceUrl: `${SITE_URL}/news?brief=${date}-${slot}`,
+    author: "Cowinmotors Editorial Team",
+    publishedAt: new Date().toISOString(),
+    fetchedAt: new Date().toISOString(),
+    imageUrl: "",
+    imageSourceUrl: "",
+    normalizedTitle: normalizeTitle(`${title} ${topic.keyword}`),
   };
 }
 
@@ -994,10 +1065,10 @@ async function persistArticle(article: NewsArticle) {
   if (!sql) {
     const current = readFileNews();
     writeFileNews([article, ...current.filter((item) => item.id !== article.id)].slice(0, 200));
-    return;
+    return true;
   }
   await ensureNewsSchema();
-  await sql`
+  const inserted = await sql`
     INSERT INTO news_articles (
       id, title, slug, excerpt, content, status, language, category, tags, cover_image_url, cover_image_source_url,
       cover_image_page_url, cover_image_alt, cover_image_width, cover_image_height, cover_image_status, author_name,
@@ -1019,7 +1090,10 @@ async function persistArticle(article: NewsArticle) {
       ${article.generationPromptVersion}, ${article.createdAt}
     )
     ON CONFLICT (slug) DO NOTHING
-  `;
+    RETURNING id
+  ` as { id: string }[];
+  if (!inserted[0]) return false;
+
   for (const relation of article.products) {
     await sql`
       INSERT INTO news_products (news_id, product_id, relevance_score, relationship_reason, display_order)
@@ -1028,6 +1102,7 @@ async function persistArticle(article: NewsArticle) {
       DO UPDATE SET relevance_score = EXCLUDED.relevance_score, relationship_reason = EXCLUDED.relationship_reason, display_order = EXCLUDED.display_order
     `;
   }
+  return true;
 }
 
 function readFileNews() {
@@ -1184,8 +1259,34 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
         rejected.push({ title: candidate.title, reason: "no compliant external cover image" });
         continue;
       }
-      if (!dryRun) await persistArticle(article);
-      published.push(article);
+      if (dryRun || await persistArticle(article)) {
+        published.push(article);
+      } else {
+        rejected.push({ title: candidate.title, reason: "slug already exists" });
+      }
+    }
+
+    for (let slot = 1; published.length < missing && slot <= target * 2; slot += 1) {
+      const rawCandidate = buildInternalBriefCandidate(slot, timezone);
+      if (await isDuplicate(rawCandidate, dedupDays)) {
+        rejected.push({ title: rawCandidate.title, reason: "internal daily brief already published" });
+        continue;
+      }
+      const relations = scoreCandidate(rawCandidate).filter((relation) => relation.relevanceScore >= relevanceThreshold).slice(0, 3);
+      if (!relations.length) {
+        rejected.push({ title: rawCandidate.title, reason: "internal brief below relevance threshold" });
+        continue;
+      }
+      const article = buildArticle(rawCandidate, relations);
+      if (!article.coverImageUrl || article.coverImageUrl.includes(SITE_URL)) {
+        rejected.push({ title: rawCandidate.title, reason: "no compliant cover image" });
+        continue;
+      }
+      if (dryRun || await persistArticle(article)) {
+        published.push(article);
+      } else {
+        rejected.push({ title: rawCandidate.title, reason: "internal brief slug already exists" });
+      }
     }
 
     const publishedCount = existingToday + published.length;

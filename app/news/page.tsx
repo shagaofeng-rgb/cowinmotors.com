@@ -66,11 +66,11 @@ export default async function NewsPage({
             </article>
           ) : (
             <article className="news-featured-card empty">
-              <img src="/assets/live/category-lighting.png" alt="Automotive lighting news placeholder" />
+              <img src="/assets/live/category-lighting.png" alt="Automotive lighting sourcing insight" />
               <div>
-                <span>News Automation Ready</span>
-                <h2>Published source-backed articles will appear here.</h2>
-                <p>The news system is prepared for product-linked updates once articles are published.</p>
+                <span>Sourcing Insight</span>
+                <h2>Automotive parts sourcing updates for global buyers.</h2>
+                <p>Explore product categories, fitment checks, shipping support, and sourcing guidance from Cowinmotors.</p>
                 <Link href="/products">Explore products</Link>
               </div>
             </article>
@@ -100,8 +100,9 @@ export default async function NewsPage({
               </div>
             ) : (
               <div className="news-empty dark">
-                <h2>News automation is ready.</h2>
-                <p>Published source-backed articles will appear here after the automated collection and publication job runs.</p>
+                <h2>Choose another topic or request sourcing support.</h2>
+                <p>Use the category filters above, browse our product catalog, or send your vehicle and part requirements for a direct recommendation.</p>
+                <Link href="/quote">Request sourcing support</Link>
               </div>
             )}
           </div>
