@@ -13,14 +13,14 @@ export function Header({
           <img src="/assets/live/logo.jpg" alt="Cowinmotors logo" />
         </Link>
         <nav className="main-nav" aria-label="Primary navigation">
-          <Link href="/products">Shop by Vehicle</Link>
+          <Link href="/">Home</Link>
           <Link href="/headlights">Headlights</Link>
           <Link href="/tail-lights">Tail Lights</Link>
-        <Link href="/exhaust">Exhaust</Link>
-        <Link href="/wheels">Wheels</Link>
-        <Link href="/body-kits">Body Kits</Link>
-        <Link href="/news">News</Link>
-        <Link href="/support">Support</Link>
+          <Link href="/exhaust">Exhaust</Link>
+          <Link href="/wheels">Wheels</Link>
+          <Link href="/body-kits">Body Kits</Link>
+          <Link href="/news">News</Link>
+          <Link href="/support">Support</Link>
         </nav>
         <Link className="header-cta" href="/quote">
           {cta}
