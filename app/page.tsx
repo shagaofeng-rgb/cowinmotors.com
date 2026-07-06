@@ -68,7 +68,7 @@ function firstProduct(category: string) {
 }
 
 function productImage(category: string, fallback: string) {
-  return fallback || firstProduct(category)?.localImage || "";
+  return firstProduct(category)?.localImage || fallback || "";
 }
 
 function featuredFor(category: (typeof categories)[number]) {
@@ -269,7 +269,6 @@ export default function HomePage() {
         <div className="home-featured-grid">
           {featuredProducts.map((product) => (
             <article className="home-product-card" key={product.title}>
-              <span className="home-product-tag">New</span>
               <Link className="home-product-image" href={product.href}>
                 <img src={product.image} alt={product.title} loading="lazy" />
               </Link>

@@ -4,27 +4,27 @@ const categoryGroups = [
   {
     title: "Headlights",
     href: "/headlights",
-    text: "LED, DRL, projector and OE-style fitment.",
+    text: "View catalog",
   },
   {
     title: "Tail Lights",
     href: "/tail-lights",
-    text: "Rear lamps, side, connector and signal checks.",
+    text: "View catalog",
   },
   {
     title: "Exhaust Systems",
     href: "/exhaust",
-    text: "Cat-back, axle-back, downpipe and exhaust tips.",
+    text: "View catalog",
   },
   {
     title: "Wheels",
     href: "/wheels",
-    text: "Forged automotive wheels for verified fitment.",
+    text: "Forged catalog",
   },
   {
     title: "Body Kits",
     href: "/body-kits",
-    text: "Full kits, lips, diffusers, side skirts and spoilers.",
+    text: "Request quote",
   },
 ];
 

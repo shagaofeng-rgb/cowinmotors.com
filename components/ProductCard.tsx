@@ -5,14 +5,6 @@ function productPath(product: Product) {
   return `/product/${product.slug || product.__id}`;
 }
 
-function inferBuyingPath(product: Product) {
-  const title = product.title.toLowerCase();
-  if (product.category.includes("Wheel") || title.includes("body") || title.includes("kit") || title.includes("paint") || title.includes("titanium") || title.includes("wholesale")) {
-    return "RFQ";
-  }
-  return "Direct / RFQ";
-}
-
 function listingUrl(url?: string) {
   if (!url) return "";
   try {
@@ -29,8 +21,6 @@ export function ProductCard({ product, showLive = false }: { product: Product; s
 
   return (
     <article className="product-card">
-      {product.status ? <span className="badge">{product.status}</span> : null}
-      <span className="quote-badge">{inferBuyingPath(product)}</span>
       <Link className="image-wrap" href={productPath(product)}>
         <img src={product.localImage} alt={product.title} loading="lazy" />
       </Link>

@@ -1844,23 +1844,6 @@ body:has(.home-exact) .site-footer small {
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.26);
 }
 
-.home-product-tag {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-  display: inline-flex;
-  min-height: 22px;
-  align-items: center;
-  padding: 0 8px;
-  color: #ffffff;
-  background: #0a64db;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 950;
-  text-transform: uppercase;
-}
-
 .home-product-image {
   display: grid;
   height: 190px;
@@ -2445,7 +2428,7 @@ textarea {
 }
 
 .nav-drawer.wide .nav-panel {
-  width: min(820px, calc(100vw - 36px));
+  width: min(660px, calc(100vw - 36px));
 }
 
 .nav-panel-head {
@@ -2458,7 +2441,7 @@ textarea {
 .nav-panel-head strong,
 .nav-category-title {
   color: #ffffff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 950;
 }
 
@@ -2472,16 +2455,19 @@ textarea {
 
 .category-panel {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .nav-category-card {
   display: grid;
-  gap: 10px;
-  min-height: 126px;
-  padding: 16px;
+  gap: 7px;
+  min-height: 76px;
+  align-content: center;
+  padding: 13px 12px;
   background: rgba(14, 35, 60, 0.78);
   border: 1px solid rgba(113, 174, 255, 0.24);
   border-radius: 8px;
+  text-align: center;
 }
 
 .nav-category-card:hover {
@@ -2520,14 +2506,15 @@ textarea {
 
 .category-panel {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .nav-category-group {
   display: grid;
-  gap: 10px;
-  align-content: start;
+  gap: 7px;
+  align-content: center;
   min-width: 0;
-  padding: 12px;
+  padding: 13px 12px;
   background: rgba(8, 24, 48, 0.72);
   border: 1px solid rgba(103, 172, 255, 0.2);
   border-radius: 8px;
@@ -3414,27 +3401,6 @@ p {
 
 .product-card:hover img {
   transform: scale(1.025);
-}
-
-.badge,
-.quote-badge {
-  position: absolute;
-  top: 10px;
-  padding: 5px 9px;
-  color: #ffffff;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.badge {
-  left: 10px;
-  background: var(--sale);
-}
-
-.quote-badge {
-  right: 10px;
-  background: var(--accent);
 }
 
 .product-info {

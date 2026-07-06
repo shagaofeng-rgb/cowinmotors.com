@@ -1,5 +1,5 @@
 import { CategoryShowcase } from "@/components/CategoryShowcase";
-import { filterProducts, paginateProducts } from "@/lib/products";
+import { categoryHeroImage, filterProducts, paginateProducts } from "@/lib/products";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
@@ -23,7 +23,7 @@ export default async function WheelsPage({
       title="Forged automotive wheels"
       highlight="by vehicle fitment."
       description="Shop forged wheels matched to passenger and performance vehicles. Filter by size, PCD or bolt pattern, offset, center bore, finish and load rating."
-      heroImage={UI_ASSETS.wheelHero}
+      heroImage={categoryHeroImage("wheels", UI_ASSETS.wheelHero)}
       heroAlt="Performance alloy wheel"
       basePath="/wheels"
       products={paged.items}

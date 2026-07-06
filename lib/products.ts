@@ -64,6 +64,10 @@ export function byCategory(slug: string) {
   return products.filter((product) => categorySlug(product) === slug);
 }
 
+export function categoryHeroImage(slug: string, fallback = "") {
+  return byCategory(slug).find((product) => product.localImage)?.localImage || fallback;
+}
+
 export function productPath(product: Product) {
   return `/product/${product.slug || product.__id}`;
 }
