@@ -79,7 +79,6 @@ body:has(.category-design) .site-footer small {
   color: var(--cat-text);
   background:
     linear-gradient(rgba(5, 15, 29, 0.86), rgba(5, 15, 29, 0.96)),
-    url("/assets/ui/shared/banners/hero-banner-dark.png") top center / 100% auto no-repeat,
     radial-gradient(circle at 78% 6%, rgba(31, 119, 255, 0.2), transparent 28%),
     linear-gradient(180deg, #06111f 0%, #040c17 100%);
 }
@@ -141,7 +140,6 @@ body:has(.category-design) .site-footer small {
   content: "";
   background:
     linear-gradient(rgba(4, 13, 25, 0.12), rgba(4, 13, 25, 0.36)),
-    url("/assets/ui/shared/banners/hero-banner-dark.png") center / cover no-repeat,
     radial-gradient(ellipse at 78% 52%, rgba(0, 111, 255, 0.4), transparent 35%),
     linear-gradient(135deg, transparent 0 44%, rgba(78, 151, 255, 0.12) 44% 46%, transparent 46% 100%),
     repeating-linear-gradient(168deg, rgba(0, 110, 255, 0.22) 0 2px, transparent 2px 20px);
@@ -1233,7 +1231,7 @@ body:has(.home-exact) .site-footer small {
   gap: clamp(14px, 2vw, 28px);
   align-items: center;
   justify-content: center;
-  overflow-x: auto;
+  overflow: visible;
   scrollbar-width: none;
 }
 
@@ -1381,7 +1379,7 @@ body:has(.home-exact) .site-footer small {
   overflow: hidden;
   background:
     linear-gradient(90deg, rgba(4, 13, 25, 0.72), rgba(4, 13, 25, 0.18)),
-    url("/assets/ui/shared/banners/hero-banner-dark.png") center / cover no-repeat;
+    radial-gradient(ellipse at 72% 50%, rgba(0, 102, 255, 0.24), transparent 42%);
 }
 
 .home-banner::before {
