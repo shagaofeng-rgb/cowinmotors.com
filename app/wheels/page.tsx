@@ -3,9 +3,9 @@ import { filterProducts, paginateProducts } from "@/lib/products";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
-  title: "Forged, Cast, Flow-Formed and Performance Wheels by Fitment",
+  title: "Forged Automotive Wheels by Fitment",
   description:
-    "Browse forged, cast, flow-formed, off-road, and performance wheels with diameter, PCD, offset, center bore, finish, and export quotation support.",
+    "Browse forged automotive wheels with diameter, PCD, offset, center bore, finish, and export quotation support.",
   alternates: { canonical: "/wheels" },
 };
 
@@ -20,9 +20,9 @@ export default async function WheelsPage({
   return (
     <CategoryShowcase
       eyebrow="Wheels"
-      title="Forged, cast, flow-formed, off-road and performance wheels"
+      title="Forged automotive wheels"
       highlight="by vehicle fitment."
-      description="Shop premium wheels matched to your vehicle. Filter by size, PCD or bolt pattern, offset, center bore, finish and load rating."
+      description="Shop forged wheels matched to passenger and performance vehicles. Filter by size, PCD or bolt pattern, offset, center bore, finish and load rating."
       heroImage={UI_ASSETS.wheelHero}
       heroAlt="Performance alloy wheel"
       basePath="/wheels"
@@ -39,7 +39,7 @@ export default async function WheelsPage({
       ctaHref="/quote?product=Wheels%20RFQ"
       quickStats={["Fitment-Verified Results", "Global Logistics", "Retail & Wholesale Support", "QC Inspected"]}
       benefits={[
-        ["Wide Selection", "Forged, cast, flow-formed and off-road wheels."],
+        ["Forged Selection", "Forged automotive wheels for retail and wholesale buyers."],
         ["Verified Fitment", "Accurate specs for your vehicle application."],
         ["Global Shipping", "Secure packaging and export documentation."],
         ["Retail-Focused", "Competitive pricing for resellers."],
@@ -52,7 +52,7 @@ export default async function WheelsPage({
         ["Center Bore", "Center hole size for hub fit."],
         ["Load Rating", "Supports vehicle weight safely."],
       ]}
-      tabs={["All Brands", "Vossen", "Rotiform", "Rays", "Enkei", "Konig", "Fuel Off-Road"]}
+      tabs={["All Brands", "Vossen", "AL13", "BC Forged", "HRE", "WORK", "Brixton Forged"]}
       supportTitle="Need a custom wheel style?"
       supportText="We source special finishes, offsets, and designs not listed online. Send your requirements for a fitment-based quote."
     />

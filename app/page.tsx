@@ -30,7 +30,7 @@ const categories = [
     category: "Wheels",
     label: "Wheels",
     href: "/wheels",
-    text: "Alloy, forged, flow forged and fitment-focused wheels.",
+    text: "Forged automotive wheels with fitment-focused specs.",
     fallback: UI_ASSETS.wheelHero,
   },
   {

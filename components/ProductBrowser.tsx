@@ -15,14 +15,13 @@ const brandFilters = [
   "PDW Group",
   "Vossen Wheels",
   "AL13 Wheels",
-  "BBS USA",
   "BC Forged NA",
   "HRE Wheels",
   "WORK Wheels USA",
   "Brixton Forged",
 ];
 const vehicleBrandFilters = ["all", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla", "Toyota", "Ford", "Honda", "Lexus"];
-const wheelBrandFilters = ["all", "PDW Group", "Vossen Wheels", "AL13 Wheels", "BBS USA", "BC Forged NA", "HRE Wheels", "WORK Wheels USA", "Brixton Forged"];
+const wheelBrandFilters = ["all", "PDW Group", "Vossen Wheels", "AL13 Wheels", "BC Forged NA", "HRE Wheels", "WORK Wheels USA", "Brixton Forged"];
 const categoryFilters = ["headlights", "tail-lights", "exhaust", "body-kits", "wheels"];
 
 export function ProductBrowser({

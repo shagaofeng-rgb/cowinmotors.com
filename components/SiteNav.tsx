@@ -19,7 +19,7 @@ const categoryGroups = [
   {
     title: "Wheels",
     href: "/wheels",
-    text: "Forged, flow-formed, off-road and performance wheels.",
+    text: "Forged automotive wheels for verified fitment.",
   },
   {
     title: "Body Kits",
