@@ -1,11 +1,10 @@
-import { Header } from "@/components/Header";
-import { ProductBrowser } from "@/components/ProductBrowser";
-import { filterProducts, paginateProducts, productCardData, products } from "@/lib/products";
+import { CategoryShowcase } from "@/components/CategoryShowcase";
+import { filterProducts, paginateProducts, products } from "@/lib/products";
 
 export const metadata = {
-  title: "Forged and Performance Wheels by Fitment",
+  title: "Forged, Cast, Flow-Formed and Performance Wheels by Fitment",
   description:
-    "Browse forged, flow-formed, off-road, and performance wheels with diameter, width, PCD, offset, center bore, finish, and export quotation support.",
+    "Browse forged, cast, flow-formed, off-road, and performance wheels with diameter, PCD, offset, center bore, finish, and export quotation support.",
   alternates: { canonical: "/wheels" },
 };
 
@@ -19,45 +18,43 @@ export default async function WheelsPage({
   const heroImage = products.find((product) => product.category === "Wheels")?.localImage || "/assets/live/category-exhaust.png";
 
   return (
-    <>
-      <Header cta="Request wheel quote" />
-      <main>
-        <section className="page-hero category-hero">
-          <div>
-            <p className="eyebrow">Wheels</p>
-            <h1>Forged and performance wheels by vehicle fitment.</h1>
-            <p>
-              Source wheel applications with diameter, width, bolt pattern, offset, center bore, brake clearance,
-              finish, cap, hardware, MOQ, packaging, and export shipping confirmed before quotation.
-            </p>
-            <div className="hero-actions">
-              <a className="button primary" href="/quote?product=Wheels%20RFQ">Request wheel quote</a>
-              <a className="button secondary" href="#wheel-products">View wheel products</a>
-            </div>
-          </div>
-          <img src={heroImage} alt="Forged and performance wheel product" />
-        </section>
-        <section className="section products-section" id="wheel-products">
-          <div className="section-title-row">
-            <div>
-              <p className="eyebrow">Wheel Listings</p>
-              <h2>Forged, flow-formed, off-road, and performance wheels.</h2>
-              <p>Use search or brand filters to narrow wheel designs, vehicle applications, and source-brand references.</p>
-            </div>
-          </div>
-          <ProductBrowser
-            products={productCardData(paged.items)}
-            pageType="wheels"
-            initialBrand={params.make || "all"}
-            initialCategory="wheels"
-            initialSearch={params.q || ""}
-            totalCount={paged.total}
-            currentPage={paged.currentPage}
-            totalPages={paged.totalPages}
-            basePath="/wheels"
-          />
-        </section>
-      </main>
-    </>
+    <CategoryShowcase
+      eyebrow="Wheels"
+      title="Forged, cast, flow-formed, off-road and performance wheels"
+      highlight="by vehicle fitment."
+      description="Shop premium wheels matched to your vehicle. Filter by size, PCD or bolt pattern, offset, center bore, finish and load rating."
+      heroImage={heroImage}
+      heroAlt="Performance alloy wheel"
+      basePath="/wheels"
+      products={paged.items}
+      pageType="wheels"
+      initialBrand={params.make || "all"}
+      initialSearch={params.q || ""}
+      totalCount={paged.total}
+      currentPage={paged.currentPage}
+      totalPages={paged.totalPages}
+      categorySlug="wheels"
+      finderTitle="Find wheels that fit your vehicle"
+      ctaLabel="Request a Quote"
+      ctaHref="/quote?product=Wheels%20RFQ"
+      quickStats={["Fitment-Verified Results", "Global Logistics", "Retail & Wholesale Support", "QC Inspected"]}
+      benefits={[
+        ["Wide Selection", "Forged, cast, flow-formed and off-road wheels."],
+        ["Verified Fitment", "Accurate specs for your vehicle application."],
+        ["Global Shipping", "Secure packaging and export documentation."],
+        ["Retail-Focused", "Competitive pricing for resellers."],
+      ]}
+      checklistTitle="Wheel specs explained"
+      checklist={[
+        ["Size", "Diameter and width for fit and handling."],
+        ["PCD / Bolt Pattern", "Number of bolts and diameter."],
+        ["Offset (ET)", "Distance from hub mounting surface."],
+        ["Center Bore", "Center hole size for hub fit."],
+        ["Load Rating", "Supports vehicle weight safely."],
+      ]}
+      tabs={["All Brands", "Vossen", "Rotiform", "Rays", "Enkei", "Konig", "Fuel Off-Road"]}
+      supportTitle="Need a custom wheel style?"
+      supportText="We source special finishes, offsets, and designs not listed online. Send your requirements for a fitment-based quote."
+    />
   );
 }

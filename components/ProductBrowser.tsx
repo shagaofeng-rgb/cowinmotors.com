@@ -21,6 +21,8 @@ const brandFilters = [
   "WORK Wheels USA",
   "Brixton Forged",
 ];
+const vehicleBrandFilters = ["all", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla", "Toyota", "Ford", "Honda", "Lexus"];
+const wheelBrandFilters = ["all", "PDW Group", "Vossen Wheels", "AL13 Wheels", "BBS USA", "BC Forged NA", "HRE Wheels", "WORK Wheels USA", "Brixton Forged"];
 const categoryFilters = ["headlights", "tail-lights", "exhaust", "body-kits", "wheels"];
 
 export function ProductBrowser({
@@ -46,7 +48,8 @@ export function ProductBrowser({
   totalPages?: number;
   basePath?: string;
 }) {
-  const activeBrand = brandFilters.includes(initialBrand) ? initialBrand : "all";
+  const filterOptions = pageType === "wheels" ? wheelBrandFilters : pageType === "products" ? brandFilters : vehicleBrandFilters;
+  const activeBrand = filterOptions.includes(initialBrand) ? initialBrand : "all";
   const startingCategory = categoryFilters.includes(initialCategory) ? initialCategory : "";
   const visible = limit ? products.slice(0, limit) : products;
   const activeCriteria = [startingCategory, initialSearch.trim(), activeBrand !== "all" ? activeBrand : ""].filter(Boolean);
@@ -93,7 +96,7 @@ export function ProductBrowser({
       </div>
       {pageType !== "home" ? (
         <div className="filter-row" aria-label="Quick filters">
-          {brandFilters.map((brand) => (
+          {filterOptions.map((brand) => (
             <Link
               className={activeBrand === brand ? "active" : ""}
               data-filter={brand}

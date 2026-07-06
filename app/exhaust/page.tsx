@@ -1,11 +1,10 @@
-import { Header } from "@/components/Header";
-import { ProductBrowser } from "@/components/ProductBrowser";
-import { filterProducts, paginateProducts, productCardData } from "@/lib/products";
+import { CategoryShowcase } from "@/components/CategoryShowcase";
+import { filterProducts, paginateProducts } from "@/lib/products";
 
 export const metadata = {
-  title: "Performance Exhaust Systems and Downpipes",
+  title: "Performance Exhaust Systems by Vehicle Fitment",
   description:
-    "Browse SS304 performance exhaust systems, catback exhausts, downpipes, and replacement exhaust products with RFQ support.",
+    "Browse SS304 performance exhaust systems, cat-back exhausts, axle-back exhausts, downpipes, tips, and replacement exhaust products with RFQ support.",
   alternates: { canonical: "/exhaust" },
 };
 
@@ -18,58 +17,43 @@ export default async function ExhaustPage({
   const paged = paginateProducts(filterProducts({ category: "exhaust", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 25);
 
   return (
-    <>
-      <Header cta="Request quote" />
-      <main>
-        <section className="page-hero category-hero">
-          <div>
-            <p className="eyebrow">Exhaust Systems</p>
-            <h1>Factory direct performance exhaust systems from USD 1,999.</h1>
-            <p>Source catback, axle-back, downpipe, SS304 and titanium exhaust systems with fitment confirmation, strict QC inspection, protective packaging, and worldwide shipping support.</p>
-            <div className="hero-actions">
-              <a className="button primary" href="/quote?product=Exhaust%20System%20RFQ">Request exhaust quote</a>
-              <a className="button secondary" href="#exhaust-products">View exhaust products</a>
-            </div>
-          </div>
-          <img src="/assets/live/category-exhaust.png" alt="Exhaust system product" />
-        </section>
-        <section className="section price-band">
-          <div>
-            <p className="eyebrow">Unified Exhaust Pricing</p>
-            <h2>All exhaust pipe listings are displayed at USD 1,999.</h2>
-            <p>Final landed cost can still vary by vehicle fitment, material, shipping country, carton size, and order quantity. Use RFQ for wholesale, titanium, mixed-container, or custom requirements.</p>
-          </div>
-          <div className="price-callout">
-            <span>Factory Direct Price</span>
-            <strong>USD 1,999</strong>
-            <small>Fitment and shipping confirmed before order.</small>
-          </div>
-        </section>
-        <section className="section workshop-section">
-          <div className="section-title-row">
-            <div>
-              <p className="eyebrow">Production Workshop</p>
-              <h2>Welding, packing, and stocked export inventory.</h2>
-              <p>Production and packing support covers fabrication workstations, warehouse storage, protective packaging, and export-ready cartons.</p>
-            </div>
-          </div>
-          <img src="/assets/live/exhaust-workshop.webp" alt="Exhaust production workshop, packaging area, and warehouse inventory" loading="lazy" />
-        </section>
-        <section className="section products-section" id="exhaust-products">
-          <div className="section-title-row"><div><p className="eyebrow">Exhaust Listings</p><h2>Performance exhaust products.</h2></div></div>
-          <ProductBrowser
-            products={productCardData(paged.items)}
-            pageType="exhaust"
-            initialBrand={params.make || "all"}
-            initialCategory="exhaust"
-            initialSearch={params.q || ""}
-            totalCount={paged.total}
-            currentPage={paged.currentPage}
-            totalPages={paged.totalPages}
-            basePath="/exhaust"
-          />
-        </section>
-      </main>
-    </>
+    <CategoryShowcase
+      eyebrow="Exhaust Systems"
+      title="Performance exhaust systems"
+      highlight="by vehicle fitment."
+      description="Source cat-back, axle-back, downpipes, mid-pipes and exhaust tips built for performance, sound and quality. We help retail buyers confirm fitment and export coordination."
+      heroImage="/assets/live/category-exhaust.png"
+      heroAlt="Performance exhaust system"
+      basePath="/exhaust"
+      products={paged.items}
+      pageType="exhaust"
+      initialBrand={params.make || "all"}
+      initialSearch={params.q || ""}
+      totalCount={paged.total}
+      currentPage={paged.currentPage}
+      totalPages={paged.totalPages}
+      categorySlug="exhaust"
+      finderTitle="Find the right exhaust fitment"
+      ctaLabel="Request a Quote"
+      ctaHref="/quote?product=Exhaust%20System%20RFQ"
+      quickStats={["Verified Fitment", "Premium Materials", "Performance & Sound", "Global Distribution"]}
+      benefits={[
+        ["Verified Fitment", "Application-checked systems for accurate compatibility."],
+        ["Premium Materials", "T304 stainless steel and high-quality construction."],
+        ["Performance & Sound", "Greater flow, power gains and refined exhaust note."],
+        ["Retail Buyer Support", "Fitment help, sourcing and after-sales assistance."],
+      ]}
+      checklistTitle="What to confirm before ordering an exhaust"
+      checklist={[
+        ["Fitment", "Year, make, model, engine code, body style and drivetrain."],
+        ["Material", "Choose stainless steel, aluminum steel or titanium options."],
+        ["Sound Level", "Aggressive, sporty or mild sound note."],
+        ["Packing", "Retail-ready packaging or bulk packing per requirements."],
+        ["Shipping", "Destination, incoterms, lead time and import requirements."],
+      ]}
+      tabs={["All Systems", "Cat-Back Systems", "Axle-Back Systems", "Downpipes", "Exhaust Tips"]}
+      supportTitle="Need a custom exhaust system or part not listed?"
+      supportText="Our sourcing team can find the right product, match fitment and confirm the best solution for your market."
+    />
   );
 }
