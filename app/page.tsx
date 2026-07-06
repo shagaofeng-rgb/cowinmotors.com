@@ -149,7 +149,7 @@ export default function HomePage() {
             <p>Beyond the products displayed on our website, we can also source and customize parts based on your requirements.</p>
           </div>
           <div className="home-hero-actions">
-            <Link className="home-button home-button-primary" href="/products">Shop by Vehicle</Link>
+            <Link className="home-button home-button-primary" href="/products">Browse Products</Link>
             <Link className="home-button home-button-light" href="/quote">Request a Quote</Link>
           </div>
         </div>

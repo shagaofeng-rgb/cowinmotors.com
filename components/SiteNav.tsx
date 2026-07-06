@@ -1,16 +1,5 @@
 import Link from "next/link";
 
-const vehicleLinks = [
-  ["BMW", "/products?make=BMW"],
-  ["Mercedes-Benz", "/products?make=Mercedes-Benz"],
-  ["Audi", "/products?make=Audi"],
-  ["Porsche", "/products?make=Porsche"],
-  ["Volkswagen", "/products?make=Volkswagen"],
-  ["Tesla", "/products?make=Tesla"],
-  ["Toyota", "/products?make=Toyota"],
-  ["Honda", "/products?make=Honda"],
-];
-
 const categoryGroups = [
   {
     title: "Headlights",
@@ -72,21 +61,7 @@ const categoryGroups = [
 export function SiteNav({ className = "" }: { className?: string }) {
   return (
     <nav className={`site-nav ${className}`.trim()} aria-label="Primary navigation">
-      <details className="nav-drawer">
-        <summary>Shop by Vehicle</summary>
-        <div className="nav-panel vehicle-panel">
-          <div className="nav-panel-head">
-            <strong>Shop by vehicle make</strong>
-            <span>Filter real catalog products by brand, model keywords, and category.</span>
-          </div>
-          <div className="nav-link-grid compact">
-            {vehicleLinks.map(([label, href]) => (
-              <Link href={href} key={label}>{label}</Link>
-            ))}
-          </div>
-          <Link className="nav-feature-link" href="/products">Open full catalog</Link>
-        </div>
-      </details>
+      <Link href="/">Home</Link>
 
       <details className="nav-drawer wide">
         <summary>Categories</summary>

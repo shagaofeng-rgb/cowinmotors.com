@@ -75,7 +75,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   return (
     <>
       <Header cta="Request quote" />
-      <main className="section">
+      <main className="category-design product-detail-design">
         <nav className="breadcrumbs" aria-label="Breadcrumb">
           <Link href="/">Home</Link><span>/</span><Link href="/products">Products</Link><span>/</span><Link href={`/products?category=${categorySlug(product)}`}>{product.category}</Link>
         </nav>
