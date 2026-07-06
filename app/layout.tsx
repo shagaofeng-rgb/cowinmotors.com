@@ -4,6 +4,7 @@ import "./globals.css";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.cowinmotors.com"),
@@ -23,14 +24,14 @@ export const metadata: Metadata = {
     description:
       "Source aftermarket headlights, exhaust parts, wheels, and body kits with clear fitment data, MOQ, lead times, QC inspection, and worldwide shipping support.",
     url: "https://www.cowinmotors.com",
-    images: [{ url: "/assets/live/category-lighting.png", width: 1200, height: 900, alt: "Cowinmotors automotive lighting and parts" }],
+    images: [{ url: UI_ASSETS.newsLighting, width: 1200, height: 900, alt: "Cowinmotors automotive lighting and parts" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Automotive Headlights, Exhaust Pipes, Wheels & Body Kits | Cowinmotors",
     description:
       "Source aftermarket headlights, exhaust parts, wheels, and body kits with fitment confirmation, QC inspection, and worldwide shipping support.",
-    images: ["/assets/live/category-lighting.png"],
+    images: [UI_ASSETS.newsLighting],
   },
   icons: {
     icon: [
@@ -49,7 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     "@type": "Organization",
     name: "Cowinmotors",
     url: "https://www.cowinmotors.com",
-    logo: "https://www.cowinmotors.com/assets/live/logo.jpg",
+    logo: `https://www.cowinmotors.com${UI_ASSETS.logo}`,
     contactPoint: [
       {
         "@type": "ContactPoint",

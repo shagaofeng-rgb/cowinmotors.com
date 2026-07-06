@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { MissingModelForm } from "@/components/MissingModelForm";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
   title: "Automotive Body Kits and Exterior Styling RFQ",
@@ -46,7 +47,7 @@ export default function BodyKitsPage() {
             </div>
           </div>
           <div className="category-hero-media">
-            <img src="/assets/live/category-body-kits.png" alt="Body kit exterior styling parts" />
+            <img src={UI_ASSETS.bodyKitHero} alt="Body kit exterior styling parts" />
           </div>
         </section>
 
@@ -96,9 +97,9 @@ export default function BodyKitsPage() {
             </div>
           </div>
           <div className="bodykit-request-grid">
-            {["Full Body Kits", "Front Lips", "Rear Diffusers", "Side Skirts", "Spoilers & Wings"].map((item) => (
+            {["Full Body Kits", "Front Lips", "Rear Diffusers", "Side Skirts", "Spoilers & Wings"].map((item, index) => (
               <Link className="bodykit-request-card" href={`/quote?product=${encodeURIComponent(item)}`} key={item}>
-                <img src="/assets/live/category-body-kits.png" alt={`${item} sourcing request`} />
+                <img src={UI_ASSETS.bodyKits[index] || UI_ASSETS.bodyKitHero} alt={`${item} sourcing request`} />
                 <strong>{item}</strong>
                 <span>Submit vehicle fitment, material, finish and destination for quotation.</span>
               </Link>

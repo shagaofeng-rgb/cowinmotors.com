@@ -4,13 +4,14 @@ import { Header } from "@/components/Header";
 import { NewsCard } from "@/components/NewsCard";
 import { getRelatedNewsForProduct } from "@/lib/news";
 import { categorySlug, findProduct, inferBuyingPath, products } from "@/lib/products";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export function generateStaticParams() {
   return products.slice(0, 250).map((product) => ({ id: product.slug || String(product.__id) }));
 }
 
 function absoluteImageUrl(image: string) {
-  if (!image) return "https://www.cowinmotors.com/assets/live/logo.jpg";
+  if (!image) return `https://www.cowinmotors.com${UI_ASSETS.logo}`;
   if (image.startsWith("http")) return image;
   return `https://www.cowinmotors.com${image.startsWith("/") ? image : `/${image}`}`;
 }

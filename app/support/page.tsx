@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
   title: "Automotive Parts Order Support",
@@ -38,7 +39,7 @@ export default function SupportPage() {
               <Link href="/quote?product=Sourcing%20Request">Sourcing Request</Link>
             </div>
           </div>
-          <img src="/assets/live/product-23.png" alt="Cowinmotors global order support" />
+          <img src={UI_ASSETS.supportNetwork} alt="Cowinmotors global order support" />
         </section>
 
         <section className="support-search-panel">
@@ -111,6 +112,7 @@ export default function SupportPage() {
             ))}
           </div>
           <aside>
+            <img src={UI_ASSETS.supportHeadset} alt="" aria-hidden="true" />
             <h2>Need immediate help?</h2>
             <p>Chat with our support team for fast answers or start a sourcing conversation.</p>
             <Link href="https://api.whatsapp.com/send/?phone=%2B8617601255205&text&type=phone_number&app_absent=0" target="_blank">Chat on WhatsApp</Link>

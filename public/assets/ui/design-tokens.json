@@ -1,0 +1,41 @@
+{
+  "color": {
+    "bg-deep": "#020B18",
+    "bg-section": "#041427",
+    "panel": "#071D35",
+    "panel-elevated": "#0A2542",
+    "border": "#17466F",
+    "primary": "#0868FF",
+    "primary-bright": "#188BFF",
+    "cyan": "#22B1FF",
+    "text-primary": "#F6F8FB",
+    "text-secondary": "#A8BDD1",
+    "success": "#27C66A",
+    "warning": "#FFB347",
+    "danger": "#FF4A55"
+  },
+  "typography": {
+    "display": "Manrope, Inter, Arial, sans-serif",
+    "body": "Inter, Arial, sans-serif",
+    "numeric": "Barlow, Inter, sans-serif",
+    "hero_weight": 800,
+    "section_weight": 700,
+    "body_weight": 400
+  },
+  "radius": {
+    "small": "8px",
+    "medium": "12px",
+    "large": "18px",
+    "pill": "999px"
+  },
+  "shadow": {
+    "card": "0 12px 34px rgba(0,0,0,.28)",
+    "blue-glow": "0 0 28px rgba(8,104,255,.28)"
+  },
+  "layout": {
+    "desktop_max_width": "1440px",
+    "content_width": "1280px",
+    "section_gap": "72px",
+    "card_gap": "20px"
+  }
+}

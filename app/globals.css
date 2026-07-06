@@ -78,6 +78,8 @@ body:has(.category-design) .site-footer small {
   min-height: 100vh;
   color: var(--cat-text);
   background:
+    linear-gradient(rgba(5, 15, 29, 0.86), rgba(5, 15, 29, 0.96)),
+    url("/assets/ui/shared/banners/hero-banner-dark.png") top center / 100% auto no-repeat,
     radial-gradient(circle at 78% 6%, rgba(31, 119, 255, 0.2), transparent 28%),
     linear-gradient(180deg, #06111f 0%, #040c17 100%);
 }
@@ -138,10 +140,12 @@ body:has(.category-design) .site-footer small {
   pointer-events: none;
   content: "";
   background:
+    linear-gradient(rgba(4, 13, 25, 0.12), rgba(4, 13, 25, 0.36)),
+    url("/assets/ui/shared/banners/hero-banner-dark.png") center / cover no-repeat,
     radial-gradient(ellipse at 78% 52%, rgba(0, 111, 255, 0.4), transparent 35%),
     linear-gradient(135deg, transparent 0 44%, rgba(78, 151, 255, 0.12) 44% 46%, transparent 46% 100%),
     repeating-linear-gradient(168deg, rgba(0, 110, 255, 0.22) 0 2px, transparent 2px 20px);
-  opacity: 0.62;
+  opacity: 0.82;
 }
 
 .category-copy,
@@ -659,7 +663,8 @@ body:has(.category-design) .site-footer small {
   width: 100%;
   height: 150px;
   object-fit: contain;
-  background: #ffffff;
+  padding: 10px;
+  background: #eaf2fb;
   border-radius: 6px;
 }
 
@@ -811,7 +816,7 @@ body:has(.category-design) .site-footer small {
 .support-hero img {
   width: 100%;
   max-height: 360px;
-  object-fit: cover;
+  object-fit: contain;
   border: 1px solid rgba(103, 172, 255, 0.26);
   border-radius: 12px;
   opacity: 0.88;
@@ -951,6 +956,14 @@ body:has(.category-design) .site-footer small {
   gap: 12px;
   align-content: center;
   padding: 24px;
+}
+
+.support-faq-layout aside img {
+  justify-self: center;
+  width: min(220px, 62vw);
+  max-height: 180px;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 28px rgba(0, 85, 255, 0.28));
 }
 
 .support-faq-layout aside a {
@@ -1192,10 +1205,10 @@ body:has(.home-exact) .site-footer small {
 }
 
 .home-logo img {
-  width: 52px;
-  height: 52px;
+  width: 178px;
+  height: auto;
+  max-height: 54px;
   object-fit: contain;
-  border-radius: 7px;
 }
 
 .home-logo strong {
@@ -1366,6 +1379,9 @@ body:has(.home-exact) .site-footer small {
   margin: 0 auto;
   padding: clamp(44px, 6vw, 82px) clamp(18px, 5vw, 72px) 30px;
   overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(4, 13, 25, 0.72), rgba(4, 13, 25, 0.18)),
+    url("/assets/ui/shared/banners/hero-banner-dark.png") center / cover no-repeat;
 }
 
 .home-banner::before {
@@ -2216,8 +2232,9 @@ body:has(.home-exact) .site-footer small {
     padding-inline: 16px;
   }
 
-  .home-logo strong {
-    font-size: 18px;
+  .home-logo img {
+    width: 144px;
+    max-height: 44px;
   }
 
   .home-header-actions {
@@ -2331,8 +2348,9 @@ textarea {
 }
 
 .brand img {
-  width: 54px;
-  height: 54px;
+  width: 176px;
+  height: auto;
+  max-height: 54px;
   object-fit: contain;
 }
 
@@ -3733,6 +3751,14 @@ p {
   background: #141414;
 }
 
+.footer-brand img {
+  width: 178px;
+  height: auto;
+  max-height: 54px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
 .site-footer strong,
 .site-footer span,
 .site-footer small {
@@ -4986,8 +5012,9 @@ body:has(.home-redesign) .header-cta {
   }
 
   .brand img {
-    width: 48px;
-    height: 48px;
+    width: 144px;
+    height: auto;
+    max-height: 44px;
   }
 
   .header-cta {

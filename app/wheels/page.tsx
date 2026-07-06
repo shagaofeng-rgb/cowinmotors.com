@@ -1,5 +1,6 @@
 import { CategoryShowcase } from "@/components/CategoryShowcase";
-import { filterProducts, paginateProducts, products } from "@/lib/products";
+import { filterProducts, paginateProducts } from "@/lib/products";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
   title: "Forged, Cast, Flow-Formed and Performance Wheels by Fitment",
@@ -15,7 +16,6 @@ export default async function WheelsPage({
 }) {
   const params = await searchParams;
   const paged = paginateProducts(filterProducts({ category: "wheels", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 25);
-  const heroImage = products.find((product) => product.category === "Wheels")?.localImage || "/assets/live/category-exhaust.png";
 
   return (
     <CategoryShowcase
@@ -23,7 +23,7 @@ export default async function WheelsPage({
       title="Forged, cast, flow-formed, off-road and performance wheels"
       highlight="by vehicle fitment."
       description="Shop premium wheels matched to your vehicle. Filter by size, PCD or bolt pattern, offset, center bore, finish and load rating."
-      heroImage={heroImage}
+      heroImage={UI_ASSETS.wheelHero}
       heroAlt="Performance alloy wheel"
       basePath="/wheels"
       products={paged.items}

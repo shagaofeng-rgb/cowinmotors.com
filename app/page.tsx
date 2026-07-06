@@ -2,6 +2,7 @@ import Link from "next/link";
 import { MissingModelForm } from "@/components/MissingModelForm";
 import { SiteNav } from "@/components/SiteNav";
 import { productPath, products } from "@/lib/products";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 const categories = [
   {
@@ -9,35 +10,35 @@ const categories = [
     label: "Headlights",
     href: "/headlights",
     text: "LED, DRL, projector and OE-style fitment support.",
-    fallback: "/assets/live/category-lighting.png",
+    fallback: UI_ASSETS.headlightHero,
   },
   {
     category: "Tail Lights",
     label: "Tail Lights",
     href: "/tail-lights",
     text: "Rear lamps with connector, side and model checks.",
-    fallback: "/assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp",
+    fallback: UI_ASSETS.tailLightHero,
   },
   {
     category: "Exhaust Systems",
     label: "Exhaust Systems",
     href: "/exhaust",
     text: "Cat-back, axle-back, downpipe and valved systems.",
-    fallback: "/assets/live/category-exhaust.png",
+    fallback: UI_ASSETS.exhaustHero,
   },
   {
     category: "Wheels",
     label: "Wheels",
     href: "/wheels",
     text: "Alloy, forged, flow forged and fitment-focused wheels.",
-    fallback: "/assets/live/category-exhaust.png",
+    fallback: UI_ASSETS.wheelHero,
   },
   {
     category: "Body Kits",
     label: "Body Kits",
     href: "/body-kits",
     text: "Front lips, bumpers, side skirts and diffusers by request.",
-    fallback: "/assets/live/category-body-kits.png",
+    fallback: UI_ASSETS.bodyKitHero,
   },
 ];
 
@@ -67,7 +68,7 @@ function firstProduct(category: string) {
 }
 
 function productImage(category: string, fallback: string) {
-  return firstProduct(category)?.localImage || fallback;
+  return fallback || firstProduct(category)?.localImage || "";
 }
 
 function featuredFor(category: (typeof categories)[number]) {
@@ -118,11 +119,7 @@ export default function HomePage() {
 
       <header className="home-header">
         <Link className="home-logo" href="/" aria-label="Cowinmotors home">
-          <img src="/assets/live/logo.jpg" alt="Cowinmotors logo" />
-          <span>
-            <strong>Cowinmotors</strong>
-            <small>Global Auto Parts Supply</small>
-          </span>
+          <img src={UI_ASSETS.logo} alt="Cowinmotors logo" />
         </Link>
         <SiteNav className="home-nav" />
         <div className="home-header-actions">
@@ -249,7 +246,7 @@ export default function HomePage() {
             </Link>
           ))}
           <Link className="home-category-item" href="/quote?product=More%20Parts%20Sourcing">
-            <img src="/assets/live/exhaust-workshop.webp" alt="More automotive parts sourcing" />
+            <img src={UI_ASSETS.moreParts} alt="More automotive parts sourcing" />
             <strong>More Parts</strong>
             <span>Send OE number, product photo or vehicle details for sourcing.</span>
           </Link>
@@ -338,11 +335,11 @@ export default function HomePage() {
         </div>
         <div className="home-service-grid-exact">
           {[
-            ["Quality Inspection", "Careful inspection before packing to reduce quality risk.", productImage("Automotive Lighting", "/assets/live/category-lighting.png")],
-            ["Secure Packaging", "Strong packaging to protect parts during transit.", "/assets/live/exhaust-workshop.webp"],
-            ["Sourcing & Coordination", "We work with trusted suppliers and manage the process for you.", "/assets/live/exhaust-workshop.webp"],
-            ["Global Shipping", "By sea, air or express to your destination country.", "/assets/live/exhaust-workshop.webp"],
-            ["After-Sales Support", "Responsive follow-up for order and shipping questions.", "/assets/live/logo.jpg"],
+            ["Quality Inspection", "Careful inspection before packing to reduce quality risk.", UI_ASSETS.service.quality],
+            ["Secure Packaging", "Strong packaging to protect parts during transit.", UI_ASSETS.service.packaging],
+            ["Sourcing & Coordination", "We work with trusted suppliers and manage the process for you.", UI_ASSETS.service.sourcing],
+            ["Global Shipping", "By sea, air or express to your destination country.", UI_ASSETS.service.shipping],
+            ["After-Sales Support", "Responsive follow-up for order and shipping questions.", UI_ASSETS.service.afterSales],
           ].map(([title, text, image]) => (
             <article className="home-service-card-exact" key={title}>
               <img src={image} alt={`${title} support`} loading="lazy" />

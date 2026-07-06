@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { NewsCard } from "@/components/NewsCard";
 import { getPublishedNews } from "@/lib/news";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     description:
       "Read source-backed automotive industry updates with Cowinmotors sourcing analysis and related product links.",
     url: "https://www.cowinmotors.com/news",
-    images: ["/assets/live/category-lighting.png"],
+    images: [UI_ASSETS.newsLighting],
   },
 };
 
@@ -66,7 +67,7 @@ export default async function NewsPage({
             </article>
           ) : (
             <article className="news-featured-card empty">
-              <img src="/assets/live/category-lighting.png" alt="Automotive lighting sourcing insight" />
+              <img src={UI_ASSETS.newsLighting} alt="Automotive lighting sourcing insight" />
               <div>
                 <span>Sourcing Insight</span>
                 <h2>Automotive parts sourcing updates for global buyers.</h2>

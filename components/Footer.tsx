@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export function Footer() {
   return (
     <footer className="site-footer">
       <div className="footer-brand">
+        <img src={UI_ASSETS.logo} alt="Cowinmotors logo" />
         <strong>Cowinmotors</strong>
         <span>Automotive headlights, tail lights, exhaust systems, wheels, and custom exterior parts for international orders.</span>
       </div>

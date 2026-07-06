@@ -1,5 +1,6 @@
 import { CategoryShowcase } from "@/components/CategoryShowcase";
 import { filterProducts, paginateProducts } from "@/lib/products";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
   title: "Premium LED Headlights by Vehicle Fitment",
@@ -22,7 +23,7 @@ export default async function HeadlightsPage({
       title="Premium headlights"
       highlight="by vehicle fitment."
       description="Find high-performance headlights with precise fitment for your vehicle. Confirm year, make, model, LHD/RHD, connector, beam pattern, DRL and signal options before ordering."
-      heroImage="/assets/live/category-lighting.png"
+      heroImage={UI_ASSETS.headlightHero}
       heroAlt="Premium LED headlight assembly"
       basePath="/headlights"
       products={paged.items}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export function Header({
   cta = "Request wholesale quote",
@@ -11,7 +12,7 @@ export function Header({
       <div className="announcement">Factory Direct Manufacturer | Worldwide Shipping | Strict QC Inspection</div>
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Cowinmotors home">
-          <img src="/assets/live/logo.jpg" alt="Cowinmotors logo" />
+          <img src={UI_ASSETS.logo} alt="Cowinmotors logo" />
         </Link>
         <SiteNav className="main-nav" />
         <div className="header-actions">

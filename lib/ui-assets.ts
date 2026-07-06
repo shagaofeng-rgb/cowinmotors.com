@@ -1,0 +1,27 @@
+export const UI_ASSETS = {
+  logo: "/assets/ui/shared/brand/cowinmotors-logo-header.png",
+  heroBanner: "/assets/ui/shared/banners/hero-banner-dark.png",
+  headlightHero: "/assets/ui/product-images/headlights/hero/headlights-hero-product_transparent.png",
+  tailLightHero: "/assets/ui/product-images/tail-lights/hero/tail-lights-hero-product_transparent.png",
+  exhaustHero: "/assets/ui/product-images/exhaust-systems/hero/exhaust-systems-hero-product_transparent.png",
+  wheelHero: "/assets/ui/product-images/wheels/hero/wheels-hero-product_transparent.png",
+  bodyKitHero: "/assets/ui/product-images/body-kits/hero/body-kits-hero-product_transparent.png",
+  moreParts: "/assets/ui/illustrations/automotive/headlight-wireframe-car.png",
+  supportNetwork: "/assets/ui/illustrations/support/global-support-car-network.png",
+  supportHeadset: "/assets/ui/illustrations/support/support-headset.png",
+  newsLighting: "/assets/ui/photography/news/article-lighting-trends.png",
+  service: {
+    quality: "/assets/ui/photography/service-cards/quality-inspection.png",
+    packaging: "/assets/ui/photography/service-cards/secure-packaging.png",
+    sourcing: "/assets/ui/photography/service-cards/sourcing-coordination.png",
+    shipping: "/assets/ui/photography/service-cards/global-shipping.png",
+    afterSales: "/assets/ui/photography/service-cards/after-sales-support.png",
+  },
+  bodyKits: [
+    "/assets/ui/product-images/body-kits/catalog/body-kit-01_transparent.png",
+    "/assets/ui/product-images/body-kits/catalog/body-kit-02_transparent.png",
+    "/assets/ui/product-images/body-kits/catalog/body-kit-03_transparent.png",
+    "/assets/ui/product-images/body-kits/catalog/body-kit-04_transparent.png",
+    "/assets/ui/product-images/body-kits/catalog/body-kit-05_transparent.png",
+  ],
+};

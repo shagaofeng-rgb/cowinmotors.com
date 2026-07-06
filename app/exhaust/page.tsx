@@ -1,5 +1,6 @@
 import { CategoryShowcase } from "@/components/CategoryShowcase";
 import { filterProducts, paginateProducts } from "@/lib/products";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
   title: "Performance Exhaust Systems by Vehicle Fitment",
@@ -22,7 +23,7 @@ export default async function ExhaustPage({
       title="Performance exhaust systems"
       highlight="by vehicle fitment."
       description="Source cat-back, axle-back, downpipes, mid-pipes and exhaust tips built for performance, sound and quality. We help retail buyers confirm fitment and export coordination."
-      heroImage="/assets/live/category-exhaust.png"
+      heroImage={UI_ASSETS.exhaustHero}
       heroAlt="Performance exhaust system"
       basePath="/exhaust"
       products={paged.items}

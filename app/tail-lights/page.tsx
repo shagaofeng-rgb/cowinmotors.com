@@ -1,5 +1,6 @@
 import { CategoryShowcase } from "@/components/CategoryShowcase";
 import { filterProducts, paginateProducts } from "@/lib/products";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
   title: "LED Tail Lights and Rear Lamp Assemblies by Fitment",
@@ -22,7 +23,7 @@ export default async function TailLightsPage({
       title="LED tail lights and rear lamp assemblies"
       highlight="by vehicle fitment."
       description="Explore LED tail lights with OE fitment, multiple lens styles, signal types, dynamic or sequential turn indicators, and reliable performance."
-      heroImage="/assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp"
+      heroImage={UI_ASSETS.tailLightHero}
       heroAlt="LED tail light assembly"
       basePath="/tail-lights"
       products={paged.items}
