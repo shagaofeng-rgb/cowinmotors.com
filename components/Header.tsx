@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteNav } from "@/components/SiteNav";
 
 export function Header({
   cta = "Request wholesale quote",
@@ -12,19 +13,16 @@ export function Header({
         <Link className="brand" href="/" aria-label="Cowinmotors home">
           <img src="/assets/live/logo.jpg" alt="Cowinmotors logo" />
         </Link>
-        <nav className="main-nav" aria-label="Primary navigation">
-          <Link href="/">Home</Link>
-          <Link href="/headlights">Headlights</Link>
-          <Link href="/tail-lights">Tail Lights</Link>
-          <Link href="/exhaust">Exhaust</Link>
-          <Link href="/wheels">Wheels</Link>
-          <Link href="/body-kits">Body Kits</Link>
-          <Link href="/news">News</Link>
-          <Link href="/support">Support</Link>
-        </nav>
-        <Link className="header-cta" href="/quote">
-          {cta}
-        </Link>
+        <SiteNav className="main-nav" />
+        <div className="header-actions">
+          <form className="site-search" action="/products">
+            <input name="q" type="search" aria-label="Search products" placeholder="Search products" />
+            <button type="submit" aria-label="Search products" />
+          </form>
+          <Link className="header-cta" href="/quote">
+            {cta}
+          </Link>
+        </div>
       </header>
     </>
   );

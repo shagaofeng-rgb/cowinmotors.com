@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MissingModelForm } from "@/components/MissingModelForm";
+import { SiteNav } from "@/components/SiteNav";
 import { productPath, products } from "@/lib/products";
 
 const categories = [
@@ -123,14 +124,7 @@ export default function HomePage() {
             <small>Global Auto Parts Supply</small>
           </span>
         </Link>
-        <nav className="home-nav" aria-label="Homepage navigation">
-          <Link href="#vehicle-finder">Shop by Vehicle</Link>
-          <Link href="#categories">Categories</Link>
-          <Link href="#featured-products">New Arrivals</Link>
-          <Link href="#featured-products">Best Sellers</Link>
-          <Link href="#why-buy">About</Link>
-          <Link href="/quote">Contact</Link>
-        </nav>
+        <SiteNav className="home-nav" />
         <div className="home-header-actions">
           <form className="home-search" action="/products">
             <input name="q" type="search" aria-label="Search products" placeholder="Search products" />
@@ -155,7 +149,7 @@ export default function HomePage() {
             <p>Beyond the products displayed on our website, we can also source and customize parts based on your requirements.</p>
           </div>
           <div className="home-hero-actions">
-            <Link className="home-button home-button-primary" href="#vehicle-finder">Shop by Vehicle</Link>
+            <Link className="home-button home-button-primary" href="/products">Shop by Vehicle</Link>
             <Link className="home-button home-button-light" href="/quote">Request a Quote</Link>
           </div>
         </div>
