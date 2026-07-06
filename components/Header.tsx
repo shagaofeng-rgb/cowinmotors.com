@@ -17,6 +17,7 @@ export function Header({
           <Link href="/headlights">Headlights</Link>
           <Link href="/tail-lights">Tail Lights</Link>
         <Link href="/exhaust">Exhaust</Link>
+        <Link href="/wheels">Wheels</Link>
         <Link href="/body-kits">Body Kits</Link>
         <Link href="/news">News</Link>
         <Link href="/support">Support</Link>

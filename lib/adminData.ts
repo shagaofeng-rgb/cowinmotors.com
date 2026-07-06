@@ -27,6 +27,7 @@ export const adminPages = [
   { path: "/products", label: "All Products", priority: "High", intent: "catalog discovery and fitment search" },
   { path: "/headlights", label: "Headlights", priority: "High", intent: "lighting category SEO and buyer entry" },
   { path: "/exhaust", label: "Exhaust Pipes", priority: "High", intent: "USD 1,999 exhaust offer and workshop proof" },
+  { path: "/wheels", label: "Wheels", priority: "High", intent: "forged and performance wheel category SEO and RFQ entry" },
   { path: "/body-kits", label: "Body Kits", priority: "Medium", intent: "quote-only oversized parts" },
   { path: "/quote", label: "RFQ", priority: "High", intent: "lead capture" },
   { path: "/support", label: "Support", priority: "Medium", intent: "buyer trust and after-sales terms" },

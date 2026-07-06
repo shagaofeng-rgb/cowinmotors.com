@@ -63,7 +63,7 @@ export function MissingModelForm() {
       <label>Email<input name="email" type="email" placeholder="name@company.com" required /></label>
       <label>Phone / WhatsApp<input name="phone" type="tel" placeholder="+1 555 000 0000" required /></label>
       <label>Country<input name="country" type="text" placeholder="United States" /></label>
-      <label>Product Type<select name="productType"><option>Headlights</option><option>Exhaust Pipes</option><option>Body Kits</option><option>Other Automotive Parts</option></select></label>
+      <label>Product Type<select name="productType"><option>Headlights</option><option>Exhaust Pipes</option><option>Wheels</option><option>Body Kits</option><option>Other Automotive Parts</option></select></label>
       <label className="wide">Vehicle / Model Needed<input name="product" type="text" placeholder="BMW G82 M4, Audi S5 B9, Porsche 718..." required /></label>
       <label className="wide">Vehicle Details<input name="vehicleInfo" type="text" placeholder="Year / make / model / trim / engine / LHD or RHD" /></label>
       <label>Quantity<input name="quantity" type="text" placeholder="1 set, sample, wholesale order..." /></label>

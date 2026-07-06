@@ -30,12 +30,16 @@ export type Product = {
 export const products: Product[] = rawData.products.map((product, index) => ({
   ...product,
   __id: index,
-  localImage: `/${product.localImage}`,
+  localImage:
+    String(product.localImage || "").startsWith("http") || String(product.localImage || "").startsWith("/")
+      ? String(product.localImage || "")
+      : `/${product.localImage}`,
 }));
 
 export function inferBuyingPath(product: Product) {
   const title = product.title.toLowerCase();
   if (
+    product.category.includes("Wheel") ||
     title.includes("body") ||
     title.includes("kit") ||
     title.includes("paint") ||
@@ -52,6 +56,7 @@ export function categorySlug(product: Product) {
   if (product.category.includes("Tail")) return "tail-lights";
   if (product.category.includes("Exhaust")) return "exhaust";
   if (product.category.includes("Body")) return "body-kits";
+  if (product.category.includes("Wheel")) return "wheels";
   return "products";
 }
 
@@ -74,6 +79,7 @@ export const productCategoryOptions = [
   { slug: "tail-lights", label: "Tail Lights" },
   { slug: "exhaust", label: "Exhaust Systems" },
   { slug: "body-kits", label: "Body Kits" },
+  { slug: "wheels", label: "Wheels" },
 ];
 
 export function filterProducts({

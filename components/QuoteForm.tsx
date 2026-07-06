@@ -62,7 +62,7 @@ export function QuoteForm({ initialProduct = "" }: { initialProduct?: string }) 
       <label>Email<input name="email" type="email" placeholder="name@company.com" required /></label>
       <label>Phone / WhatsApp<input name="phone" type="tel" placeholder="+1 555 000 0000" required /></label>
       <label>Country<input name="country" type="text" placeholder="United States" /></label>
-      <label>Product Type<select name="productType"><option>Headlights</option><option>Exhaust Pipes</option><option>Body Kits</option><option>OEM / ODM / Private Label</option></select></label>
+      <label>Product Type<select name="productType"><option>Headlights</option><option>Exhaust Pipes</option><option>Wheels</option><option>Body Kits</option><option>OEM / ODM / Private Label</option></select></label>
       <label className="wide">Product / SKU<input id="quoteProduct" name="product" type="text" placeholder="Product title or SKU" defaultValue={initialProduct} /></label>
       <label>Vehicle Info<input name="vehicleInfo" type="text" placeholder="Year / make / model / trim / engine" /></label>
       <label>Quantity / MOQ<input name="quantity" type="text" placeholder="Sample, 5 pcs, 20 sets..." /></label>

@@ -7,7 +7,7 @@ function productPath(product: Product) {
 
 function inferBuyingPath(product: Product) {
   const title = product.title.toLowerCase();
-  if (title.includes("body") || title.includes("kit") || title.includes("paint") || title.includes("titanium") || title.includes("wholesale")) {
+  if (product.category.includes("Wheel") || title.includes("body") || title.includes("kit") || title.includes("paint") || title.includes("titanium") || title.includes("wholesale")) {
     return "RFQ";
   }
   return "Direct / RFQ";

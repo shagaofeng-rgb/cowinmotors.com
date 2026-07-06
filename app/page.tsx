@@ -6,6 +6,7 @@ import { ProductBrowser } from "@/components/ProductBrowser";
 import { productCardData, products } from "@/lib/products";
 
 export default function HomePage() {
+  const wheelCategoryImage = products.find((product) => product.category === "Wheels")?.localImage || "/assets/live/category-exhaust.png";
   const featuredGroups = [
     {
       category: "Automotive Lighting",
@@ -32,6 +33,14 @@ export default function HomePage() {
       href: "/exhaust",
     },
     {
+      category: "Wheels",
+      label: "Wheels",
+      eyebrow: "Wheel Picks",
+      title: "10 recommended wheel applications.",
+      description: "Forged, flow-formed, and performance wheel listings with diameter, width, PCD, offset, finish, and fitment confirmation.",
+      href: "/wheels",
+    },
+    {
       category: "Body Kits",
       label: "Body Kits",
       eyebrow: "Body Kit Picks",
@@ -53,7 +62,7 @@ export default function HomePage() {
         <section className="hero">
           <div className="hero-copy">
             <p className="eyebrow">Global automotive parts supply</p>
-            <h1>Find the right headlights, exhaust pipes, and body kits by vehicle.</h1>
+            <h1>Find the right headlights, exhaust pipes, wheels, and body kits by vehicle.</h1>
             <p>
               Cowinmotors is a China-based trading and export partner for stocked and quote-only aftermarket
               parts. We help buyers confirm compatibility, MOQ, lead time, packaging, shipping, and QC before
@@ -72,6 +81,7 @@ export default function HomePage() {
             <img src="/assets/live/category-lighting.png" alt="Automotive lighting headlight upgrade" />
             <img src="/assets/live/category-body-kits.png" alt="Body kit exterior styling parts" />
             <img src="/assets/live/category-exhaust.png" alt="Exhaust pipe system" />
+            <img src={wheelCategoryImage} alt="Performance wheel product" />
           </div>
         </section>
 
@@ -112,6 +122,11 @@ export default function HomePage() {
               <img src="/assets/live/category-exhaust.png" alt="Exhaust Systems" />
               <span>Exhaust Systems</span>
               <small>Cat-back, axle-back, downpipe, material, sound level and compliance notes.</small>
+            </Link>
+            <Link className="category-card" href="/wheels">
+              <img src={wheelCategoryImage} alt="Forged and performance wheels" />
+              <span>Wheels</span>
+              <small>Diameter, width, PCD, offset, center bore, finish, cap and fitment confirmation.</small>
             </Link>
             <Link className="category-card" href="/body-kits">
               <img src="/assets/live/category-body-kits.png" alt="Body Kits" />

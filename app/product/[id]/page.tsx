@@ -9,12 +9,18 @@ export function generateStaticParams() {
   return products.slice(0, 250).map((product) => ({ id: product.slug || String(product.__id) }));
 }
 
+function absoluteImageUrl(image: string) {
+  if (!image) return "https://www.cowinmotors.com/assets/live/logo.jpg";
+  if (image.startsWith("http")) return image;
+  return `https://www.cowinmotors.com${image.startsWith("/") ? image : `/${image}`}`;
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const product = findProduct(id);
   if (!product) return {};
   const title = `${product.title} | Cowinmotors`;
-  const imagePath = product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`;
+  const imageUrl = absoluteImageUrl(product.localImage);
   const description =
     product.description ||
     `Request a quote for ${product.title}. Confirm vehicle fitment, MOQ, lead time, packaging, and international shipping.`;
@@ -25,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     openGraph: {
       title,
       description,
-      images: [imagePath],
+      images: [imageUrl],
     },
   };
 }
@@ -45,14 +51,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const product = findProduct(id);
   if (!product) notFound();
-  const relatedNews = await getRelatedNewsForProduct(product, 3);
-  const imagePath = product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`;
+  const relatedNews = await getRelatedNewsForProduct(product, 3).catch(() => []);
+  const imageUrl = absoluteImageUrl(product.localImage);
   const externalListingUrl = listingUrl(product.url);
   const schema = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.title,
-    image: [`https://www.cowinmotors.com${imagePath}`],
+    image: [imageUrl],
     brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
     category: product.category,
     model: product.model || undefined,

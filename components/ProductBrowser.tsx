@@ -4,8 +4,24 @@ import Link from "next/link";
 import type { Product } from "@/lib/products";
 import { ProductCard } from "./ProductCard";
 
-const brandFilters = ["all", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla"];
-const categoryFilters = ["headlights", "tail-lights", "exhaust", "body-kits"];
+const brandFilters = [
+  "all",
+  "BMW",
+  "Mercedes-Benz",
+  "Audi",
+  "Porsche",
+  "Volkswagen",
+  "Tesla",
+  "PDW Group",
+  "Vossen Wheels",
+  "AL13 Wheels",
+  "BBS USA",
+  "BC Forged NA",
+  "HRE Wheels",
+  "WORK Wheels USA",
+  "Brixton Forged",
+];
+const categoryFilters = ["headlights", "tail-lights", "exhaust", "body-kits", "wheels"];
 
 export function ProductBrowser({
   products,
@@ -20,7 +36,7 @@ export function ProductBrowser({
   basePath = "/products",
 }: {
   products: Product[];
-  pageType?: "home" | "products" | "headlights" | "tail-lights" | "exhaust";
+  pageType?: "home" | "products" | "headlights" | "tail-lights" | "exhaust" | "wheels";
   limit?: number;
   initialBrand?: string;
   initialCategory?: string;

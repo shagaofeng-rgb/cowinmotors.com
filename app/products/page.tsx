@@ -4,9 +4,9 @@ import { ProductBrowser } from "@/components/ProductBrowser";
 import { filterProducts, paginateProducts, productCardData } from "@/lib/products";
 
 export const metadata = {
-  title: "Automotive Headlights, Tail Lights and Exhaust Products Catalog",
+  title: "Automotive Headlights, Tail Lights, Exhaust and Wheels Catalog",
   description:
-    "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, and exhaust systems.",
+    "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, exhaust systems, wheels, and body kit RFQ items.",
   alternates: { canonical: "/products" },
 };
 
@@ -32,7 +32,7 @@ export default async function ProductsPage({
         <section className="page-hero">
           <p className="eyebrow">All Products</p>
           <h1>Browse by vehicle, category, and brand.</h1>
-          <p>Search lighting, exhaust, and exterior parts by vehicle fitment, product category, brand, year, and part number.</p>
+          <p>Search lighting, exhaust, wheels, and exterior parts by vehicle fitment, product category, brand, year, and part number.</p>
         </section>
         <section className="vehicle-finder page-finder">
           <div className="finder-copy">

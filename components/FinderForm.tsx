@@ -23,6 +23,7 @@ export function FinderForm() {
         if (type === "Tail Lights") params.set("category", "tail-lights");
         if (type === "Exhaust Systems") params.set("category", "exhaust");
         if (type === "Body Kits") params.set("category", "body-kits");
+        if (type === "Wheels") params.set("category", "wheels");
         if (search) params.set("q", search);
         router.push(`/products${params.toString() ? `?${params}` : ""}`);
       }}
@@ -52,6 +53,7 @@ export function FinderForm() {
           <option value="Automotive Lighting">Automotive Lighting</option>
           <option value="Tail Lights">Tail Lights</option>
           <option value="Exhaust Systems">Exhaust Systems</option>
+          <option value="Wheels">Wheels</option>
           <option value="Body Kits">Body Kits</option>
         </select>
       </label>

@@ -41,6 +41,12 @@ const commercialIntentTerms = [
   "bumper",
   "spoiler",
   "body kit",
+  "wheel",
+  "wheels",
+  "forged wheel",
+  "offset",
+  "pcd",
+  "center bore",
   "fitment",
   "oem",
   "certification",
@@ -515,6 +521,7 @@ function scoreCandidate(candidate: Candidate) {
   const categoryBoosts = [
     ["headlight", "lighting", "led", "lamp", "driving light", "tail light"],
     ["exhaust", "downpipe", "catback", "muffler", "emissions"],
+    ["wheel", "wheels", "forged wheel", "offset", "pcd", "center bore"],
     ["body kit", "bumper", "spoiler", "aero", "exterior"],
     ["bmw", "mercedes", "audi", "porsche", "volkswagen", "tesla"],
     ["aftermarket", "parts", "repair", "supplier", "supply chain", "custom"],
@@ -551,9 +558,9 @@ function buildContent(candidate: Candidate, relations: NewsProductRelation[]) {
   const sections = [
     ["Core Conclusion", `${candidate.source.publisherName} published a recent automotive update: ${candidate.title}. For global buyers, the important question is how this affects fitment planning, parts availability, and sourcing decisions.`],
     ["Original News Facts", `The source report identifies the following core fact pattern: ${sourceSummary} This section is a concise summary of publicly available source information, not a republication of the original article.`],
-    ["Why It Matters To Buyers", "Automotive model changes, supply-chain shifts, regulation, and vehicle technology updates can influence replacement parts demand, lighting compatibility, exhaust fitment, and exterior upgrade planning. Buyers should verify year, model, trim, region specification, and order quantity before confirming procurement."],
+    ["Why It Matters To Buyers", "Automotive model changes, supply-chain shifts, regulation, and vehicle technology updates can influence replacement parts demand, lighting compatibility, exhaust fitment, wheel fitment, and exterior upgrade planning. Buyers should verify year, model, trim, region specification, and order quantity before confirming procurement."],
     ["Cowinmotors View", "Our view is that international buyers should treat industry news as an early signal for sourcing checks rather than a final purchasing specification. When a model, technology, or market requirement changes, the safer buying path is to confirm connector type, side, material, packaging method, MOQ, and lead time before payment."],
-    ["How Cowinmotors Can Help", `Cowinmotors can help buyers compare available fitment options, confirm product photos, and request quotation support for related products such as ${productLinks || "automotive lighting, tail lights, exhaust systems, and exterior parts"}. ${takeawayProducts}`],
+    ["How Cowinmotors Can Help", `Cowinmotors can help buyers compare available fitment options, confirm product photos, and request quotation support for related products such as ${productLinks || "automotive lighting, tail lights, exhaust systems, wheels, and exterior parts"}. ${takeawayProducts}`],
   ];
 
   return sections
@@ -597,7 +604,7 @@ function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): N
     seoDescription: `Source-backed automotive news analysis from Cowinmotors with related product fitment and sourcing links for global buyers.`.slice(0, 155),
     canonicalUrl: `${SITE_URL}/news/${slug}`,
     primaryKeyword,
-    secondaryKeywords: ["automotive parts", "headlights", "tail lights", "exhaust systems", "vehicle fitment"],
+    secondaryKeywords: ["automotive parts", "headlights", "tail lights", "exhaust systems", "wheels", "vehicle fitment"],
     geoSummary: `${candidate.source.publisherName} reported ${candidate.title}. Cowinmotors connects the update to ${relatedProductNames || "automotive parts"} sourcing, fitment confirmation, and buyer RFQ decisions.`,
     keyTakeaways: [
       `Source: ${candidate.source.publisherName}; original publication date: ${candidate.publishedAt.slice(0, 10)}.`,

@@ -6,6 +6,7 @@ const paths = [
   "/headlights",
   "/tail-lights",
   "/exhaust",
+  "/wheels",
   "/body-kits",
   "/quote",
   "/support",

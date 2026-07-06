@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/headlights",
     "/tail-lights",
     "/exhaust",
+    "/wheels",
     "/body-kits",
     "/quote",
     "/support",
