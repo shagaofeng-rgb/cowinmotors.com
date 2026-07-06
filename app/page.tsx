@@ -1,245 +1,378 @@
 import Link from "next/link";
-import { FinderForm } from "@/components/FinderForm";
-import { Header } from "@/components/Header";
 import { MissingModelForm } from "@/components/MissingModelForm";
 import { productPath, products } from "@/lib/products";
 
-const categoryMeta = [
+const categories = [
   {
     category: "Automotive Lighting",
     label: "Headlights",
     href: "/headlights",
-    summary: "Connector, LHD/RHD, DRL, beam pattern and fitment check.",
+    text: "LED, DRL, projector and OE-style fitment support.",
     fallback: "/assets/live/category-lighting.png",
   },
   {
     category: "Tail Lights",
     label: "Tail Lights",
     href: "/tail-lights",
-    summary: "Rear lamp side, OE number, connector and compliance check.",
+    text: "Rear lamps with connector, side and model checks.",
     fallback: "/assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp",
   },
   {
     category: "Exhaust Systems",
     label: "Exhaust Systems",
     href: "/exhaust",
-    summary: "Cat-back, axle-back, downpipe, material and sound level notes.",
+    text: "Cat-back, axle-back, downpipe and valved systems.",
     fallback: "/assets/live/category-exhaust.png",
   },
   {
     category: "Wheels",
     label: "Wheels",
     href: "/wheels",
-    summary: "Diameter, width, PCD, offset, center bore and finish check.",
+    text: "Alloy, forged, flow forged and fitment-focused wheels.",
     fallback: "/assets/live/category-exhaust.png",
   },
   {
     category: "Body Kits",
     label: "Body Kits",
     href: "/body-kits",
-    summary: "Front lip, bumper, side skirt, diffuser, packing and shipping quote.",
+    text: "Front lips, bumpers, side skirts and diffusers by request.",
     fallback: "/assets/live/category-body-kits.png",
   },
+];
+
+const utilityItems = [
+  "Global Shipping to 200+ Countries",
+  "Fitment & Compatibility Support",
+  "Retail & Wholesale Welcome",
+  "Secure Payments",
+];
+
+const trustItems = [
+  ["Fitment Support", "We help you check compatibility before ordering."],
+  ["Retail-Friendly Ordering", "Flexible quantities, quote support and clear lead time."],
+  ["Global Shipping", "Reliable logistics to 200+ countries worldwide."],
+  ["Sourcing Beyond Listed Items", "If it is not listed, we help source or customize it."],
+];
+
+const steps = [
+  ["1", "Tell us your vehicle", "Provide year, make, model and part needs."],
+  ["2", "Confirm fitment", "We check compatibility and recommend options."],
+  ["3", "Receive quote", "Get pricing, lead time and shipping details."],
+  ["4", "Ship to your destination", "We pack, ship and keep you updated."],
 ];
 
 function firstProduct(category: string) {
   return products.find((product) => product.category === category);
 }
 
-function imageFor(category: string, fallback: string) {
+function productImage(category: string, fallback: string) {
   return firstProduct(category)?.localImage || fallback;
 }
 
-export default function HomePage() {
-  const heroTiles = categoryMeta.filter((item) => item.label !== "Tail Lights").slice(0, 4);
-  const featured = categoryMeta.slice(0, 5).map((item) => {
-    const product = firstProduct(item.category);
+function featuredFor(category: (typeof categories)[number]) {
+  const product = firstProduct(category.category);
+  if (!product) {
     return {
-      label: item.label,
-      title: product?.title || `${item.label} custom sourcing request`,
-      image: product?.localImage || item.fallback,
-      price: product?.price || "Request quote",
-      href: product ? productPath(product) : item.href,
-      quote: `/quote?product=${encodeURIComponent(product?.title || `${item.label} sourcing request`)}`,
+      label: category.label,
+      title: `${category.label} Sourcing Request`,
+      image: category.fallback,
+      price: "Request quote",
+      href: category.href,
+      quote: `/quote?product=${encodeURIComponent(`${category.label} sourcing request`)}`,
     };
-  });
+  }
+
+  return {
+    label: category.label,
+    title: product.title,
+    image: product.localImage,
+    price: product.price || "Request quote",
+    href: productPath(product),
+    quote: `/quote?product=${encodeURIComponent(product.title)}`,
+  };
+}
+
+export default function HomePage() {
+  const heroTiles = [
+    categories[0],
+    categories[4],
+    categories[2],
+    categories[3],
+  ];
+  const featuredProducts = categories.map(featuredFor);
 
   return (
-    <>
-      <Header />
-      <main id="home" className="home-redesign">
-        <section className="home-hero">
-          <div className="home-hero-copy">
-            <p className="eyebrow">Global automotive parts supply</p>
-            <h1>
-              Find the right headlights, exhaust pipes, wheels, and body kits <span>by vehicle.</span>
-            </h1>
-            <p>
-              Cowinmotors is a China-based trading and export partner for stocked and quote-only aftermarket parts.
-              We help buyers confirm compatibility, MOQ, lead time, packaging, shipping, and QC before ordering.
-            </p>
-            <div className="home-sourcing-note">
-              <span aria-hidden="true">□</span>
-              <p>Beyond the products displayed on our website, we can also source and customize parts based on your requirements.</p>
-            </div>
-            <div className="hero-actions">
-              <Link className="button primary" href="#vehicle-finder">Check compatibility</Link>
-              <Link className="button secondary" href="/quote">Request wholesale quote</Link>
-            </div>
+    <main className="home-exact" id="home">
+      <div className="home-topbar">
+        <div>
+          {utilityItems.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+        <div className="home-topbar-right">
+          <span>USD</span>
+          <span>English</span>
+        </div>
+      </div>
+
+      <header className="home-header">
+        <Link className="home-logo" href="/" aria-label="Cowinmotors home">
+          <img src="/assets/live/logo.jpg" alt="Cowinmotors logo" />
+          <span>
+            <strong>Cowinmotors</strong>
+            <small>Global Auto Parts Supply</small>
+          </span>
+        </Link>
+        <nav className="home-nav" aria-label="Homepage navigation">
+          <Link href="#vehicle-finder">Shop by Vehicle</Link>
+          <Link href="#categories">Categories</Link>
+          <Link href="#featured-products">New Arrivals</Link>
+          <Link href="#featured-products">Best Sellers</Link>
+          <Link href="#why-buy">About</Link>
+          <Link href="/quote">Contact</Link>
+        </nav>
+        <div className="home-header-actions">
+          <form className="home-search" action="/products">
+            <input name="q" type="search" aria-label="Search products" placeholder="Search products" />
+            <button type="submit" aria-label="Search products" />
+          </form>
+          <Link className="home-quote-button" href="/quote">Request Quote</Link>
+        </div>
+      </header>
+
+      <section className="home-banner">
+        <div className="home-banner-copy">
+          <p className="home-kicker">Global automotive parts retail supply</p>
+          <h1>
+            Find the right headlights, tail lights, exhaust systems, wheels, and body kits <span>for your vehicle.</span>
+          </h1>
+          <p className="home-lead">
+            Curated aftermarket parts from trusted suppliers. We help retail buyers worldwide find compatible products,
+            check fitment, and place orders with confidence.
+          </p>
+          <div className="home-source-callout">
+            <span className="home-cube" aria-hidden="true" />
+            <p>Beyond the products displayed on our website, we can also source and customize parts based on your requirements.</p>
           </div>
-          <div className="home-hero-grid" aria-label="Main product categories">
-            {heroTiles.map((item) => (
-              <Link className="home-hero-tile" href={item.href} key={item.label}>
-                <span>{item.label}</span>
-                <img src={imageFor(item.category, item.fallback)} alt={`${item.label} product`} />
+          <div className="home-hero-actions">
+            <Link className="home-button home-button-primary" href="#vehicle-finder">Shop by Vehicle</Link>
+            <Link className="home-button home-button-light" href="/quote">Request a Quote</Link>
+          </div>
+        </div>
+        <div className="home-banner-grid" aria-label="Main product categories">
+          {heroTiles.map((item) => (
+            <Link className="home-banner-tile" href={item.href} key={item.label}>
+              <span>{item.label}</span>
+              <img src={productImage(item.category, item.fallback)} alt={`${item.label} category`} />
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-fitment" id="vehicle-finder">
+        <div className="home-fitment-title">
+          <span aria-hidden="true" />
+          <div>
+            <p>Find parts that fit your vehicle</p>
+            <strong>Start with year, make, model, and category.</strong>
+          </div>
+        </div>
+        <form className="home-fitment-form" action="/products">
+          <label>
+            Year
+            <select name="year" defaultValue="">
+              <option value="">Select Year</option>
+              <option>2026</option>
+              <option>2025</option>
+              <option>2024</option>
+              <option>2023</option>
+              <option>2022</option>
+              <option>2021</option>
+              <option>2020</option>
+              <option>2019</option>
+              <option>2018</option>
+              <option>2017</option>
+              <option>2016</option>
+            </select>
+          </label>
+          <label>
+            Make
+            <select name="make" defaultValue="">
+              <option value="">Select Make</option>
+              <option>Audi</option>
+              <option>BMW</option>
+              <option>Mercedes-Benz</option>
+              <option>Porsche</option>
+              <option>Volkswagen</option>
+              <option>Toyota</option>
+              <option>Honda</option>
+            </select>
+          </label>
+          <label>
+            Model
+            <input name="q" placeholder="Select Model" />
+          </label>
+          <label>
+            Category
+            <select name="category" defaultValue="">
+              <option value="">Select Category</option>
+              <option value="headlights">Headlights</option>
+              <option value="tail-lights">Tail Lights</option>
+              <option value="exhaust">Exhaust Systems</option>
+              <option value="wheels">Wheels</option>
+              <option value="body-kits">Body Kits</option>
+            </select>
+          </label>
+          <button type="submit">Find Parts</button>
+          <Link href="/products">Clear all selections</Link>
+        </form>
+      </section>
+
+      <section className="home-trust" aria-label="Cowinmotors buyer support">
+        {trustItems.map(([title, text]) => (
+          <article key={title}>
+            <i aria-hidden="true" />
+            <strong>{title}</strong>
+            <span>{text}</span>
+          </article>
+        ))}
+      </section>
+
+      <section className="home-block" id="categories">
+        <div className="home-section-head">
+          <div>
+            <p className="home-kicker">Shop by category</p>
+            <h2>Choose the product type you need.</h2>
+          </div>
+          <Link href="/products">View all categories</Link>
+        </div>
+        <div className="home-category-strip">
+          {categories.map((item) => (
+            <Link className="home-category-item" href={item.href} key={item.label}>
+              <img src={productImage(item.category, item.fallback)} alt={`${item.label} product category`} />
+              <strong>{item.label}</strong>
+              <span>{item.text}</span>
+            </Link>
+          ))}
+          <Link className="home-category-item" href="/quote?product=More%20Parts%20Sourcing">
+            <img src="/assets/live/exhaust-workshop.webp" alt="More automotive parts sourcing" />
+            <strong>More Parts</strong>
+            <span>Send OE number, product photo or vehicle details for sourcing.</span>
+          </Link>
+        </div>
+      </section>
+
+      <section className="home-block home-featured-area" id="featured-products">
+        <div className="home-section-head">
+          <div>
+            <p className="home-kicker">Featured products</p>
+            <h2>Popular parts ready for inquiry.</h2>
+          </div>
+          <Link href="/products">View all products</Link>
+        </div>
+        <div className="home-tabs" aria-label="Featured product tabs">
+          {categories.map((item) => (
+            <Link href={item.href} key={item.label}>{item.label}</Link>
+          ))}
+        </div>
+        <div className="home-featured-grid">
+          {featuredProducts.map((product) => (
+            <article className="home-product-card" key={product.title}>
+              <span className="home-product-tag">New</span>
+              <Link className="home-product-image" href={product.href}>
+                <img src={product.image} alt={product.title} loading="lazy" />
               </Link>
+              <div>
+                <small>{product.label}</small>
+                <h3>{product.title}</h3>
+                <strong>{product.price}</strong>
+              </div>
+              <div className="home-card-actions">
+                <Link href={product.quote}>Add to Inquiry</Link>
+                <Link href={product.href} aria-label={`View ${product.title}`}>View</Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-split" id="why-buy">
+        <div className="home-how">
+          <p className="home-kicker">How it works</p>
+          <div className="home-step-grid">
+            {steps.map(([num, title, text]) => (
+              <article key={num}>
+                <span>{num}</span>
+                <strong>{title}</strong>
+                <small>{text}</small>
+              </article>
             ))}
           </div>
-        </section>
+        </div>
+        <div className="home-why">
+          <p className="home-kicker">Why buy from us?</p>
+          <h2>Buying support from inquiry to shipment.</h2>
+          <p>
+            We are a China-based automotive parts distributor and trading partner. Our team checks fitment,
+            confirms product details, coordinates packaging, and supports international shipping for retail
+            and wholesale buyers.
+          </p>
+        </div>
+      </section>
 
-        <section className="home-finder-shell" id="vehicle-finder">
-          <div className="home-section-label">
-            <span aria-hidden="true">▣</span>
-            <div>
-              <p className="eyebrow">Find parts that fit your vehicle</p>
-              <h2>Start with fitment details.</h2>
-            </div>
+      <section className="home-source-section">
+        <div className="home-source-copy">
+          <p className="home-kicker">Can't find what you need?</p>
+          <h2>We can source it for you.</h2>
+          <p>
+            Send us your part details, OEM number, vehicle information or reference photos. Our team will source
+            or customize it according to your requirements and provide a competitive quote.
+          </p>
+          <Link className="home-button home-button-primary" href="/quote?product=Sourcing%20Request">Submit a Sourcing Request</Link>
+        </div>
+        <div className="home-form-panel">
+          <MissingModelForm />
+        </div>
+      </section>
+
+      <section className="home-block home-service-block">
+        <div className="home-section-head">
+          <div>
+            <p className="home-kicker">Retail service & logistics support</p>
+            <h2>Support before and after ordering.</h2>
           </div>
-          <FinderForm />
-        </section>
-
-        <section className="home-trust-grid" aria-label="Buying support">
+        </div>
+        <div className="home-service-grid-exact">
           {[
-            ["Fitment Support", "We help check compatibility before order."],
-            ["Retail-Friendly Ordering", "Flexible quantities, quote support, and clear lead time."],
-            ["Global Shipping", "Logistics support to 200+ countries and regions."],
-            ["Sourcing Beyond Listed Items", "Send a request when the part is not listed."],
-          ].map(([title, text]) => (
-            <article key={title}>
+            ["Quality Inspection", "Careful inspection before packing to reduce quality risk.", productImage("Automotive Lighting", "/assets/live/category-lighting.png")],
+            ["Secure Packaging", "Strong packaging to protect parts during transit.", "/assets/live/exhaust-workshop.webp"],
+            ["Sourcing & Coordination", "We work with trusted suppliers and manage the process for you.", "/assets/live/exhaust-workshop.webp"],
+            ["Global Shipping", "By sea, air or express to your destination country.", "/assets/live/exhaust-workshop.webp"],
+            ["After-Sales Support", "Responsive follow-up for order and shipping questions.", "/assets/live/logo.jpg"],
+          ].map(([title, text, image]) => (
+            <article className="home-service-card-exact" key={title}>
+              <img src={image} alt={`${title} support`} loading="lazy" />
               <strong>{title}</strong>
               <span>{text}</span>
             </article>
           ))}
-        </section>
+        </div>
+      </section>
 
-        <section className="home-section home-categories" id="categories">
-          <div className="home-title-row">
-            <div>
-              <p className="eyebrow">Shop by category</p>
-              <h2>Product category entry points.</h2>
-            </div>
-            <Link className="home-inline-link" href="/products">View all categories</Link>
-          </div>
-          <div className="home-category-row">
-            {categoryMeta.map((item) => (
-              <Link className="home-category-card" href={item.href} key={item.label}>
-                <img src={imageFor(item.category, item.fallback)} alt={`${item.label} category`} />
-                <strong>{item.label}</strong>
-                <span>{item.summary}</span>
-              </Link>
-            ))}
-            <Link className="home-category-card more-card" href="/quote?product=More%20Parts%20Sourcing">
-              <img src="/assets/live/exhaust-workshop.webp" alt="More automotive parts sourcing" />
-              <strong>More Parts</strong>
-              <span>Send part name, OE number, photos or vehicle data for sourcing.</span>
-            </Link>
-          </div>
-        </section>
-
-        <section className="home-section home-featured" id="featured-products">
-          <div className="home-title-row">
-            <div>
-              <p className="eyebrow">Featured products</p>
-              <h2>Quote-ready product picks.</h2>
-            </div>
-            <Link className="home-inline-link" href="/products">View all products</Link>
-          </div>
-          <div className="home-product-row">
-            {featured.map((product) => (
-              <article className="home-feature-card" key={product.title}>
-                <span className="badge">RFQ</span>
-                <Link className="image-wrap" href={product.href}>
-                  <img src={product.image} alt={product.title} loading="lazy" />
-                </Link>
-                <div className="product-info">
-                  <small>{product.label}</small>
-                  <h3>{product.title}</h3>
-                  <div className="price-row"><span className="price">{product.price}</span></div>
-                  <div className="product-actions">
-                    <Link className="product-link" href={product.href}>View details</Link>
-                    <Link className="quote-link" href={product.quote}>Add to inquiry</Link>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="home-section home-process-buy">
-          <div className="home-how-card">
-            <p className="eyebrow">How it works</p>
-            <div className="home-steps">
-              {[
-                ["1", "Tell us your vehicle", "Provide year, make, model and part needs."],
-                ["2", "Confirm fitment", "We check compatibility and recommended options."],
-                ["3", "Receive quote", "Get pricing, lead time and shipping details."],
-                ["4", "Ship to destination", "We pack, ship and keep you updated."],
-              ].map(([num, title, text]) => (
-                <article key={num}>
-                  <span>{num}</span>
-                  <strong>{title}</strong>
-                  <small>{text}</small>
-                </article>
-              ))}
-            </div>
-          </div>
-          <div className="home-why-card">
-            <p className="eyebrow">Why buy from us?</p>
-            <h2>China sourcing support for retail and wholesale buyers.</h2>
-            <p>
-              We coordinate with trusted suppliers, confirm fitment information, check product photos, and support packaging,
-              export documentation, and after-sales follow-up for international orders.
-            </p>
-          </div>
-        </section>
-
-        <section className="home-section home-sourcing-form">
-          <div>
-            <p className="eyebrow">Can't find what you need?</p>
-            <h2>We can source it for you.</h2>
-            <p>
-              Send us your part details, OEM number or reference photos. Our team will source or customize it according
-              to your requirements and provide a competitive quote.
-            </p>
-            <Link className="button primary" href="/quote?product=Sourcing%20Request">Submit a sourcing request</Link>
-          </div>
-          <MissingModelForm />
-        </section>
-
-        <section className="home-section home-service">
-          <div className="home-title-row">
-            <div>
-              <p className="eyebrow">Retail service and logistics support</p>
-              <h2>From product check to export shipment.</h2>
-            </div>
-          </div>
-          <div className="home-service-grid">
-            {[
-              ["Quality Inspection", "Careful inspection before packing to reduce quality risk.", imageFor("Automotive Lighting", "/assets/live/category-lighting.png")],
-              ["Secure Packaging", "Strong packaging to protect parts during transit.", "/assets/live/exhaust-workshop.webp"],
-              ["Sourcing Coordination", "We work with suppliers and manage the process for you.", "/assets/live/exhaust-workshop.webp"],
-              ["Global Shipping", "By sea, air or express to your destination country.", "/assets/live/exhaust-workshop.webp"],
-              ["After-Sales Support", "Responsive follow-up for order and shipping questions.", "/assets/live/logo.jpg"],
-            ].map(([title, text, image]) => (
-              <article className="home-service-card" key={title}>
-                <img src={image} alt={`${title} support`} />
-                <strong>{title}</strong>
-                <span>{text}</span>
-              </article>
-            ))}
-          </div>
-        </section>
-      </main>
-    </>
+      <section className="home-help-strip">
+        <div>
+          <p className="home-kicker">Need help finding the right part?</p>
+          <h2>Send your inquiry and our team will reply.</h2>
+          <span>Quick response | Expert support | Reliable service</span>
+        </div>
+        <form className="home-quick-form" action="/quote">
+          <label>Your Name<input name="name" placeholder="Please enter your name" required /></label>
+          <label>Email<input name="email" type="email" placeholder="you@email.com" required /></label>
+          <label>WhatsApp / Phone<input name="phone" placeholder="+86 176 0125 5205" required /></label>
+          <label className="wide">Your Inquiry<input name="product" placeholder="Tell us what parts you need..." required /></label>
+          <button type="submit">Send Inquiry</button>
+        </form>
+      </section>
+    </main>
   );
 }
