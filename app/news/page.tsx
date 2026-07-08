@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { NewsCard } from "@/components/NewsCard";
-import { getPublishedNews } from "@/lib/news";
+import { getNewsCategories, getPublishedNews } from "@/lib/news";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +30,10 @@ export default async function NewsPage({
   const category = typeof params.category === "string" ? params.category : "";
   const page = Math.max(1, Number(params.page || 1) || 1);
   const articles = await getPublishedNews({ limit: 12, page, category });
-  const categories = [...new Set(articles.map((article) => article.category).filter(Boolean))];
+  const categories = await getNewsCategories();
   const featured = articles[0];
   const latest = articles.slice(1);
-  const filterItems = categories.length ? categories : ["Automotive Lighting", "Tail Lights", "Exhaust Systems", "Wheels", "Body Kits"];
+  const filterItems = categories.length ? categories.map((item) => item.category) : ["Automotive Lighting", "Tail Lights", "Exhaust Systems", "Wheels", "Body Kits"];
 
   return (
     <>

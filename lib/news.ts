@@ -15,6 +15,16 @@ const DEFAULT_DEDUP_DAYS = 7;
 const DEFAULT_RELEVANCE_THRESHOLD = 3;
 let newsSchemaReady: Promise<boolean> | null = null;
 
+async function ignoreExistingRelation<T>(operation: Promise<T>) {
+  try {
+    return await operation;
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? (error as { code?: string }).code : "";
+    if (code === "23505" || code === "42P07") return null;
+    throw error;
+  }
+}
+
 const commercialIntentTerms = [
   "aftermarket",
   "auto parts",
@@ -98,6 +108,8 @@ export type NewsArticle = {
   coverImageAlt: string;
   coverImageWidth: number;
   coverImageHeight: number;
+  coverImageFetchedAt: string;
+  coverImageHash: string;
   coverImageStatus: string;
   authorName: string;
   publishedAt: string;
@@ -207,6 +219,8 @@ type NewsRow = {
   cover_image_alt: string | null;
   cover_image_width: number | null;
   cover_image_height: number | null;
+  cover_image_fetched_at: string | Date | null;
+  cover_image_hash: string | null;
   cover_image_status: string | null;
   author_name: string | null;
   published_at: string | Date | null;
@@ -271,6 +285,54 @@ const defaultSources: NewsSource[] = [
     enabled: true,
     allowedForAutoPublish: true,
   },
+  {
+    id: "counterman",
+    domain: "counterman.com",
+    publisherName: "Counterman",
+    sourceType: "rss",
+    rssUrl: "https://www.counterman.com/feed/",
+    language: "en",
+    country: "United States",
+    credibilityScore: 78,
+    enabled: true,
+    allowedForAutoPublish: true,
+  },
+  {
+    id: "bodyshop-business",
+    domain: "bodyshopbusiness.com",
+    publisherName: "BodyShop Business",
+    sourceType: "rss",
+    rssUrl: "https://www.bodyshopbusiness.com/feed/",
+    language: "en",
+    country: "United States",
+    credibilityScore: 76,
+    enabled: true,
+    allowedForAutoPublish: true,
+  },
+  {
+    id: "repairer-driven-news",
+    domain: "repairerdrivennews.com",
+    publisherName: "Repairer Driven News",
+    sourceType: "rss",
+    rssUrl: "https://www.repairerdrivennews.com/feed/",
+    language: "en",
+    country: "United States",
+    credibilityScore: 76,
+    enabled: true,
+    allowedForAutoPublish: true,
+  },
+  {
+    id: "autobody-news",
+    domain: "autobodynews.com",
+    publisherName: "Autobody News",
+    sourceType: "rss",
+    rssUrl: "https://www.autobodynews.com/news?format=feed&type=rss",
+    language: "en",
+    country: "United States",
+    credibilityScore: 74,
+    enabled: true,
+    allowedForAutoPublish: true,
+  },
 ];
 
 const fallbackImages = [
@@ -293,44 +355,6 @@ const fallbackImages = [
     url: "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&w=1400&q=80",
     page: "https://unsplash.com/photos/1511919884226-fd3cad34687c",
     alt: "Vehicle exterior parts and global automotive market news",
-  },
-];
-
-const internalBriefTopics = [
-  {
-    category: "Headlights",
-    keyword: "LED headlight fitment sourcing",
-    title: "Daily LED headlight fitment sourcing checklist",
-    description:
-      "Cowinmotors reviews how buyers can confirm LED headlight fitment by year, make, model, trim, LHD or RHD side, connector type, DRL behavior, beam pattern, packaging, MOQ, and lead time before placing aftermarket lighting orders.",
-  },
-  {
-    category: "Tail Lights",
-    keyword: "tail light replacement sourcing",
-    title: "Daily tail light replacement sourcing checklist",
-    description:
-      "Cowinmotors reviews how retail and wholesale buyers can verify rear lamp assemblies, lens style, sequential turn signal behavior, connector type, OE references, carton protection, and regional compliance before sourcing replacement tail lights.",
-  },
-  {
-    category: "Exhaust Systems",
-    keyword: "performance exhaust sourcing",
-    title: "Daily performance exhaust sourcing checklist",
-    description:
-      "Cowinmotors reviews sourcing checks for cat-back systems, axle-back systems, downpipes, mufflers, exhaust tips, stainless steel grades, sound expectations, vehicle engine fitment, packaging, MOQ, and global shipping coordination.",
-  },
-  {
-    category: "Wheels",
-    keyword: "aftermarket wheel fitment sourcing",
-    title: "Daily aftermarket wheel fitment sourcing checklist",
-    description:
-      "Cowinmotors reviews wheel sourcing requirements including diameter, width, PCD or bolt pattern, offset, center bore, finish, load rating, vehicle fitment, packaging protection, and export documentation for international buyers.",
-  },
-  {
-    category: "Body Kits",
-    keyword: "body kit sourcing",
-    title: "Daily body kit and exterior parts sourcing checklist",
-    description:
-      "Cowinmotors reviews body kit sourcing checks for front lips, rear diffusers, side skirts, spoilers, bumpers, material selection, surface finish, carton size, included hardware, MOQ, and damage-safe international shipping.",
   },
 ];
 
@@ -479,7 +503,8 @@ function extractRssItems(xml: string, source: NewsSource): Candidate[] {
       const publishedAt = new Date(pubDate).toISOString();
       if (!title || !link || Number.isNaN(new Date(publishedAt).getTime())) return [];
       const canonicalSourceUrl = canonicalizeUrl(link, source.rssUrl);
-      const enclosure = attrValue(item, "enclosure", "url") || attrValue(item, "media:content", "url") || attrValue(item, "media:thumbnail", "url");
+      const enclosureRaw = attrValue(item, "enclosure", "url") || attrValue(item, "media:content", "url") || attrValue(item, "media:thumbnail", "url");
+      const enclosure = enclosureRaw ? canonicalizeUrl(enclosureRaw, canonicalSourceUrl) : "";
       return [{
         source,
         title,
@@ -499,6 +524,49 @@ function extractRssItems(xml: string, source: NewsSource): Candidate[] {
   });
 }
 
+async function validateImageUrl(raw: string) {
+  if (!raw || !isAllowedExternalUrl(raw)) return false;
+  if (new URL(raw).hostname.endsWith("cowinmotors.com")) return false;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetch(raw, {
+      method: "GET",
+      headers: {
+        "user-agent": "CowinmotorsNewsBot/1.0 (+https://www.cowinmotors.com/news)",
+        accept: "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8,*/*;q=0.1",
+      },
+      signal: controller.signal,
+    });
+    const contentType = response.headers.get("content-type") || "";
+    return response.ok && contentType.toLowerCase().startsWith("image/");
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function compliantImageFor(candidate: Candidate, relations: NewsProductRelation[]) {
+  if (candidate.imageUrl && await validateImageUrl(candidate.imageUrl)) {
+    return {
+      url: candidate.imageUrl,
+      page: candidate.imageSourceUrl || candidate.canonicalSourceUrl,
+      alt: `${candidate.title} - automotive news image`,
+      status: "source-image-verified",
+    };
+  }
+
+  const fallbacks = [...fallbackImages];
+  const seed = Math.abs(hash(`${candidate.normalizedTitle}:${relations[0]?.category || ""}`).split("").reduce((sum, char) => sum + char.charCodeAt(0), 0));
+  for (let index = 0; index < fallbacks.length; index += 1) {
+    const image = fallbacks[(seed + index) % fallbacks.length];
+    if (await validateImageUrl(image.url)) return { ...image, status: "internet-image-verified" };
+  }
+
+  return null;
+}
+
 async function extractPageImage(candidate: Candidate) {
   if (candidate.imageUrl && isAllowedExternalUrl(candidate.imageUrl)) return candidate;
   try {
@@ -516,11 +584,6 @@ async function extractPageImage(candidate: Candidate) {
     return candidate;
   }
   return candidate;
-}
-
-function fallbackImageFor(candidate: Candidate, relations: NewsProductRelation[]) {
-  const seed = Math.abs(hash(`${candidate.normalizedTitle}:${relations[0]?.category || ""}`).split("").reduce((sum, char) => sum + char.charCodeAt(0), 0));
-  return fallbackImages[seed % fallbackImages.length];
 }
 
 function productKeywords(product: Product) {
@@ -608,13 +671,14 @@ function buildContent(candidate: Candidate, relations: NewsProductRelation[]) {
     .join("\n");
 }
 
-function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): NewsArticle {
+async function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): Promise<NewsArticle | null> {
   const now = new Date().toISOString();
   const content = buildContent(candidate, relations);
   const contentHash = hash(`${candidate.title}:${candidate.description}:${relations.map((item) => item.productId).join(",")}`);
   const shortHash = contentHash.slice(0, 8);
   const slug = `${slugify(candidate.title)}-${shortHash}`;
-  const image = candidate.imageUrl ? { url: candidate.imageUrl, page: candidate.imageSourceUrl || candidate.canonicalSourceUrl, alt: `${candidate.title} - automotive news image` } : fallbackImageFor(candidate, relations);
+  const image = await compliantImageFor(candidate, relations);
+  if (!image) return null;
   const categories = [...new Set(relations.map((item) => item.category))];
   const primaryKeyword = categories[0] || "automotive parts sourcing";
   const relatedProductNames = relations.map((item) => item.title).join(", ");
@@ -635,7 +699,9 @@ function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): N
     coverImageAlt: image.alt,
     coverImageWidth: 1400,
     coverImageHeight: 900,
-    coverImageStatus: "verified",
+    coverImageFetchedAt: now,
+    coverImageHash: hash(image.url),
+    coverImageStatus: image.status,
     authorName: "Cowinmotors Editorial Team",
     publishedAt: now,
     updatedAt: now,
@@ -672,37 +738,6 @@ function buildArticle(candidate: Candidate, relations: NewsProductRelation[]): N
   };
 }
 
-function buildInternalBriefCandidate(slot: number, timezone: string): Candidate {
-  const date = localDate(new Date(), timezone);
-  const dayIndex = hash(date).split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const topic = internalBriefTopics[(dayIndex + slot - 1) % internalBriefTopics.length];
-  const title = `${topic.title} - ${date}`;
-  return {
-    source: {
-      id: "cowinmotors-daily-brief",
-      domain: "cowinmotors.com",
-      publisherName: "Cowinmotors Sourcing Desk",
-      sourceType: "internal-brief",
-      rssUrl: `${SITE_URL}/news`,
-      language: "en",
-      country: "China",
-      credibilityScore: 82,
-      enabled: true,
-      allowedForAutoPublish: true,
-    },
-    title,
-    description: topic.description,
-    sourceUrl: `${SITE_URL}/news?brief=${date}-${slot}`,
-    canonicalSourceUrl: `${SITE_URL}/news?brief=${date}-${slot}`,
-    author: "Cowinmotors Editorial Team",
-    publishedAt: new Date().toISOString(),
-    fetchedAt: new Date().toISOString(),
-    imageUrl: "",
-    imageSourceUrl: "",
-    normalizedTitle: normalizeTitle(`${title} ${topic.keyword}`),
-  };
-}
-
 export async function ensureNewsSchema() {
   const sql = getSql();
   if (!sql) return false;
@@ -728,6 +763,8 @@ export async function ensureNewsSchema() {
       cover_image_alt TEXT NOT NULL DEFAULT '',
       cover_image_width INTEGER NOT NULL DEFAULT 0,
       cover_image_height INTEGER NOT NULL DEFAULT 0,
+      cover_image_fetched_at TIMESTAMPTZ,
+      cover_image_hash TEXT NOT NULL DEFAULT '',
       cover_image_status TEXT NOT NULL DEFAULT '',
       author_name TEXT NOT NULL DEFAULT 'Cowinmotors Editorial Team',
       published_at TIMESTAMPTZ,
@@ -810,13 +847,16 @@ export async function ensureNewsSchema() {
       checked_at TIMESTAMPTZ NOT NULL
           )
         `;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_status_idx ON news_articles (status)`;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_published_at_idx ON news_articles (published_at DESC)`;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_source_published_at_idx ON news_articles (source_published_at DESC)`;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_canonical_source_url_idx ON news_articles (canonical_source_url)`;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_source_fingerprint_idx ON news_articles (source_fingerprint)`;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_event_fingerprint_idx ON news_articles (event_fingerprint)`;
-        await sql`CREATE INDEX IF NOT EXISTS news_articles_slug_idx ON news_articles (slug)`;
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_status_idx ON news_articles (status)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_published_at_idx ON news_articles (published_at DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_source_published_at_idx ON news_articles (source_published_at DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_canonical_source_url_idx ON news_articles (canonical_source_url)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_source_fingerprint_idx ON news_articles (source_fingerprint)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_event_fingerprint_idx ON news_articles (event_fingerprint)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_slug_idx ON news_articles (slug)`);
+        await sql`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS cover_image_fetched_at TIMESTAMPTZ`;
+        await sql`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS cover_image_hash TEXT NOT NULL DEFAULT ''`;
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS news_articles_cover_image_hash_idx ON news_articles (cover_image_hash)`);
 
         for (const source of getConfiguredSources()) {
           await sql`
@@ -888,6 +928,8 @@ function rowToArticle(row: NewsRow, relations: NewsProductRelation[] = []): News
     coverImageAlt: row.cover_image_alt || "",
     coverImageWidth: Number(row.cover_image_width || 0),
     coverImageHeight: Number(row.cover_image_height || 0),
+    coverImageFetchedAt: row.cover_image_fetched_at ? new Date(row.cover_image_fetched_at).toISOString() : "",
+    coverImageHash: row.cover_image_hash || "",
     coverImageStatus: row.cover_image_status || "",
     authorName: row.author_name || "Cowinmotors Editorial Team",
     publishedAt: row.published_at ? new Date(row.published_at).toISOString() : "",
@@ -967,6 +1009,59 @@ export async function getPublishedNews({ limit = 12, page = 1, category = "", ta
     return rows.map((row) => rowToArticle(row, relationMap.get(row.id) || [])).filter((article) => !tag || article.tags.includes(tag));
   }
   return readFileNews().filter((article) => article.status === "published").slice(offset, offset + limit);
+}
+
+export async function getNewsCategories() {
+  const articles = await getPublishedNews({ limit: 500 });
+  const counts = new Map<string, number>();
+  for (const article of articles) {
+    if (!article.category) continue;
+    counts.set(article.category, (counts.get(article.category) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count || a.category.localeCompare(b.category));
+}
+
+export function publicNewsArticle(article: NewsArticle) {
+  return {
+    id: article.id,
+    title: article.title,
+    slug: article.slug,
+    excerpt: article.excerpt,
+    status: article.status,
+    language: article.language,
+    category: article.category,
+    tags: article.tags,
+    coverImageUrl: article.coverImageUrl,
+    coverImageSourceUrl: article.coverImageSourceUrl,
+    coverImagePageUrl: article.coverImagePageUrl,
+    coverImageAlt: article.coverImageAlt,
+    coverImageWidth: article.coverImageWidth,
+    coverImageHeight: article.coverImageHeight,
+    coverImageStatus: article.coverImageStatus,
+    authorName: article.authorName,
+    publishedAt: article.publishedAt,
+    updatedAt: article.updatedAt,
+    seoTitle: article.seoTitle,
+    seoDescription: article.seoDescription,
+    canonicalUrl: article.canonicalUrl,
+    primaryKeyword: article.primaryKeyword,
+    secondaryKeywords: article.secondaryKeywords,
+    geoSummary: article.geoSummary,
+    keyTakeaways: article.keyTakeaways,
+    sourceTitle: article.sourceTitle,
+    sourceAuthor: article.sourceAuthor,
+    sourcePublisher: article.sourcePublisher,
+    sourceUrl: article.sourceUrl,
+    canonicalSourceUrl: article.canonicalSourceUrl,
+    sourceLanguage: article.sourceLanguage,
+    sourcePublishedAt: article.sourcePublishedAt,
+    sourceFetchedAt: article.sourceFetchedAt,
+    relevanceScore: article.relevanceScore,
+    credibilityScore: article.credibilityScore,
+    products: article.products,
+  };
 }
 
 export async function getNewsArticle(slug: string) {
@@ -1071,7 +1166,8 @@ async function persistArticle(article: NewsArticle) {
   const inserted = await sql`
     INSERT INTO news_articles (
       id, title, slug, excerpt, content, status, language, category, tags, cover_image_url, cover_image_source_url,
-      cover_image_page_url, cover_image_alt, cover_image_width, cover_image_height, cover_image_status, author_name,
+      cover_image_page_url, cover_image_alt, cover_image_width, cover_image_height, cover_image_fetched_at, cover_image_hash,
+      cover_image_status, author_name,
       published_at, updated_at, scheduled_at, seo_title, seo_description, canonical_url, primary_keyword, secondary_keywords,
       geo_summary, key_takeaways, source_title, source_author, source_publisher, source_url, canonical_source_url,
       source_language, source_published_at, source_fetched_at, source_timezone, source_fingerprint, event_fingerprint,
@@ -1080,7 +1176,7 @@ async function persistArticle(article: NewsArticle) {
       ${article.id}, ${article.title}, ${article.slug}, ${article.excerpt}, ${article.content}, ${article.status},
       ${article.language}, ${article.category}, ${JSON.stringify(article.tags)}::jsonb, ${article.coverImageUrl},
       ${article.coverImageSourceUrl}, ${article.coverImagePageUrl}, ${article.coverImageAlt}, ${article.coverImageWidth},
-      ${article.coverImageHeight}, ${article.coverImageStatus}, ${article.authorName}, ${article.publishedAt},
+      ${article.coverImageHeight}, ${article.coverImageFetchedAt || null}, ${article.coverImageHash}, ${article.coverImageStatus}, ${article.authorName}, ${article.publishedAt},
       ${article.updatedAt}, ${article.scheduledAt}, ${article.seoTitle}, ${article.seoDescription}, ${article.canonicalUrl},
       ${article.primaryKeyword}, ${JSON.stringify(article.secondaryKeywords)}::jsonb, ${article.geoSummary},
       ${JSON.stringify(article.keyTakeaways)}::jsonb, ${article.sourceTitle}, ${article.sourceAuthor}, ${article.sourcePublisher},
@@ -1216,7 +1312,7 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
     errorMessage: "",
     metadata: {},
   };
-  await recordJob(job);
+  if (!dryRun) await recordJob(job);
 
   try {
     await ensureNewsSchema();
@@ -1226,7 +1322,7 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
       job.status = "completed";
       job.completedAt = new Date().toISOString();
       job.metadata = { existingToday, published: 0, reason: "daily target already met" };
-      await recordJob(job);
+      if (!dryRun) await recordJob(job);
       return job.metadata;
     }
 
@@ -1254,8 +1350,8 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
         rejected.push({ title: candidate.title, reason: "below relevance threshold" });
         continue;
       }
-      const article = buildArticle(candidate, relations);
-      if (!article.coverImageUrl || article.coverImageUrl.includes(SITE_URL)) {
+      const article = await buildArticle(candidate, relations);
+      if (!article) {
         rejected.push({ title: candidate.title, reason: "no compliant external cover image" });
         continue;
       }
@@ -1263,29 +1359,6 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
         published.push(article);
       } else {
         rejected.push({ title: candidate.title, reason: "slug already exists" });
-      }
-    }
-
-    for (let slot = 1; published.length < missing && slot <= target * 2; slot += 1) {
-      const rawCandidate = buildInternalBriefCandidate(slot, timezone);
-      if (await isDuplicate(rawCandidate, dedupDays)) {
-        rejected.push({ title: rawCandidate.title, reason: "internal daily brief already published" });
-        continue;
-      }
-      const relations = scoreCandidate(rawCandidate).filter((relation) => relation.relevanceScore >= relevanceThreshold).slice(0, 3);
-      if (!relations.length) {
-        rejected.push({ title: rawCandidate.title, reason: "internal brief below relevance threshold" });
-        continue;
-      }
-      const article = buildArticle(rawCandidate, relations);
-      if (!article.coverImageUrl || article.coverImageUrl.includes(SITE_URL)) {
-        rejected.push({ title: rawCandidate.title, reason: "no compliant cover image" });
-        continue;
-      }
-      if (dryRun || await persistArticle(article)) {
-        published.push(article);
-      } else {
-        rejected.push({ title: rawCandidate.title, reason: "internal brief slug already exists" });
       }
     }
 
@@ -1300,7 +1373,7 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
       status: publishedCount >= target ? "complete" : "incomplete",
       checkedAt: new Date().toISOString(),
     };
-    await recordAudit(audit);
+    if (!dryRun) await recordAudit(audit);
 
     job.status = "completed";
     job.completedAt = new Date().toISOString();
@@ -1313,13 +1386,13 @@ export async function runNewsAutomation({ dryRun = false } = {}) {
       rejected: rejected.slice(0, 20),
       audit,
     };
-    await recordJob(job);
+    if (!dryRun) await recordJob(job);
     return job.metadata;
   } catch (error) {
     job.status = "failed";
     job.completedAt = new Date().toISOString();
     job.errorMessage = error instanceof Error ? error.message : "Unknown news automation error";
-    await recordJob(job);
+    if (!dryRun) await recordJob(job);
     throw error;
   }
 }

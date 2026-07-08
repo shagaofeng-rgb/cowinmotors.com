@@ -5,6 +5,16 @@ type SqlClient = ReturnType<typeof neon>;
 let sqlClient: SqlClient | null = null;
 let schemaReady: Promise<void> | null = null;
 
+async function ignoreExistingRelation<T>(operation: Promise<T>) {
+  try {
+    return await operation;
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? (error as { code?: string }).code : "";
+    if (code === "23505" || code === "42P07") return null;
+    throw error;
+  }
+}
+
 export function isDatabaseConfigured() {
   return Boolean(process.env.DATABASE_URL);
 }
@@ -77,9 +87,9 @@ export async function ensureCoreSchema() {
           )
         `;
 
-        await sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_timestamp_idx ON cowin_analytics_events (timestamp DESC)`;
-        await sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_type_idx ON cowin_analytics_events (type)`;
-        await sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_created_at_idx ON cowin_inquiries (created_at DESC)`;
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_timestamp_idx ON cowin_analytics_events (timestamp DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_type_idx ON cowin_analytics_events (type)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_created_at_idx ON cowin_inquiries (created_at DESC)`);
 
         await sql`
           CREATE TABLE IF NOT EXISTS cowin_admin_audit_logs (
@@ -158,10 +168,10 @@ export async function ensureCoreSchema() {
           )
         `;
 
-        await sql`CREATE INDEX IF NOT EXISTS cowin_admin_audit_logs_created_at_idx ON cowin_admin_audit_logs (created_at DESC)`;
-        await sql`CREATE INDEX IF NOT EXISTS cowin_admin_audit_logs_resource_idx ON cowin_admin_audit_logs (resource_type, resource_id)`;
-        await sql`CREATE INDEX IF NOT EXISTS cowin_media_assets_category_idx ON cowin_media_assets (category)`;
-        await sql`CREATE INDEX IF NOT EXISTS cowin_sync_jobs_started_at_idx ON cowin_sync_jobs (started_at DESC NULLS LAST)`;
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_admin_audit_logs_created_at_idx ON cowin_admin_audit_logs (created_at DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_admin_audit_logs_resource_idx ON cowin_admin_audit_logs (resource_type, resource_id)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_media_assets_category_idx ON cowin_media_assets (category)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_sync_jobs_started_at_idx ON cowin_sync_jobs (started_at DESC NULLS LAST)`);
       } finally {
         await sql`SELECT pg_advisory_unlock(76652025)`;
       }

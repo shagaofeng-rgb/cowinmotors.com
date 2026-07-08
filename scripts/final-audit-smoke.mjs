@@ -11,9 +11,12 @@ const paths = [
   "/quote",
   "/support",
   "/news",
+  "/blog",
   "/sitemap.xml",
   "/news-sitemap.xml",
   "/news/rss.xml",
+  "/api/news",
+  "/api/news/categories",
   "/robots.txt",
   "/admin/login",
 ];
@@ -54,6 +57,18 @@ ok(protectedApi.status === 401, "Admin API should require authentication.");
 
 const news = (await fetchText("/news")).text;
 ok(/Automotive News|News automation is ready|news-card/.test(news), "News page did not render expected content.");
+const newsApi = JSON.parse((await fetchText("/api/news")).text);
+ok(Array.isArray(newsApi.articles), "News API should return articles array.");
+if (newsApi.articles.length) {
+  const first = newsApi.articles[0];
+  ok(first.coverImageUrl && /^https?:\/\//.test(first.coverImageUrl), "News article should have an absolute cover image URL.");
+  ok(!/cowinmotors\.com/i.test(new URL(first.coverImageUrl).hostname), "News cover image must not use a Cowinmotors site image.");
+  ok(first.canonicalSourceUrl && /^https?:\/\//.test(first.canonicalSourceUrl), "News article should include canonical source URL.");
+  ok(first.products?.length >= 1, "News article should link at least one product.");
+}
+
+const blog = await fetch(`${siteUrl}/blog`, { redirect: "manual" });
+ok([301, 302, 303, 307, 308].includes(blog.status) || blog.url.endsWith("/news"), "Blog route should redirect to News rather than 404.");
 
 const robots = (await fetchText("/robots.txt")).text;
 ok(/sitemap\.xml/.test(robots), "robots.txt missing sitemap.");

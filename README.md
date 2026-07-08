@@ -38,6 +38,16 @@ http://localhost:3000
 - `/quote`
 - `/support`
 - `/news`
+- `/news/[slug]`
+- `/blog` redirects to `/news`
+- `/blog/[slug]` redirects to `/news/[slug]`
+
+## Public APIs
+
+- `GET /api/news` public News list with `page`, `limit`, `category`, and `tag` filters
+- `GET /api/news/[slug]` public News detail payload
+- `GET /api/news/categories` published News category counts
+- `GET /api/products/[id]/news` product-related News
 
 ## Admin Routes
 
@@ -71,6 +81,11 @@ All admin APIs require the admin session cookie.
 - `GET /api/admin/audit-logs`
 - `GET /api/admin/sync`
 - `GET /api/admin/search-console/overview`
+- `GET /api/admin/news/jobs`
+- `GET /api/admin/news/audits`
+- `POST /api/admin/news/collect`
+- `POST /api/admin/news/publish`
+- `POST /api/admin/news/retry`
 
 ## Environment
 
@@ -83,7 +98,19 @@ Copy `.env.example` and configure production values in Vercel. Required producti
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`
 - `INQUIRY_TO_EMAIL`, `INQUIRY_CC_EMAIL`
 - `CRON_SECRET`
+- `NEWS_DAILY_TARGET`, `NEWS_TIMEZONE`, `NEWS_LOOKBACK_HOURS`, `NEWS_DEDUP_DAYS`, and `NEWS_RELEVANCE_THRESHOLD`
 - Google Search Console OAuth or service account variables when SEO data sync is required.
+
+## Verification
+
+Run the production-style checks before deploy:
+
+```bash
+pnpm exec tsc --noEmit
+pnpm exec next build
+SITE_URL=http://localhost:4300 node scripts/final-audit-smoke.mjs
+SITE_URL=http://localhost:4300 node scripts/news-and-site-selfcheck.mjs
+```
 
 ## Backup And Restore
 
