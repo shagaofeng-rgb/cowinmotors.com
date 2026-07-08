@@ -10,7 +10,7 @@ export const metadata = {
 
 const errorMessages: Record<string, string> = {
   invalid: "邮箱或密码不正确。",
-  "not-configured": "生产环境还没有配置后台密码，请先配置 ADMIN_PASSWORD 或 ADMIN_PASSWORD_HASH。",
+  "not-configured": "后台登录未启用，请联系管理员。",
   "rate-limited": "登录尝试过于频繁，请稍后再试。",
 };
 
@@ -27,14 +27,14 @@ export default async function AdminLoginPage({
     <main className="admin-login-page">
       <section className="admin-login-card">
         <Link className="admin-login-brand" href="/">
-          <span>CM</span>
+          <img src="/assets/live/logo.jpg" alt="Cowinmotors" />
           <strong>Cowinmotors</strong>
         </Link>
         <p className="eyebrow">网站数据后台</p>
         <h1>后台登录</h1>
         <p className="admin-login-copy">查看产品库、询盘记录、页面结构、图片状态和基础 SEO 数据。</p>
 
-        {!configured ? <div className="admin-alert">后台登录暂未启用，请先配置后台密码环境变量。</div> : null}
+        {!configured ? <div className="admin-alert">后台登录未启用，请联系管理员。</div> : null}
         {error ? <div className="admin-alert">{errorMessages[error] || "登录失败。"}</div> : null}
 
         <form className="admin-login-form" action="/api/admin/login" method="post">

@@ -11,6 +11,13 @@ export default async function AdminNewsPage() {
   const data = await getNewsAdminSnapshot();
   const published = data.articles.filter((article) => article.status === "published").length;
   const latestAudit = data.audits[0];
+  const statusLabel = (status: string) => ({
+    published: "已发布",
+    draft: "草稿",
+    failed: "失败",
+    completed: "完成",
+    running: "运行中",
+  }[status] || status);
 
   return (
     <div className="admin-page">
@@ -27,7 +34,7 @@ export default async function AdminNewsPage() {
         <div className="admin-metric"><span>Published</span><strong>{published}</strong><small>已发布新闻</small></div>
         <div className="admin-metric"><span>Sources</span><strong>{data.sources.length}</strong><small>RSS / 来源</small></div>
         <div className="admin-metric"><span>Jobs</span><strong>{data.jobs.length}</strong><small>自动任务记录</small></div>
-        <div className="admin-metric"><span>Daily Target</span><strong>{latestAudit?.publishedCount || 0}/{latestAudit?.targetCount || Number(process.env.NEWS_DAILY_TARGET || 4)}</strong><small>{latestAudit?.date || "No audit yet"}</small></div>
+        <div className="admin-metric"><span>Daily Target</span><strong>{latestAudit?.publishedCount || 0}/{latestAudit?.targetCount || Number(process.env.NEWS_DAILY_TARGET || 4)}</strong><small>{latestAudit?.date || "暂无审计记录"}</small></div>
       </section>
 
       <section className="admin-panel">
@@ -53,13 +60,13 @@ export default async function AdminNewsPage() {
               {data.articles.map((article) => (
                 <tr key={article.id}>
                   <td><Link href={`/news/${article.slug}`} target="_blank">{article.title}</Link></td>
-                  <td>{article.status}</td>
+                  <td>{statusLabel(article.status)}</td>
                   <td><a href={article.canonicalSourceUrl} target="_blank" rel="noreferrer">{article.sourcePublisher || "-"}</a></td>
                   <td>{article.products.length || "-"}</td>
                   <td>{article.publishedAt ? new Date(article.publishedAt).toLocaleString("zh-CN") : "-"}</td>
                 </tr>
               ))}
-              {!data.articles.length ? <tr><td colSpan={5}>暂无新闻记录，等待 cron 或手动任务运行。</td></tr> : null}
+              {!data.articles.length ? <tr><td colSpan={5}>暂无新闻记录。</td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -73,7 +80,7 @@ export default async function AdminNewsPage() {
             {data.sources.map((source) => (
               <div className="admin-mini-record" key={source.id}>
                 <strong>{source.publisherName}</strong>
-                <span>{source.domain} · score {source.credibilityScore} · {source.enabled ? "enabled" : "disabled"}</span>
+                <span>{source.domain} · 可信度 {source.credibilityScore} · {source.enabled ? "启用" : "停用"}</span>
               </div>
             ))}
           </div>
@@ -84,8 +91,8 @@ export default async function AdminNewsPage() {
           <div className="admin-stack">
             {data.jobs.slice(0, 10).map((job) => (
               <div className="admin-mini-record" key={job.id}>
-                <strong>{job.jobType} · {job.status}</strong>
-                <span>{job.startedAt ? new Date(job.startedAt).toLocaleString("zh-CN") : "-"} · {job.errorMessage || "no error"}</span>
+                <strong>{job.jobType} · {statusLabel(job.status)}</strong>
+                <span>{job.startedAt ? new Date(job.startedAt).toLocaleString("zh-CN") : "-"} · {job.errorMessage || "运行正常"}</span>
               </div>
             ))}
             {!data.jobs.length ? <div className="admin-empty">暂无任务记录。</div> : null}

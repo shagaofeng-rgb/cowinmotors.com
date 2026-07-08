@@ -28,7 +28,7 @@ export function AdminShell({ children, email }: { children: ReactNode; email: st
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
         <Link className="admin-logo" href="/admin">
-          <span>CM</span>
+          <img src="/assets/live/logo.jpg" alt="Cowinmotors" />
           <strong>Cowinmotors 后台</strong>
         </Link>
         <nav>

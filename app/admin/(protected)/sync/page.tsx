@@ -9,7 +9,7 @@ export const metadata = {
 
 export default async function AdminSyncPage() {
   const jobs = await getSyncJobs();
-  const hasWarning = jobs.some((job) => job.status.includes("needs") || job.errorMessage);
+  const hasWarning = jobs.some((job) => job.status !== "正常" || job.errorMessage);
 
   return (
     <div className="admin-page">
@@ -17,7 +17,7 @@ export default async function AdminSyncPage() {
         <div>
           <p className="eyebrow">数据同步</p>
           <h1>Cron、SEO 与数据任务</h1>
-          <p>检查新闻自动发布、每月询盘测试邮件、Search Console 同步和未来数据导入任务状态。</p>
+          <p>检查新闻自动发布、每月询盘测试邮件、Search Console 同步和数据任务状态。</p>
         </div>
         <span className={hasWarning ? "admin-status warn" : "admin-status good"}>{hasWarning ? "需要检查" : "已配置"}</span>
       </header>
@@ -46,7 +46,7 @@ export default async function AdminSyncPage() {
               {jobs.map((job) => (
                 <tr key={job.id}>
                   <td>{job.jobType}</td>
-                  <td><span className={job.errorMessage || job.status.includes("needs") ? "admin-status warn" : "admin-status good"}>{job.status}</span></td>
+                  <td><span className={job.errorMessage || job.status !== "正常" ? "admin-status warn" : "admin-status good"}>{job.status}</span></td>
                   <td>{job.scheduledAt || "-"}</td>
                   <td>{job.startedAt ? new Date(job.startedAt).toLocaleString("zh-CN") : "-"}</td>
                   <td>{job.errorMessage || "-"}</td>

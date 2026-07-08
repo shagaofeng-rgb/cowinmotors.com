@@ -39,7 +39,7 @@ export default async function AdminAuditLogsPage({
         <div>
           <p className="eyebrow">操作日志</p>
           <h1>后台审计记录</h1>
-          <p>记录导出、数据读取、同步和未来编辑动作。没有数据库时会展示询盘提交的只读审计兜底。</p>
+          <p>记录后台导出、数据读取、同步任务和客户表单等关键事件。</p>
         </div>
         <span className="admin-status">{filtered.length} logs</span>
       </header>

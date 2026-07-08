@@ -91,6 +91,15 @@ export type SyncJobRecord = {
 
 const inquiryFile = path.join(os.tmpdir(), "cowinmotors-inquiries.json");
 
+function isRemoteAsset(url: string) {
+  return /^https?:\/\//i.test(url);
+}
+
+function assetExists(url: string) {
+  if (isRemoteAsset(url)) return true;
+  return fs.existsSync(path.join(process.cwd(), "public", url.replace(/^\//, "")));
+}
+
 export function getAdminListParams(searchParams?: Record<string, string | string[] | undefined>): AdminListParams {
   const read = (key: string) => {
     const value = searchParams?.[key];
@@ -275,7 +284,8 @@ export function getAdminProducts() {
     path: productPath(product),
     categorySlug: categorySlug(product),
     buyingPath: inferBuyingPath(product),
-    imageExists: fs.existsSync(path.join(process.cwd(), "public", product.localImage.replace(/^\//, ""))),
+    imageExists: assetExists(product.localImage),
+    imageSourceType: isRemoteAsset(product.localImage) ? "remote" : "local",
   }));
 }
 
@@ -348,7 +358,7 @@ export function getMediaAssets(): MediaAssetRecord[] {
     usedBy: `${item.count} product${item.count === 1 ? "" : "s"}`,
     productCount: item.count,
     createdAt: new Date(0).toISOString(),
-    exists: fs.existsSync(path.join(process.cwd(), "public", url.replace(/^\//, ""))),
+    exists: assetExists(url),
   }));
 
   const uiAssets = uiManifest.map((asset, index) => {
@@ -363,7 +373,7 @@ export function getMediaAssets(): MediaAssetRecord[] {
     usedBy: asset.recommended_use || "site design",
     productCount: 0,
     createdAt: new Date(0).toISOString(),
-    exists: fs.existsSync(path.join(process.cwd(), "public", String(url).replace(/^\//, ""))),
+    exists: assetExists(url),
     };
   });
 
@@ -470,8 +480,8 @@ export async function getAdminUsers(): Promise<AdminUserRecord[]> {
       email,
       role: "super_admin",
       status: "active",
-      displayName: "环境变量管理员",
-      permissions: ["dashboard:read", "products:read", "inquiries:read", "exports:create", "seo:read", "settings:read"],
+      displayName: "系统管理员",
+      permissions: ["数据总览", "产品管理", "客户表单", "数据导出", "SEO 数据", "系统设置"],
       lastLoginAt: "",
       createdAt: now,
     },
@@ -521,34 +531,34 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
     {
       id: "cron-news-automation",
       jobType: "news-automation",
-      status: process.env.CRON_SECRET ? "configured" : "needs_secret",
+      status: process.env.CRON_SECRET ? "正常" : "需配置",
       scheduledAt: "daily",
       startedAt: "",
       completedAt: "",
       retryCount: 0,
-      errorMessage: process.env.CRON_SECRET ? "" : "CRON_SECRET is required for protected cron execution.",
-      metadata: { path: "/api/cron/news-automation", schedule: "daily" },
+      errorMessage: process.env.CRON_SECRET ? "" : "定时任务安全密钥未设置，自动任务无法执行。",
+      metadata: { path: "/api/cron/news-automation", schedule: "每日自动发布新闻" },
     },
     {
       id: "cron-inquiry-email-test",
       jobType: "inquiry-email-test",
-      status: process.env.CRON_SECRET ? "configured" : "needs_secret",
+      status: process.env.CRON_SECRET ? "正常" : "需配置",
       scheduledAt: "monthly",
       startedAt: "",
       completedAt: "",
       retryCount: 0,
-      errorMessage: process.env.CRON_SECRET ? "" : "CRON_SECRET is required for protected cron execution.",
-      metadata: { path: "/api/cron/inquiry-email-test", schedule: "monthly" },
+      errorMessage: process.env.CRON_SECRET ? "" : "定时任务安全密钥未设置，每月表单测试无法执行。",
+      metadata: { path: "/api/cron/inquiry-email-test", schedule: "每月 1 日测试询盘邮件" },
     },
     {
       id: "gsc-oauth",
       jobType: "google-search-console",
-      status: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "configured" : "needs_config",
+      status: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "正常" : "需配置",
       scheduledAt: "on admin request",
       startedAt: "",
       completedAt: "",
       retryCount: 0,
-      errorMessage: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "" : "GOOGLE_SEARCH_CONSOLE_SITE_URL is not configured.",
+      errorMessage: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "" : "Search Console 站点地址未设置。",
       metadata: { siteUrl: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "" },
     },
   ];
@@ -556,12 +566,12 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
 
 export function getSystemSettingsSnapshot() {
   return [
-    { key: "后台登录", value: process.env.ADMIN_EMAIL ? "已配置管理员邮箱" : "使用默认管理员邮箱", sensitive: false },
-    { key: "密码策略", value: process.env.ADMIN_PASSWORD_HASH ? "Hash 密码" : process.env.ADMIN_PASSWORD ? "明文环境变量密码" : "未配置生产密码", sensitive: false },
-    { key: "数据库", value: isDatabaseConfigured() ? "DATABASE_URL 已配置" : "未配置，部分数据使用临时文件兜底", sensitive: false },
-    { key: "询盘邮件", value: process.env.SMTP_HOST || process.env.RESEND_API_KEY ? "已配置发送通道" : "未配置邮件发送通道", sensitive: false },
-    { key: "Search Console", value: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "已配置站点 URL" : "未配置站点 URL", sensitive: false },
-    { key: "Cron Secret", value: process.env.CRON_SECRET ? "已配置" : "未配置", sensitive: true },
+    { key: "后台登录", value: process.env.ADMIN_EMAIL ? "管理员邮箱已启用" : "管理员邮箱使用默认值", sensitive: false },
+    { key: "密码策略", value: process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_PASSWORD ? "密码登录已启用" : "密码登录未启用", sensitive: false },
+    { key: "数据库", value: isDatabaseConfigured() ? "数据库已连接" : "数据库未连接", sensitive: false },
+    { key: "询盘邮件", value: process.env.SMTP_HOST || process.env.RESEND_API_KEY ? "邮件发送已启用" : "邮件发送未启用", sensitive: false },
+    { key: "Search Console", value: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "站点已绑定" : "站点未绑定", sensitive: false },
+    { key: "定时任务", value: process.env.CRON_SECRET ? "定时任务已启用" : "定时任务未启用", sensitive: true },
   ];
 }
 
@@ -595,7 +605,7 @@ export async function getAdminOverview() {
 
   return {
     generatedAt: new Date().toISOString(),
-    storageMode: isDatabaseConfigured() ? "postgres" : "temporary file storage",
+    storageMode: isDatabaseConfigured() ? "数据库" : "本地存储",
     metrics: {
       products: adminProducts.length,
       categories: getCategoryStats().length,

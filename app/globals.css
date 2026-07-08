@@ -4341,14 +4341,12 @@ body:has(.home-redesign) .header-cta {
   font-weight: 900;
 }
 
-.admin-logo span,
-.admin-login-brand span {
-  display: grid;
+.admin-logo img,
+.admin-login-brand img {
   width: 42px;
   height: 42px;
-  place-items: center;
-  color: #ffffff;
-  background: var(--accent);
+  object-fit: contain;
+  background: #ffffff;
   border-radius: var(--radius);
 }
 
