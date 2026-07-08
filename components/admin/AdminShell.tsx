@@ -6,16 +6,19 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/admin", label: "数据总览" },
-  { href: "/admin/analytics", label: "流量分析" },
-  { href: "/admin/visitors", label: "访客记录" },
-  { href: "/admin/pages", label: "页面表现" },
-  { href: "/admin/journeys", label: "访问路径" },
-  { href: "/admin/products", label: "产品数据" },
-  { href: "/admin/inquiries", label: "询盘数据" },
-  { href: "/admin/news", label: "News 自动发布" },
+  { href: "/admin/products", label: "产品管理" },
+  { href: "/admin/categories", label: "产品分类" },
+  { href: "/admin/news", label: "新闻管理" },
+  { href: "/admin/news-categories", label: "新闻分类" },
+  { href: "/admin/inquiries", label: "客户表单" },
+  { href: "/admin/analytics", label: "访问分析" },
   { href: "/admin/search-console", label: "SEO 数据" },
+  { href: "/admin/media", label: "媒体库" },
+  { href: "/admin/users", label: "用户与权限" },
+  { href: "/admin/audit-logs", label: "操作日志" },
   { href: "/admin/link-audit", label: "内外链审计" },
   { href: "/admin/settings", label: "系统设置" },
+  { href: "/admin/sync", label: "数据同步" },
 ];
 
 export function AdminShell({ children, email }: { children: ReactNode; email: string }) {

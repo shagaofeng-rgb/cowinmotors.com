@@ -1,5 +1,6 @@
 import { hashAdminPassword, isAdminAuthConfigured } from "@/lib/adminAuth";
 import { getAnalyticsStorageMode } from "@/lib/analyticsStore";
+import { getSystemSettingsSnapshot } from "@/lib/adminData";
 import { isDatabaseConfigured } from "@/lib/database";
 import { getGoogleOAuthConfig } from "@/lib/googleSearchConsoleOAuth";
 
@@ -16,6 +17,7 @@ function configured(value: unknown) {
 export default function AdminSettingsPage() {
   const authConfigured = isAdminAuthConfigured();
   const googleOAuth = getGoogleOAuthConfig();
+  const settings = getSystemSettingsSnapshot();
   const rows = [
     ["ADMIN_EMAIL", process.env.ADMIN_EMAIL || "admin@cowinmotors.com"],
     ["ADMIN_PASSWORD_HASH", configured(process.env.ADMIN_PASSWORD_HASH)],
@@ -49,6 +51,18 @@ export default function AdminSettingsPage() {
         </div>
         <div className={authConfigured ? "admin-status good" : "admin-status"}>{authConfigured ? "后台已启用" : "后台未启用"}</div>
       </header>
+
+      <section className="admin-panel">
+        <h2>配置摘要</h2>
+        <div className="admin-card-grid">
+          {settings.map((setting) => (
+            <article className="admin-card" key={setting.key}>
+              <strong>{setting.key}</strong>
+              <span className="admin-muted">{setting.value}</span>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="admin-panel">
         <h2>环境变量</h2>
