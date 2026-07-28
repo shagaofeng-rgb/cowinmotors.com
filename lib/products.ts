@@ -27,7 +27,21 @@ export type Product = {
   [key: string]: unknown;
 };
 
-export const products: Product[] = rawData.products.map((product, index) => ({
+const trustedForgedWheelBrands = new Set(["AL13 Wheels", "BC Forged NA", "Brixton Forged", "HRE Wheels"]);
+const wheelAccessoryTerms = /sticker|decal|lug nut|center cap|valve stem|tpms|hub centric|hub ring|assembly bolt|gloves|coin pouch|bracket adapter/i;
+const unsupportedWheelUseTerms = /trailer|caravan|\bRV\b|motorcycle|motorbike|\btire\b|\btyre\b/i;
+const verifiedVossenForgedSeries = /\b(?:EVO|M-X|S17|S21|LC2|LC3|CG-|GNS-|VPS-|ML-[XR]|ERA-|HC-|RS\d|VFX-)\b|3-Piece|Vossen Forged/i;
+
+function isSupportedCatalogProduct(product: (typeof rawData.products)[number]) {
+  if (product.category !== "Wheels") return true;
+  const searchable = `${product.title || ""} ${product.description || ""}`;
+  if (wheelAccessoryTerms.test(searchable) || unsupportedWheelUseTerms.test(searchable)) return false;
+  if (trustedForgedWheelBrands.has(product.brand || "")) return true;
+  if (product.brand === "Vossen Wheels") return verifiedVossenForgedSeries.test(product.title || "");
+  return /forg/i.test(searchable);
+}
+
+export const products: Product[] = rawData.products.filter(isSupportedCatalogProduct).map((product, index) => ({
   ...product,
   __id: index,
   localImage:

@@ -1,5 +1,5 @@
 export const UI_ASSETS = {
-  logo: "/assets/ui/shared/brand/cowinmotors-logo-header.png",
+  logo: "/assets/brand/cowinmotors-mark.png",
   headlightHero: "/assets/ui/product-images/headlights/hero/headlights-hero-product_white-bg.png",
   tailLightHero: "/assets/ui/product-images/tail-lights/hero/tail-lights-hero-product_white-bg.png",
   exhaustHero: "/assets/ui/product-images/exhaust-systems/hero/exhaust-systems-hero-product_white-bg.png",

@@ -4,7 +4,7 @@ import { ensureCoreSchema, getSql } from "@/lib/database";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const SETTINGS_KEY = "google_search_console_oauth";
-const SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
+const SCOPE = "https://www.googleapis.com/auth/webmasters";
 const DEFAULT_SITE_URL = "https://www.cowinmotors.com/";
 
 type StoredToken = {

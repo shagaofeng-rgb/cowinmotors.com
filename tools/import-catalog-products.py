@@ -85,7 +85,7 @@ PLACEHOLDERS = {
     "Tail Lights": "assets/catalog/tianju/id_818db2d3588f42aa806cd2c1a398ed6c.webp",
     "Exhaust Systems": "assets/live/category-exhaust.png",
     "Body Kits": "assets/live/category-body-kits.png",
-    "OEM Replacement Parts": "assets/live/logo.jpg",
+    "OEM Replacement Parts": "assets/brand/cowinmotors-mark.png",
     "Catalog Reference": "assets/live/category-lighting.png",
 }
 
@@ -302,7 +302,7 @@ def make_product(source: str, title: str, category: str, brand: str = "", model:
     uid = f"{source}-{stable_id(title, brand, model, year, raw)}"
     slug = slugify(f"{brand}-{model}-{title}-{uid[-6:]}", uid)
     category = category or "OEM Replacement Parts"
-    local_image = image or PLACEHOLDERS.get(category, "assets/live/logo.jpg")
+    local_image = image or PLACEHOLDERS.get(category, "assets/brand/cowinmotors-mark.png")
     description = extra.pop("description", "")
     if not description:
         description = f"Request a quote for {title}. Confirm year, model, trim, LHD/RHD, connector, MOQ, lead time, packaging, and shipping before ordering."

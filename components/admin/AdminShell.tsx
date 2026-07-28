@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 const links = [
   { href: "/admin", label: "数据总览" },
@@ -28,7 +29,7 @@ export function AdminShell({ children, email }: { children: ReactNode; email: st
     <div className="admin-dashboard">
       <aside className="admin-sidebar">
         <Link className="admin-logo" href="/admin">
-          <img src="/assets/live/logo.jpg" alt="Cowinmotors" />
+          <img src={UI_ASSETS.logo} alt="Cowinmotors" />
           <strong>Cowinmotors 后台</strong>
         </Link>
         <nav>

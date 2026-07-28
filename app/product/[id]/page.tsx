@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const product = findProduct(id);
   if (!product) return {};
-  const title = `${product.title} | Cowinmotors`;
+  const title = product.title;
   const imageUrl = absoluteImageUrl(product.localImage);
   const description =
     product.description ||
@@ -55,6 +55,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const relatedNews = await getRelatedNewsForProduct(product, 3).catch(() => []);
   const imageUrl = absoluteImageUrl(product.localImage);
   const externalListingUrl = listingUrl(product.url);
+  const numericPrice = Number(String(product.price || "").replace(/[^0-9.]/g, ""));
   const schema = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -65,12 +66,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     model: product.model || undefined,
     sku: product.partNumbers?.[0] || product.slug,
     description: product.description,
-    offers: {
+    offers: Number.isFinite(numericPrice) && numericPrice > 0 ? {
       "@type": "Offer",
+      price: numericPrice,
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
       url: `https://www.cowinmotors.com/product/${product.slug || product.__id}`,
-    },
+    } : undefined,
   };
 
   return (

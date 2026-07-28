@@ -33,8 +33,10 @@ export const metadata: Metadata = {
       "Source aftermarket headlights, exhaust parts, wheels, and body kits with fitment confirmation, QC inspection, and worldwide shipping support.",
     images: [UI_ASSETS.newsLighting],
   },
+  manifest: "/site.webmanifest",
   icons: {
     icon: [
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
       { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
       { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },

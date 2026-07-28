@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { runNewsAutomation } from "@/lib/news";
+import { markSitemapDirty, runSitemapMaintenance } from "@/lib/sitemap";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,7 +18,12 @@ export async function GET(request: Request) {
 
   try {
     const result = await runNewsAutomation({ dryRun });
-    return NextResponse.json({ ok: true, result });
+    let sitemap = null;
+    if (!dryRun) {
+      await markSitemapDirty("daily news automation completed");
+      sitemap = await runSitemapMaintenance({ trigger: "daily-cron", submit: true });
+    }
+    return NextResponse.json({ ok: true, result, sitemap });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "News automation failed." },

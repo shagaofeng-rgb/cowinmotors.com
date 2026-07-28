@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "sitemap:generate": "node scripts/sitemap.mjs",
+    "sitemap:test": "node --test scripts/sitemap.test.mjs",
+    "catalog:test": "node scripts/catalog-selfcheck.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

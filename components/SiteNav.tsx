@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 const categoryGroups = [
   {
@@ -29,15 +33,45 @@ const categoryGroups = [
 ];
 
 export function SiteNav({ className = "" }: { className?: string }) {
+  const pathname = usePathname();
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    const closeWhenOutside = (event: PointerEvent) => {
+      if (!drawerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeWhenOutside);
+    return () => document.removeEventListener("pointerdown", closeWhenOutside);
+  }, []);
+
   return (
     <nav className={`site-nav ${className}`.trim()} aria-label="Primary navigation">
       <Link href="/">Home</Link>
 
-      <div className="nav-drawer wide">
-        <Link className="nav-drawer-trigger" href="/products">Categories</Link>
-        <div className="nav-panel category-panel">
+      <div
+        className={`nav-drawer wide${open ? " open" : ""}`}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onBlur={(event) => {
+          if (!drawerRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+        }}
+        ref={drawerRef}
+      >
+        <button
+          aria-expanded={open}
+          aria-haspopup="menu"
+          className="nav-drawer-trigger"
+          onClick={() => setOpen(true)}
+          type="button"
+        >
+          Categories
+        </button>
+        <div aria-label="Product categories" className="nav-panel category-panel" role="menu">
           {categoryGroups.map((group) => (
-            <Link className="nav-category-group nav-category-card" href={group.href} key={group.title}>
+            <Link className="nav-category-group nav-category-card" href={group.href} key={group.title} role="menuitem">
               <span className="nav-category-title">{group.title}</span>
               <p>{group.text}</p>
             </Link>

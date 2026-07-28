@@ -85,11 +85,25 @@ ok(Array.isArray(productNews.articles), "Product related News API should return 
 const adminApi = await fetch(`${siteUrl}/api/admin/news/jobs`);
 ok(adminApi.status === 401, "Admin News API must require authentication");
 
+const sitemapAdminApi = await fetch(`${siteUrl}/api/admin/sitemap`);
+ok(sitemapAdminApi.status === 401, "Admin Sitemap API must require authentication");
+
 const rss = (await fetchText("/news/rss.xml")).text;
 ok(rss.includes(article.slug), "RSS feed does not include latest checked article");
 
 const newsSitemap = (await fetchText("/news-sitemap.xml")).text;
-ok(newsSitemap.includes("/news/"), "News sitemap does not include News detail URLs");
+ok(newsSitemap.includes("<urlset"), "News sitemap is not valid XML");
+if (Date.now() - new Date(article.publishedAt).getTime() <= 2 * 24 * 60 * 60 * 1000) {
+  ok(newsSitemap.includes(article.slug), "News sitemap does not include the recent checked article");
+}
+
+const sitemapIndex = (await fetchText("/sitemap.xml")).text;
+ok(sitemapIndex.includes("<sitemapindex"), "Main Sitemap is not a Sitemap Index");
+for (const file of ["pages-1.xml", "categories-1.xml", "products-1.xml", "posts-1.xml"]) {
+  ok(sitemapIndex.includes(`/sitemaps/${file}`), `Sitemap Index is missing ${file}`);
+  const child = await fetchText(`/sitemaps/${file}`);
+  ok(child.response.status === 200 && child.text.includes("<urlset"), `${file} is not reachable or valid`);
+}
 
 console.log(JSON.stringify({
   ok: true,

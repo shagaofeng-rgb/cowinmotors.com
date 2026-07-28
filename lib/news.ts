@@ -1410,7 +1410,7 @@ export function newsJsonLd(article: NewsArticle) {
     publisher: {
       "@type": "Organization",
       name: "Cowinmotors",
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/assets/ui/shared/brand/cowinmotors-logo-header.png` },
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/assets/brand/cowinmotors-mark.png` },
     },
     mainEntityOfPage: article.canonicalUrl,
     articleSection: article.category,

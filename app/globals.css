@@ -1200,9 +1200,8 @@ body:has(.home-exact) .site-footer small {
 }
 
 .home-logo img {
-  width: 178px;
-  height: auto;
-  max-height: 54px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
 }
 
@@ -2210,8 +2209,29 @@ body:has(.home-exact) .site-footer small {
   }
 
   .home-logo img {
-    width: 144px;
-    max-height: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .home-nav {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding-bottom: 4px;
+    overflow: visible;
+  }
+
+  .home-nav > a,
+  .home-nav .nav-drawer-trigger {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .home-nav .nav-drawer {
+    flex: 0 0 auto;
   }
 
   .home-header-actions {
@@ -2276,6 +2296,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: clip;
   color: var(--ink);
   background: var(--bg);
   letter-spacing: 0;
@@ -2325,9 +2346,8 @@ textarea {
 }
 
 .brand img {
-  width: 176px;
-  height: auto;
-  max-height: 54px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
 }
 
@@ -2355,6 +2375,17 @@ textarea {
   cursor: pointer;
   list-style: none;
   white-space: nowrap;
+}
+
+button.nav-drawer-trigger {
+  appearance: none;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  font: inherit;
 }
 
 .site-nav summary::-webkit-details-marker {
@@ -2421,7 +2452,8 @@ textarea {
 }
 
 .nav-drawer:hover .nav-panel,
-.nav-drawer:focus-within .nav-panel {
+.nav-drawer:focus-within .nav-panel,
+.nav-drawer.open .nav-panel {
   opacity: 1;
   pointer-events: auto;
   transform: translate(-50%, 0);
@@ -3732,9 +3764,8 @@ p {
 }
 
 .footer-brand img {
-  width: 178px;
-  height: auto;
-  max-height: 54px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
   margin-bottom: 12px;
 }
@@ -4947,15 +4978,23 @@ body:has(.home-redesign) .header-cta {
     justify-self: end;
   }
 
+  .nav-drawer {
+    position: static;
+  }
+
   .nav-drawer.wide .nav-panel,
   .nav-panel {
     left: 0;
-    transform: translate(0, 8px);
+    right: 0;
+    width: min(660px, calc(100vw - 36px));
+    margin-inline: auto;
+    transform: translateY(8px);
   }
 
   .nav-drawer:hover .nav-panel,
-  .nav-drawer:focus-within .nav-panel {
-    transform: translate(0, 0);
+  .nav-drawer:focus-within .nav-panel,
+  .nav-drawer.open .nav-panel {
+    transform: translateY(0);
   }
 
   .category-panel {
@@ -5110,9 +5149,8 @@ body:has(.home-redesign) .header-cta {
   }
 
   .brand img {
-    width: 144px;
-    height: auto;
-    max-height: 44px;
+    width: 44px;
+    height: 44px;
   }
 
   .header-cta {

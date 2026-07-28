@@ -14,17 +14,19 @@ function xmlEscape(value = "") {
 }
 
 export async function GET() {
-  const articles = await getPublishedNews({ limit: 1000 });
+  const cutoff = Date.now() - 2 * 24 * 60 * 60 * 1000;
+  const articles = (await getPublishedNews({ limit: 1000 }))
+    .filter((article) => new Date(article.publishedAt).getTime() >= cutoff);
   const urls = articles.map((article) => `
     <url>
       <loc>https://www.cowinmotors.com/news/${xmlEscape(article.slug)}</loc>
-      <lastmod>${article.updatedAt || article.publishedAt}</lastmod>
+      <lastmod>${new Date(article.updatedAt || article.publishedAt).toISOString()}</lastmod>
       <news:news>
         <news:publication>
           <news:name>Cowinmotors</news:name>
           <news:language>${xmlEscape(article.language || "en")}</news:language>
         </news:publication>
-        <news:publication_date>${article.publishedAt}</news:publication_date>
+        <news:publication_date>${new Date(article.publishedAt).toISOString()}</news:publication_date>
         <news:title>${xmlEscape(article.title)}</news:title>
       </news:news>
     </url>

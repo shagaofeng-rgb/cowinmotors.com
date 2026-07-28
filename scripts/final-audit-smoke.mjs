@@ -74,4 +74,14 @@ const robots = (await fetchText("/robots.txt")).text;
 ok(/sitemap\.xml/.test(robots), "robots.txt missing sitemap.");
 ok(/news-sitemap\.xml/.test(robots), "robots.txt missing news sitemap.");
 
+const sitemap = (await fetchText("/sitemap.xml")).text;
+ok(/<sitemapindex/.test(sitemap), "Main Sitemap should be a Sitemap Index.");
+ok(/\/sitemaps\/products-1\.xml/.test(sitemap), "Sitemap Index is missing the product Sitemap.");
+const productSitemap = await fetchText("/sitemaps/products-1.xml");
+ok(productSitemap.response.status === 200, "Product Sitemap is not reachable.");
+ok(/<urlset/.test(productSitemap.text) && /<lastmod>/.test(productSitemap.text), "Product Sitemap XML is invalid.");
+
+const sitemapAdmin = await fetch(`${siteUrl}/api/admin/sitemap`);
+ok(sitemapAdmin.status === 401, "Sitemap admin API should require authentication.");
+
 console.log(JSON.stringify({ ok: true, siteUrl, results }, null, 2));

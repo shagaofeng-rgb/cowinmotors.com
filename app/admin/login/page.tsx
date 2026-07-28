@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdminPasswordField } from "@/components/admin/AdminPasswordField";
 import { getConfiguredAdminEmail, isAdminAuthConfigured } from "@/lib/adminAuth";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function AdminLoginPage({
     <main className="admin-login-page">
       <section className="admin-login-card">
         <Link className="admin-login-brand" href="/">
-          <img src="/assets/live/logo.jpg" alt="Cowinmotors" />
+          <img src={UI_ASSETS.logo} alt="Cowinmotors" />
           <strong>Cowinmotors</strong>
         </Link>
         <p className="eyebrow">网站数据后台</p>
