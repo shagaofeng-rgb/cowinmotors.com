@@ -47,6 +47,25 @@ export function SiteNav({ className = "" }: { className?: string }) {
     return () => document.removeEventListener("pointerdown", closeWhenOutside);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const closeWhenPointerLeaves = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" && !drawerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+
+    const closeWhenMouseLeaves = (event: MouseEvent) => {
+      if (!drawerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+
+    window.addEventListener("pointermove", closeWhenPointerLeaves);
+    window.addEventListener("mousemove", closeWhenMouseLeaves);
+    return () => {
+      window.removeEventListener("pointermove", closeWhenPointerLeaves);
+      window.removeEventListener("mousemove", closeWhenMouseLeaves);
+    };
+  }, [open]);
+
   return (
     <nav className={`site-nav ${className}`.trim()} aria-label="Primary navigation">
       <Link href="/">Home</Link>
@@ -55,6 +74,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
         className={`nav-drawer wide${open ? " open" : ""}`}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
+        onPointerLeave={() => setOpen(false)}
         onBlur={(event) => {
           if (!drawerRef.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
         }}

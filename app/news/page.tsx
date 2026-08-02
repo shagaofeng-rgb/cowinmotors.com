@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { NewsCard } from "@/components/NewsCard";
+import { ResilientImage } from "@/components/ResilientImage";
 import { getNewsCategories, getPublishedNews } from "@/lib/news";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
@@ -57,7 +58,12 @@ export default async function NewsPage({
           </div>
           {featured ? (
             <article className="news-featured-card">
-              <img src={featured.coverImageUrl} alt={featured.coverImageAlt || featured.title} />
+              <ResilientImage
+                src={featured.coverImageUrl}
+                alt={featured.coverImageAlt || featured.title}
+                fallback={UI_ASSETS.newsLighting}
+                loading="eager"
+              />
               <div>
                 <span>Featured Story</span>
                 <h2>{featured.title}</h2>
@@ -67,7 +73,12 @@ export default async function NewsPage({
             </article>
           ) : (
             <article className="news-featured-card empty">
-              <img src={UI_ASSETS.newsLighting} alt="Automotive lighting sourcing insight" />
+              <ResilientImage
+                src={UI_ASSETS.newsLighting}
+                alt="Automotive lighting sourcing insight"
+                fallback={UI_ASSETS.newsLighting}
+                loading="eager"
+              />
               <div>
                 <span>Sourcing Insight</span>
                 <h2>Automotive parts sourcing updates for global buyers.</h2>

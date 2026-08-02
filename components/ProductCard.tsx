@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Product } from "@/lib/products";
+import { ResilientImage } from "@/components/ResilientImage";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 function productPath(product: Product) {
   return `/product/${product.slug || product.__id}`;
@@ -18,11 +20,20 @@ function listingUrl(url?: string) {
 
 export function ProductCard({ product, showLive = false }: { product: Product; showLive?: boolean }) {
   const externalListingUrl = listingUrl(product.url);
+  const fallbackImage = product.category.includes("Wheel")
+    ? UI_ASSETS.wheelHero
+    : product.category.includes("Tail")
+      ? UI_ASSETS.tailLightHero
+      : product.category.includes("Exhaust")
+        ? UI_ASSETS.exhaustHero
+        : product.category.includes("Body")
+          ? UI_ASSETS.bodyKitHero
+          : UI_ASSETS.headlightHero;
 
   return (
     <article className="product-card">
       <Link className="image-wrap" href={productPath(product)}>
-        <img src={product.localImage} alt={product.title} loading="lazy" />
+        <ResilientImage src={product.localImage} alt={product.title} fallback={fallbackImage} />
       </Link>
       <div className="product-info">
         <h3>{product.title}</h3>

@@ -1,11 +1,17 @@
 import Link from "next/link";
 import type { NewsArticle } from "@/lib/news";
+import { ResilientImage } from "@/components/ResilientImage";
+import { UI_ASSETS } from "@/lib/ui-assets";
 
 export function NewsCard({ article }: { article: NewsArticle }) {
   return (
     <article className="news-card">
       <Link className="news-card-media" href={`/news/${article.slug}`}>
-        <img src={article.coverImageUrl} alt={article.coverImageAlt || article.title} loading="lazy" />
+        <ResilientImage
+          src={article.coverImageUrl}
+          alt={article.coverImageAlt || article.title}
+          fallback={UI_ASSETS.newsLighting}
+        />
       </Link>
       <div className="news-card-copy">
         <div className="news-meta">
