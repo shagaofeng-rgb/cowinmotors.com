@@ -112,7 +112,7 @@ Copy `.env.example` and configure production values in Vercel. Required producti
 
 The production Sitemap is generated dynamically from the public route model, the real product catalog, and published News records. `/sitemap.xml` is a Sitemap Index; child Sitemaps are split by content type and automatically chunk before 50,000 URLs or 50 MB. URL parameters, external canonicals, drafts, private/deleted/offline records, and noindex records are excluded. Product and fixed-page `lastmod` values are stable configuration dates; News uses its stored `updatedAt` or `publishedAt` value.
 
-The existing daily News Vercel Cron also runs Sitemap consistency maintenance. This avoids a third Vercel Cron and preserves the monthly inquiry test. News publication marks the Sitemap dirty and the same workflow records URL additions, modifications, removals, generated files, counts, duration, errors, and Search Console submission status in Postgres. Public XML generation does not write partial files; the reusable export helper validates a temporary UTF-8 file before atomic replacement and preserves the previous file on failure.
+The existing daily News Vercel Cron also runs Sitemap consistency maintenance. This avoids a third Vercel Cron and preserves the monthly inquiry test. News publication marks the Sitemap dirty and the same workflow records URL additions, modifications, removals, generated files, counts, duration, errors, and Search Console submission status in Postgres. Google Sitemap submission is globally limited to one attempt every three days, using persisted Postgres run records so a deployment, manual request, or repeated cron call cannot bypass the interval. Public XML generation does not write partial files; the reusable export helper validates a temporary UTF-8 file before atomic replacement and preserves the previous file on failure.
 
 Manual execution uses the protected cron endpoint and supports all requested flags:
 
@@ -131,6 +131,7 @@ PUBLIC_PAGES_UPDATED_AT=2026-07-08T21:17:48+08:00
 GOOGLE_SEARCH_CONSOLE_ENABLED=false
 GOOGLE_SEARCH_CONSOLE_SITE_URL=https://www.cowinmotors.com/
 GOOGLE_SEARCH_CONSOLE_SITEMAP_URL=https://www.cowinmotors.com/sitemap.xml
+GOOGLE_SEARCH_CONSOLE_SUBMIT_INTERVAL_DAYS=3
 GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH=
 GOOGLE_CLIENT_EMAIL=
 GOOGLE_PRIVATE_KEY=

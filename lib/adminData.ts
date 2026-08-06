@@ -554,12 +554,12 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
       id: "gsc-oauth",
       jobType: "google-search-console",
       status: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "正常" : "需配置",
-      scheduledAt: "on admin request",
+      scheduledAt: "every 3 days when Sitemap changes",
       startedAt: "",
       completedAt: "",
       retryCount: 0,
       errorMessage: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "" : "Search Console 站点地址未设置。",
-      metadata: { siteUrl: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "" },
+      metadata: { siteUrl: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "", submitIntervalDays: 3 },
     },
   ];
 }
