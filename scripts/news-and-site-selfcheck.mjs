@@ -35,6 +35,7 @@ const pages = [
   "/quote",
   "/support",
   "/news",
+  "/blog",
   "/sitemap.xml",
   "/news-sitemap.xml",
   "/news/rss.xml",
@@ -51,7 +52,7 @@ for (const path of pages) {
 }
 
 const blogResponse = await fetch(`${siteUrl}/blog`, { redirect: "manual" });
-ok([301, 302, 303, 307, 308].includes(blogResponse.status), "/blog should redirect to /news");
+ok(blogResponse.status === 200, "/blog should render successfully");
 
 const newsPayload = await fetchJson("/api/news?limit=8");
 ok(Array.isArray(newsPayload.articles), "News API does not return an articles array");

@@ -101,6 +101,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
 
       <Link href="/products">New Arrivals</Link>
       <Link href="/products?status=popular">Best Sellers</Link>
+      <Link href="/blog">Blog</Link>
       <Link href="/support">About</Link>
       <Link href="/quote">Contact</Link>
     </nav>

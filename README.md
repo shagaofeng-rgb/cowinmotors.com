@@ -44,8 +44,10 @@ http://localhost:3000
 - `/sitemap.xml` Sitemap Index
 - `/sitemaps/pages-1.xml`, `/sitemaps/categories-1.xml`, `/sitemaps/products-1.xml`, `/sitemaps/posts-1.xml`
 - `/news-sitemap.xml` Google News Sitemap for articles published in the last two days
-- `/blog` redirects to `/news`
-- `/blog/[slug]` redirects to `/news/[slug]`
+- `/blog` is a database-backed buyer-guide index.
+- `/blog/[slug]` is a published Blog article with canonical metadata and `BlogPosting` JSON-LD.
+- External publishing uses `POST /api/webhook/send_article` with `application/x-www-form-urlencoded`. It requires `BLOG_WEBHOOK_API_KEY`, accepts `sign`, `class_id` (`blog`), `title`, `content`, `author_id`, and `image_url`, and returns `{ "code": 1, "msg": "发布成功" }` after the article is committed.
+- The Blog has no automatic publishing task. The signed webhook is an on-demand integration and existing News automation remains separate.
 
 ## Public APIs
 

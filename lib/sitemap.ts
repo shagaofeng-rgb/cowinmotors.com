@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { ensureCoreSchema, getSql } from "@/lib/database";
 import { getGoogleSearchConsoleOAuthAccessToken, getSearchConsoleSiteUrl } from "@/lib/googleSearchConsoleOAuth";
 import { getPublishedNews } from "@/lib/news";
+import { getPublishedBlogPosts } from "@/lib/blog";
 import { productCategoryOptions, productPath, products } from "@/lib/products";
 import {
   buildSitemapBundle,
@@ -66,7 +67,7 @@ function cleanPrivateKey(value = "") {
 }
 
 function stablePageEntries(): SitemapEntry[] {
-  const paths = ["", "/products", "/quote", "/support", "/news"];
+  const paths = ["", "/products", "/quote", "/support", "/news", "/blog"];
   return paths.map((pathname) => ({ loc: `${SITE_URL}${pathname}`, lastmod: PUBLIC_PAGES_UPDATED_AT, type: "pages" }));
 }
 
@@ -95,13 +96,18 @@ function productEntries(): SitemapEntry[] {
 }
 
 export async function collectSitemapEntries(): Promise<SitemapEntry[]> {
-  const articles = await getPublishedNews({ limit: 50_000 });
+  const [articles, blogArticles] = await Promise.all([getPublishedNews({ limit: 50_000 }), getPublishedBlogPosts({ limit: 50_000 })]);
   const postEntries: SitemapEntry[] = articles.map((article) => ({
     loc: `${SITE_URL}/news/${article.slug}`,
     lastmod: article.updatedAt || article.publishedAt,
     type: "posts",
   }));
-  return [...stablePageEntries(), ...categoryEntries(), ...productEntries(), ...postEntries];
+  const blogEntries: SitemapEntry[] = blogArticles.map((article) => ({
+    loc: `${SITE_URL}/blog/${article.slug}`,
+    lastmod: article.updatedAt || article.publishedAt,
+    type: "posts",
+  }));
+  return [...stablePageEntries(), ...categoryEntries(), ...productEntries(), ...postEntries, ...blogEntries];
 }
 
 export async function getSitemapBundle() {

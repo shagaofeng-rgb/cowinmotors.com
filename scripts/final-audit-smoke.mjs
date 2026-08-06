@@ -68,7 +68,7 @@ if (newsApi.articles.length) {
 }
 
 const blog = await fetch(`${siteUrl}/blog`, { redirect: "manual" });
-ok([301, 302, 303, 307, 308].includes(blog.status) || blog.url.endsWith("/news"), "Blog route should redirect to News rather than 404.");
+ok(blog.status === 200, "Blog route should render published Blog content.");
 
 const robots = (await fetchText("/robots.txt")).text;
 ok(/sitemap\.xml/.test(robots), "robots.txt missing sitemap.");

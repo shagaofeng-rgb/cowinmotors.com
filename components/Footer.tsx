@@ -22,6 +22,7 @@ export function Footer() {
         <Link href="/wheels">Wheels</Link>
         <Link href="/body-kits">Body Kit RFQ</Link>
         <Link href="/news">News</Link>
+        <Link href="/blog">Blog</Link>
       </nav>
       <nav aria-label="Footer contact navigation">
         <span>Contact</span>
