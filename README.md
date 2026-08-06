@@ -47,7 +47,7 @@ http://localhost:3000
 - `/blog` is a database-backed buyer-guide index. `/es/blog` and `/es/blog/[slug]` are canonical redirects for locale-compatible integrations.
 - `/blog/[slug]` is a published Blog article with canonical metadata and `BlogPosting` JSON-LD.
 - External publishing uses `POST /api/webhook/send_article` with `application/x-www-form-urlencoded`. It requires `WEBHOOK_ARTICLE_SIGN`, accepts `sign`, `class_id` (`blog`), `title`, `content`, `author_id`, and `image_url`, and returns `{ "code": 1, "msg": "发布成功" }` after the article is committed.
-- `POST /` internally forwards to the same endpoint for the custom-framework verification flow. An authenticated request without a complete title/body returns `{ "code": 1, "msg": "验证成功" }` and does not write an article.
+- `POST /` internally forwards to the same endpoint for the custom-framework verification flow. An authenticated request without a complete title/body returns `{ "code": 1, "msg": "验证成功" }` and does not write an article. A real article requires a title of at least 3 characters and body content of at least 12 characters.
 - The Blog has no automatic publishing task. The signed webhook is an on-demand integration and existing News automation remains separate.
 
 ## Public APIs

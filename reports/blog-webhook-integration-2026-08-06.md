@@ -18,7 +18,7 @@ Date: 2026-08-06 (Asia/Shanghai)
 - The endpoint uses timing-safe key comparison, accepts `application/x-www-form-urlencoded`, validates payload size and required fields, and normalizes externally supplied content to plain text before rendering.
 - Public cover images require HTTPS. A first-party high-resolution image is used only when `image_url` is omitted or invalid.
 - Every publish is idempotent by class, title, and author fingerprint. A repeated external request updates the same article rather than inserting a duplicate row.
-- An authenticated request that does not contain a complete title and body returns `{ "code": 1, "msg": "验证成功" }` and never writes to `blog_articles`.
+- An authenticated request that does not contain a complete title and body returns `{ "code": 1, "msg": "验证成功" }` and never writes to `blog_articles`. A real article requires a title of at least 3 characters and body content of at least 12 characters, so the provided Chinese plugin test payload is treated as a publication rather than a placeholder.
 
 ## Backup and Rollback
 

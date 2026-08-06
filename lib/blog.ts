@@ -5,6 +5,8 @@ const SITE_URL = "https://www.cowinmotors.com";
 const DEFAULT_COVER_IMAGE = `${SITE_URL}/assets/ui/photography/news/article-fitment-compliance.png`;
 const DEFAULT_AUTHOR = "Cowinmotors Editorial Team";
 const BLOG_CLASS_IDS = new Set(["blog", "31"]);
+const MIN_TITLE_LENGTH = 3;
+const MIN_CONTENT_LENGTH = 12;
 
 type BlogRow = {
   id: string;
@@ -166,8 +168,8 @@ export function validateBlogWebhookInput(input: Record<string, unknown>): { inpu
   const imageUrl = normaliseImageUrl(cleanInput(input.image_url, 2_000));
 
   if (!BLOG_CLASS_IDS.has(classId)) return { error: "Unsupported class_id. Use blog." };
-  if (title.length < 3) return { error: "title must contain at least 3 characters." };
-  if (content.length < 40) return { error: "content must contain at least 40 characters." };
+  if (title.length < MIN_TITLE_LENGTH) return { error: "title must contain at least 3 characters." };
+  if (content.length < MIN_CONTENT_LENGTH) return { error: "content must contain at least 12 characters." };
 
   return { input: { classId: "blog", title, content, authorId, imageUrl } };
 }
@@ -179,7 +181,7 @@ export function isSupportedBlogClassId(value: unknown) {
 export function hasCompleteBlogWebhookArticle(input: Record<string, unknown>) {
   const title = normaliseWhitespace(cleanInput(input.title, 180));
   const content = plainTextContent(cleanInput(input.content, 100_000));
-  return title.length >= 3 && content.length >= 40;
+  return title.length >= MIN_TITLE_LENGTH && content.length >= MIN_CONTENT_LENGTH;
 }
 
 export async function ensureBlogSchema() {
