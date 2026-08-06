@@ -49,9 +49,15 @@ Date: 2026-08-06 (Asia/Shanghai)
 
 ## Production Verification
 
-- Deployment: `dpl_3LaaukvbrWmqDUWVGaB3b5BbPcYK`.
+- Initial Blog deployment: `dpl_3LaaukvbrWmqDUWVGaB3b5BbPcYK`.
+- Custom-framework compatibility deployment: `dpl_5STiTNH4sJoLQq96zvR7WTyq3RFR`.
 - Production `GET /api/webhook/send_article`: HTTP 405 with the expected form-post instruction, confirming the route is deployed.
 - Production signed request with an invalid key: HTTP 401 and `{ "code": 0, "msg": "Invalid API key." }`.
 - Production signed request with the configured key: HTTP 200 and `{ "code": 1, "msg": "发布成功" }`.
+- Production root verification with only `sign` and `class_id`: HTTP 200 and `{ "code": 1, "msg": "验证成功" }`.
+- Production root request with a short title/body placeholder: HTTP 200 and `{ "code": 1, "msg": "验证成功" }`; the database count remained `1 -> 1`.
+- Production root request with the complete article: HTTP 200 and `{ "code": 1, "msg": "发布成功" }`; the database retained one `published` Blog record with class `blog`, its HTTPS cover URL, and its canonical slug.
+- Production `/es/blog`: HTTP 307 to the canonical `/blog`; home-page `GET /` remained HTTP 200.
+- Production `/api/admin/blog`: HTTP 401 without an admin session, confirming the real database-backed management endpoint is protected.
 - Production `/blog`, published Blog detail URL, and `/sitemaps/posts-1.xml`: all returned HTTP 200. The Blog index included the published title; the detail page contained JSON-LD; the post sitemap included the canonical Blog URL.
 - Production `scripts/final-audit-smoke.mjs` and `scripts/news-and-site-selfcheck.mjs`: passed across the public pages, News APIs, sitemap endpoints, robots, and admin authentication checks.
