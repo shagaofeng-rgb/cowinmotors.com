@@ -43,4 +43,9 @@ Date: 2026-08-06 (Asia/Shanghai)
 
 ## Production Verification
 
-Pending deployment of this commit. After the deployment is active, the same signed request will be repeated against `https://www.cowinmotors.com/api/webhook/send_article`, then the live Blog page, article page, and sitemap will be checked.
+- Deployment: `dpl_3LaaukvbrWmqDUWVGaB3b5BbPcYK`.
+- Production `GET /api/webhook/send_article`: HTTP 405 with the expected form-post instruction, confirming the route is deployed.
+- Production signed request with an invalid key: HTTP 401 and `{ "code": 0, "msg": "Invalid API key." }`.
+- Production signed request with the configured key: HTTP 200 and `{ "code": 1, "msg": "发布成功" }`.
+- Production `/blog`, published Blog detail URL, and `/sitemaps/posts-1.xml`: all returned HTTP 200. The Blog index included the published title; the detail page contained JSON-LD; the post sitemap included the canonical Blog URL.
+- Production `scripts/final-audit-smoke.mjs` and `scripts/news-and-site-selfcheck.mjs`: passed across the public pages, News APIs, sitemap endpoints, robots, and admin authentication checks.
