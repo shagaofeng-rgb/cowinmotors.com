@@ -8,19 +8,24 @@ Date: 2026-08-06 (Asia/Shanghai)
 - Added a signed, on-demand external publishing endpoint: `POST /api/webhook/send_article`.
 - Kept Blog automatic publishing disabled. `vercel.json` contains no Blog cron; the existing News automation cron remains unchanged.
 - Added canonical metadata, `BlogPosting` JSON-LD, navigation links, and sitemap entries for Blog content.
+- Added `blog_categories` with the real `blog` category, a protected `/admin/blog` list, and a protected `/api/admin/blog` read endpoint.
+- Added `/es/blog` and `/es/blog/[slug]` canonical redirects for locale-compatible integrations.
+- Added a root `POST /` compatibility forward for custom-framework Webhook verification while preserving the existing home-page `GET /` behavior.
 
 ## Security and Data Handling
 
-- A 48-byte random `BLOG_WEBHOOK_API_KEY` was generated and stored only in ignored local configuration and the Vercel sensitive environment-variable store. It is not committed to Git.
+- A 48-byte random `WEBHOOK_ARTICLE_SIGN` was generated and stored only in ignored local configuration and the Vercel sensitive environment-variable store. It is not committed to Git.
 - The endpoint uses timing-safe key comparison, accepts `application/x-www-form-urlencoded`, validates payload size and required fields, and normalizes externally supplied content to plain text before rendering.
 - Public cover images require HTTPS. A first-party high-resolution image is used only when `image_url` is omitted or invalid.
 - Every publish is idempotent by class, title, and author fingerprint. A repeated external request updates the same article rather than inserting a duplicate row.
+- An authenticated request that does not contain a complete title and body returns `{ "code": 1, "msg": "验证成功" }` and never writes to `blog_articles`.
 
 ## Backup and Rollback
 
 - Pre-change backup: `/Users/apple/Documents/cowinmotors.com-backups/blog-webhook-20260806-110125`
+- Compatibility-change backup: `/Users/apple/Documents/cowinmotors.com-backups/webhook-framework-compat-20260806-112437`
 - Backup contains a Git bundle, deployment configuration snapshot, local configuration snapshot with restricted permissions, and the relevant pre-change source files.
-- Rollback: restore the Git bundle to the prior commit, redeploy it, and delete the `BLOG_WEBHOOK_API_KEY` environment variable only after the old deployment is active. The `blog_articles` table is additive and does not modify existing News, inquiry, product, or analytics data.
+- Rollback: restore the Git bundle to the prior commit, redeploy it, and delete the `WEBHOOK_ARTICLE_SIGN` environment variable only after the old deployment is active. The `blog_articles` and `blog_categories` tables are additive and do not modify existing News, inquiry, product, or analytics data.
 
 ## Local Verification
 
@@ -40,6 +45,7 @@ Date: 2026-08-06 (Asia/Shanghai)
 - Parameters: `sign`, `class_id` (`blog`), `title`, `content`, `author_id`, `image_url`
 - Success response: `{ "code": 1, "msg": "发布成功" }`
 - Failure response: `{ "code": 0, "msg": "..." }`
+- Custom-framework verification: `POST /` forwards internally to the same signed endpoint. Sign-and-class-only or short placeholder payloads return `{ "code": 1, "msg": "验证成功" }` without creating a record.
 
 ## Production Verification
 

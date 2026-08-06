@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { publishBlogWebhookArticle, validateBlogWebhookInput } from "@/lib/blog";
+import { hasCompleteBlogWebhookArticle, isSupportedBlogClassId, publishBlogWebhookArticle, validateBlogWebhookInput } from "@/lib/blog";
 import { markSitemapDirty } from "@/lib/sitemap";
 
 export const runtime = "nodejs";
@@ -18,19 +18,22 @@ function secureEquals(provided: string, expected: string) {
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.BLOG_WEBHOOK_API_KEY || "";
+  const apiKey = process.env.WEBHOOK_ARTICLE_SIGN || "";
   if (!apiKey) return apiResponse(0, "Blog publishing is not configured.", 503);
   try {
     const formData = await request.formData();
     const sign = String(formData.get("sign") || "");
     if (!secureEquals(sign, apiKey)) return apiResponse(0, "Invalid API key.", 401);
-    const validated = validateBlogWebhookInput({
+    const payload = {
       class_id: formData.get("class_id"),
       title: formData.get("title"),
       content: formData.get("content"),
       author_id: formData.get("author_id"),
       image_url: formData.get("image_url"),
-    });
+    };
+    if (!isSupportedBlogClassId(payload.class_id)) return apiResponse(0, "Unsupported class_id. Use blog.", 400);
+    if (!hasCompleteBlogWebhookArticle(payload)) return apiResponse(1, "验证成功");
+    const validated = validateBlogWebhookInput(payload);
     if (!validated.input) return apiResponse(0, validated.error || "Invalid article data.", 400);
     await publishBlogWebhookArticle(validated.input);
     await markSitemapDirty("Blog article published through signed webhook");

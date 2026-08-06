@@ -57,6 +57,14 @@ export type BlogWebhookInput = {
   imageUrl: string;
 };
 
+export type BlogCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  enabled: boolean;
+};
+
 let schemaReady: Promise<boolean> | null = null;
 
 function hash(value: string) {
@@ -123,6 +131,10 @@ function cleanInput(value: unknown, maximum: number) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
 
+function normaliseClassId(value: unknown) {
+  return cleanInput(value, 60).toLowerCase() || "blog";
+}
+
 function rowToBlogArticle(row: BlogRow): BlogArticle {
   return {
     id: row.id,
@@ -147,7 +159,7 @@ function rowToBlogArticle(row: BlogRow): BlogArticle {
 }
 
 export function validateBlogWebhookInput(input: Record<string, unknown>): { input?: BlogWebhookInput; error?: string } {
-  const classId = cleanInput(input.class_id, 60).toLowerCase() || "blog";
+  const classId = normaliseClassId(input.class_id);
   const title = normaliseWhitespace(cleanInput(input.title, 180));
   const content = plainTextContent(cleanInput(input.content, 100_000));
   const authorId = normaliseWhitespace(cleanInput(input.author_id, 120));
@@ -158,6 +170,16 @@ export function validateBlogWebhookInput(input: Record<string, unknown>): { inpu
   if (content.length < 40) return { error: "content must contain at least 40 characters." };
 
   return { input: { classId: "blog", title, content, authorId, imageUrl } };
+}
+
+export function isSupportedBlogClassId(value: unknown) {
+  return BLOG_CLASS_IDS.has(normaliseClassId(value));
+}
+
+export function hasCompleteBlogWebhookArticle(input: Record<string, unknown>) {
+  const title = normaliseWhitespace(cleanInput(input.title, 180));
+  const content = plainTextContent(cleanInput(input.content, 100_000));
+  return title.length >= 3 && content.length >= 40;
 }
 
 export async function ensureBlogSchema() {
@@ -191,6 +213,27 @@ export async function ensureBlogSchema() {
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
           )
         `;
+        await sql`
+          CREATE TABLE IF NOT EXISTS blog_categories (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            description TEXT NOT NULL DEFAULT '',
+            enabled BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `;
+        await sql`
+          INSERT INTO blog_categories (id, name, slug, description, enabled)
+          VALUES ('blog', 'Blog', 'blog', 'Cowinmotors buyer guides and sourcing articles.', TRUE)
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            slug = EXCLUDED.slug,
+            description = EXCLUDED.description,
+            enabled = EXCLUDED.enabled,
+            updated_at = NOW()
+        `;
         await sql`CREATE INDEX IF NOT EXISTS blog_articles_status_published_at_idx ON blog_articles (status, published_at DESC)`;
         await sql`CREATE INDEX IF NOT EXISTS blog_articles_class_id_idx ON blog_articles (class_id)`;
       } finally {
@@ -218,6 +261,28 @@ export async function getPublishedBlogPosts({ limit = 12, page = 1 } = {}) {
     OFFSET ${offset}
   ` as BlogRow[];
   return rows.map(rowToBlogArticle);
+}
+
+export async function getBlogCategories() {
+  const sql = getSql();
+  if (!sql) return [] as BlogCategory[];
+  await ensureBlogSchema();
+  const rows = await sql`
+    SELECT id, name, slug, description, enabled
+    FROM blog_categories
+    WHERE enabled = TRUE
+    ORDER BY name ASC
+  ` as BlogCategory[];
+  return rows;
+}
+
+export async function getBlogAdminSnapshot() {
+  const sql = getSql();
+  if (!sql) return { articles: [] as BlogArticle[], categories: [] as BlogCategory[] };
+  await ensureBlogSchema();
+  const articleRows = await sql`SELECT * FROM blog_articles ORDER BY published_at DESC LIMIT 250` as BlogRow[];
+  const categoryRows = await sql`SELECT id, name, slug, description, enabled FROM blog_categories ORDER BY name ASC` as BlogCategory[];
+  return { articles: articleRows.map(rowToBlogArticle), categories: categoryRows };
 }
 
 export async function getPublishedBlogArticle(slug: string) {

@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/categories", label: "产品分类" },
   { href: "/admin/news", label: "新闻管理" },
   { href: "/admin/news-categories", label: "新闻分类" },
+  { href: "/admin/blog", label: "Blog 管理" },
   { href: "/admin/inquiries", label: "客户表单" },
   { href: "/admin/analytics", label: "访问分析" },
   { href: "/admin/search-console", label: "SEO 数据" },
