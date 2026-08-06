@@ -118,7 +118,18 @@ Measurements use `curl` on 2026-08-06 and are server-response measurements, not 
 | Local production build, warm median | `/news` | 200 | 1.682s / 1.691s |
 | Local production build, warm median | `/sitemap.xml` | 200 | 1.177s / 1.178s |
 
-Post-deployment production measurements must be appended after the Vercel release is live. The News and Sitemap paths are database-backed dynamic routes; their response time is expected to be higher than static catalog pages.
+### Post-Deployment Production Verification
+
+The application release `beadb2e` was observed on the Cowinmotors Vercel production deployment at 2026-08-06T01:52Z. All tested routes returned their expected status: the public page set returned 200, protected admin/Cron/analytics endpoints returned 401 without a session or Cron credential, and the News API returned a real article with SEO fields and three product relations.
+
+| Production after deployment | Page | HTTP | TTFB / total |
+| --- | --- | --- | --- |
+| Production after deployment | `/` | 200 | 1.044s / 1.323s |
+| Production after deployment | `/products` | 200 | 1.289s / 1.626s |
+| Production after deployment | `/news` | 200 | 2.806s / 3.134s |
+| Production after deployment | `/sitemap.xml` | 200 | 0.922s / 0.922s |
+
+The production Cron secret intentionally differs from the local audit credential: a production authorized-task probe correctly returned 401, so no production task was bypassed or force-run for this audit. The exact throttling code was exercised against the same live Postgres database in the isolated local production build, and its persisted `throttled` result is recorded above. The News and Sitemap paths are database-backed dynamic routes; their response time is expected to be higher than static catalog pages.
 
 ## Changed Files
 
