@@ -8,7 +8,7 @@ China-Based Automotive Parts Sourcing & Export Partner. The catalog supports fit
 
 ## Operations
 
-- News and Buyer Guides use an editorial workflow. There is no News crawler, RSS import, content generator, auto-publisher, Blog webhook, or publishing cron.
+- News remains manual-only. Buyer Guides use a server-side, owner-authorized daily publishing schedule for a finite set of pre-reviewed evergreen sourcing guides; there is no external Blog webhook, crawler, RSS import, or AI news generator.
 - The only Vercel Cron is the monthly inquiry-email delivery check.
 - Sitemap generation is dynamic and manual maintenance is protected. The site does not programmatically submit sitemaps or indexing requests to Google.
 - Product catalog source: `public/data/site-data.json`; product images: `public/assets`.

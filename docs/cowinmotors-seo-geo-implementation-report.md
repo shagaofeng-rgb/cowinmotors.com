@@ -31,7 +31,7 @@ Each uses the consistent company name, legal entity, address, contacts, and posi
 
 ## Manual editorial policy
 
-News and Buyer Guides remain readable, but no automatic content generation, crawling, RSS import, webhook publication, queue, or time-based publisher is available. News is excluded from search indexing until a human editor validates the material. Buyer Guides are intended for original, manually reviewed guidance with named authors, dates, sources where applicable, and product relevance.
+News has no automatic content generation, crawling, RSS import, webhook publication, queue, or time-based publisher and is excluded from search indexing until a human editor validates the material. Buyer Guides have one owner-authorized server-side schedule that may publish only a finite, pre-reviewed set of original evergreen guides. It uses no external content source or AI generation, records a unique fingerprint per topic, and stops when the approved set is exhausted.
 
 ## Local verification
 

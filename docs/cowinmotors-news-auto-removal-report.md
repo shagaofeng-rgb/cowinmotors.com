@@ -18,7 +18,7 @@ Date: 2026-08-08
 - `WEBHOOK_ARTICLE_SIGN` from local and example environment configuration.
 - Blog Webhook parsing and database-writing functions.
 
-The only configured Vercel cron is the existing monthly inquiry-email delivery test at `0 1 1 * *`. It does not create or publish editorial content.
+The monthly inquiry-email delivery test remains at `0 1 1 * *`. Following a later owner authorization on 2026-08-08, a separate Buyer Guide schedule at `0 2 * * *` was added. It does not generate or publish News, call an external AI service, crawl sources, or accept webhooks; it can only publish the finite, pre-reviewed Buyer Guide records defined in `lib/blog.ts`, once each, with database fingerprint deduplication.
 
 ## Database migration completed
 
@@ -31,7 +31,7 @@ The only configured Vercel cron is the existing monthly inquiry-email delivery t
 
 ## New permitted workflow
 
-News is now database-backed and manual only: authenticated administrators can create, save as draft, request review, publish, revise, delete, add source information, choose an original cover, set SEO fields, and manually choose related products. Publishing is not exposed through public webhooks, RSS imports, AI generation, queues, or scheduled tasks.
+News is database-backed and manual only: authenticated administrators can create, save as draft, request review, publish, revise, delete, add source information, choose an original cover, set SEO fields, and manually choose related products. News publishing is not exposed through public webhooks, RSS imports, AI generation, queues, or scheduled tasks.
 
 Legacy News stays reachable for URL continuity with `noindex,follow` and is excluded from the sitemap until an editor verifies and rewrites it. At audit time: 132 legacy News records, 0 indexable News records, 0 Blog records.
 

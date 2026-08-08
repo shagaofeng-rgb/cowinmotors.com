@@ -12,7 +12,7 @@ Build a Chinese B2B website management backend for Cowinmotors that supports pro
 - Product/media assets: `public/assets`.
 - Inquiry persistence: Neon Postgres through `DATABASE_URL` when configured, with temporary file fallback for local development.
 - Analytics persistence: existing analytics store and admin dashboard routes.
-- News: manual editorial workflow only; no crawler, generator, queue, webhook, or scheduled publishing task.
+- News: manual editorial workflow only; no crawler, generator, queue, or webhook. Buyer Guides: owner-authorized server-side daily schedule using pre-reviewed evergreen guide content.
 - Monthly inquiry email test: `/api/cron/inquiry-email-test` with Vercel Cron.
 - Google Search Console: OAuth/service-account environment variables supported by the existing SEO admin pages.
 
