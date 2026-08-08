@@ -9,14 +9,14 @@ import { UI_ASSETS } from "@/lib/ui-assets";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Automotive Parts News and Sourcing Insights",
+  title: "Automotive Parts News and Buyer Insights",
   description:
-    "Source-backed automotive news, aftermarket parts sourcing analysis, fitment notes, and related Cowinmotors product links for global buyers.",
+    "Editorially reviewed automotive parts news, sourcing analysis, and fitment notes for global buyers.",
   alternates: { canonical: "/news" },
   openGraph: {
-    title: "Automotive Parts News and Sourcing Insights | Cowinmotors",
+    title: "Automotive Parts News and Buyer Insights | Cowinmotors",
     description:
-      "Read source-backed automotive industry updates with Cowinmotors sourcing analysis and related product links.",
+      "Read editorially reviewed automotive industry updates and sourcing analysis from Cowinmotors.",
     url: "https://www.cowinmotors.com/news",
     images: [UI_ASSETS.newsLighting],
   },
@@ -47,12 +47,11 @@ export default async function NewsPage({
               Aftermarket parts news, sourcing insights, fitment tips, and market updates <span>for global buyers.</span>
             </h1>
             <p>
-              Stay informed with trusted industry updates, data-backed insights, fitment guidance, and sourcing intelligence
-              to buy with confidence and sell smarter.
+              Read editorially reviewed updates, fitment guidance, and sourcing analysis prepared for international automotive parts buyers.
             </p>
             <div className="category-quick-stats">
               <span>Global Perspective</span>
-              <span>Source-Backed</span>
+              <span>Editorially Reviewed</span>
               <span>Buyer-Focused</span>
             </div>
           </div>
@@ -65,7 +64,7 @@ export default async function NewsPage({
                 loading="eager"
               />
               <div>
-                <span>Featured Story</span>
+                <span>Editorial Feature</span>
                 <h2>{featured.title}</h2>
                 <p>{featured.excerpt}</p>
                 <Link href={`/news/${featured.slug}`}>Read full article</Link>
@@ -81,7 +80,7 @@ export default async function NewsPage({
               />
               <div>
                 <span>Sourcing Insight</span>
-                <h2>Automotive parts sourcing updates for global buyers.</h2>
+                <h2>Automotive parts buying guidance for global buyers.</h2>
                 <p>Explore product categories, fitment checks, shipping support, and sourcing guidance from Cowinmotors.</p>
                 <Link href="/products">Explore products</Link>
               </div>
@@ -103,7 +102,7 @@ export default async function NewsPage({
             <div className="category-section-head">
               <div>
                 <p className="category-kicker">Latest Articles</p>
-                <h2>News linked to real products.</h2>
+                <h2>News and insights for fitment-led buying.</h2>
               </div>
             </div>
             {latest.length ? (

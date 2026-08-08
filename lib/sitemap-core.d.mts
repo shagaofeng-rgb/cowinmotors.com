@@ -24,16 +24,6 @@ export function buildSitemapBundle(entries: SitemapEntry[], siteUrl: string, opt
 };
 export function validateSitemapXml(xml: string, expectedRoot?: "urlset" | "sitemapindex"): boolean;
 export function diffSitemapEntries(previousEntries?: NormalizedSitemapEntry[], currentEntries?: NormalizedSitemapEntry[]): { added: string[]; modified: string[]; removed: string[] };
-export function submitSearchConsoleSitemap(options: {
-  enabled: boolean;
-  siteUrl: string;
-  sitemapUrl: string;
-  fetchImpl?: typeof fetch;
-  getAccessToken: () => Promise<string>;
-  retries?: number;
-  timeoutMs?: number;
-  retryDelayMs?: number;
-}): Promise<{ attempted: boolean; status: "disabled" | "skipped" | "success" | "failed"; message: string; httpStatus?: number }>;
 export function writeSitemapFileAtomic(filePath: string, xml: string, beforeRename?: (temporaryPath: string) => Promise<void>): Promise<void>;
 export class InMemoryTaskLock {
   acquire(owner: string, ttlMs: number, now?: number): boolean;

@@ -148,7 +148,7 @@ export const adminPages = [
   { path: "/", label: "Home", priority: "High", intent: "brand, categories, featured products" },
   { path: "/products", label: "All Products", priority: "High", intent: "catalog discovery and fitment search" },
   { path: "/headlights", label: "Headlights", priority: "High", intent: "lighting category SEO and buyer entry" },
-  { path: "/exhaust", label: "Exhaust Pipes", priority: "High", intent: "USD 1,999 exhaust offer and workshop proof" },
+  { path: "/exhaust", label: "Exhaust Systems", priority: "High", intent: "fitment-led exhaust sourcing and product review" },
   { path: "/wheels", label: "Wheels", priority: "High", intent: "forged and performance wheel category SEO and RFQ entry" },
   { path: "/body-kits", label: "Body Kits", priority: "Medium", intent: "quote-only oversized parts" },
   { path: "/quote", label: "RFQ", priority: "High", intent: "lead capture" },
@@ -529,17 +529,6 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
 
   return [
     {
-      id: "cron-news-automation",
-      jobType: "news-automation",
-      status: process.env.CRON_SECRET ? "正常" : "需配置",
-      scheduledAt: "daily",
-      startedAt: "",
-      completedAt: "",
-      retryCount: 0,
-      errorMessage: process.env.CRON_SECRET ? "" : "定时任务安全密钥未设置，自动任务无法执行。",
-      metadata: { path: "/api/cron/news-automation", schedule: "每日自动发布新闻" },
-    },
-    {
       id: "cron-inquiry-email-test",
       jobType: "inquiry-email-test",
       status: process.env.CRON_SECRET ? "正常" : "需配置",
@@ -549,17 +538,6 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
       retryCount: 0,
       errorMessage: process.env.CRON_SECRET ? "" : "定时任务安全密钥未设置，每月表单测试无法执行。",
       metadata: { path: "/api/cron/inquiry-email-test", schedule: "每月 1 日测试询盘邮件" },
-    },
-    {
-      id: "gsc-oauth",
-      jobType: "google-search-console",
-      status: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "正常" : "需配置",
-      scheduledAt: "every 3 days when Sitemap changes",
-      startedAt: "",
-      completedAt: "",
-      retryCount: 0,
-      errorMessage: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL ? "" : "Search Console 站点地址未设置。",
-      metadata: { siteUrl: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "", submitIntervalDays: 3 },
     },
   ];
 }

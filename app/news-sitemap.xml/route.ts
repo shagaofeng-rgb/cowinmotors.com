@@ -15,7 +15,7 @@ function xmlEscape(value = "") {
 
 export async function GET() {
   const cutoff = Date.now() - 2 * 24 * 60 * 60 * 1000;
-  const articles = (await getPublishedNews({ limit: 1000 }))
+  const articles = (await getPublishedNews({ limit: 1000, indexableOnly: true }))
     .filter((article) => new Date(article.publishedAt).getTime() >= cutoff);
   const urls = articles.map((article) => `
     <url>

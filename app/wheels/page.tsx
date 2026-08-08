@@ -22,7 +22,7 @@ export default async function WheelsPage({
       eyebrow="Wheels"
       title="Forged automotive wheels"
       highlight="by vehicle fitment."
-      description="Shop forged wheels matched to passenger and performance vehicles. Filter by size, PCD or bolt pattern, offset, center bore, finish and load rating."
+      description="Browse automotive forged-wheel inquiries. Confirm size, PCD or bolt pattern, offset, center bore, finish, and load requirements before ordering."
       heroImage={categoryHeroImage("wheels", UI_ASSETS.wheelHero)}
       heroAlt="Performance alloy wheel"
       basePath="/wheels"
@@ -37,12 +37,12 @@ export default async function WheelsPage({
       finderTitle="Find wheels that fit your vehicle"
       ctaLabel="Request a Quote"
       ctaHref="/quote?product=Wheels%20RFQ"
-      quickStats={["Fitment-Verified Results", "Global Logistics", "Retail & Wholesale Support", "QC Inspected"]}
+      quickStats={["Fitment Review", "Packaging Support", "Retail & Wholesale Inquiry", "Export Coordination"]}
       benefits={[
         ["Forged Selection", "Forged automotive wheels for retail and wholesale buyers."],
-        ["Verified Fitment", "Accurate specs for your vehicle application."],
-        ["Global Shipping", "Secure packaging and export documentation."],
-        ["Retail-Focused", "Competitive pricing for resellers."],
+        ["Fitment Review", "PCD, offset, center bore, and vehicle configuration are confirmed before quotation."],
+        ["Shipping Coordination", "Packaging and export-document requirements are reviewed by destination."],
+        ["Retail-Focused", "Retail and wholesale inquiries are reviewed individually."],
       ]}
       checklistTitle="Wheel specs explained"
       checklist={[
@@ -50,7 +50,7 @@ export default async function WheelsPage({
         ["PCD / Bolt Pattern", "Number of bolts and diameter."],
         ["Offset (ET)", "Distance from hub mounting surface."],
         ["Center Bore", "Center hole size for hub fit."],
-        ["Load Rating", "Supports vehicle weight safely."],
+        ["Load Rating", "Confirm the required load rating before ordering."],
       ]}
       tabs={["All Brands", "Vossen", "AL13", "BC Forged", "HRE", "WORK", "Brixton Forged"]}
       supportTitle="Need a custom wheel style?"

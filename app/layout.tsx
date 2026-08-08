@@ -9,28 +9,28 @@ import { UI_ASSETS } from "@/lib/ui-assets";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.cowinmotors.com"),
   title: {
-    default: "Automotive Headlights, Exhaust Pipes, Wheels & Body Kits | Cowinmotors",
-    template: "%s | Cowinmotors",
+    default: "Cowinmotors Automotive Parts | Sourcing & Export Partner",
+    template: "%s | Cowinmotors Automotive Parts",
   },
   description:
-    "Source aftermarket headlights, exhaust parts, wheels, and body kits with clear fitment data, MOQ, lead times, QC inspection, and worldwide shipping support.",
+    "China-based automotive parts sourcing and export support for fitment-led inquiries covering lighting, exhaust systems, forged wheels, and exterior parts.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
-    siteName: "Cowinmotors",
-    title: "Automotive Headlights, Exhaust Pipes, Wheels & Body Kits | Cowinmotors",
+    siteName: "Cowinmotors Automotive Parts",
+    title: "Cowinmotors Automotive Parts | Sourcing & Export Partner",
     description:
-      "Source aftermarket headlights, exhaust parts, wheels, and body kits with clear fitment data, MOQ, lead times, QC inspection, and worldwide shipping support.",
+      "China-based automotive parts sourcing and export support for fitment-led inquiries.",
     url: "https://www.cowinmotors.com",
     images: [{ url: UI_ASSETS.newsLighting, width: 1200, height: 900, alt: "Cowinmotors automotive lighting and parts" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Automotive Headlights, Exhaust Pipes, Wheels & Body Kits | Cowinmotors",
+    title: "Cowinmotors Automotive Parts | Sourcing & Export Partner",
     description:
-      "Source aftermarket headlights, exhaust parts, wheels, and body kits with fitment confirmation, QC inspection, and worldwide shipping support.",
+      "China-based automotive parts sourcing and export support for fitment-led inquiries.",
     images: [UI_ASSETS.newsLighting],
   },
   manifest: "/site.webmanifest",
@@ -50,9 +50,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Cowinmotors",
+    name: "Cowinmotors Automotive Parts",
+    legalName: "Quzhou Qiying Import & Export Co., Ltd.",
     url: "https://www.cowinmotors.com",
     logo: `https://www.cowinmotors.com${UI_ASSETS.logo}`,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Room 110, 1st Floor, Building 1, Qushidai Future Building, Kecheng District",
+      addressLocality: "Quzhou",
+      addressRegion: "Zhejiang",
+      addressCountry: "CN",
+    },
     contactPoint: [
       {
         "@type": "ContactPoint",

@@ -8,12 +8,12 @@ const categoryGroups = [
   {
     title: "Headlights",
     href: "/headlights",
-    text: "View catalog",
+  text: "Fitment-led catalog",
   },
   {
     title: "Tail Lights",
     href: "/tail-lights",
-    text: "View catalog",
+  text: "Rear lighting catalog",
   },
   {
     title: "Exhaust Systems",
@@ -23,7 +23,7 @@ const categoryGroups = [
   {
     title: "Wheels",
     href: "/wheels",
-    text: "Forged catalog",
+  text: "Forged wheel inquiries",
   },
   {
     title: "Body Kits",
@@ -99,11 +99,11 @@ export function SiteNav({ className = "" }: { className?: string }) {
         </div>
       </div>
 
-      <Link href="/products">New Arrivals</Link>
-      <Link href="/products?status=popular">Best Sellers</Link>
-      <Link href="/blog">Blog</Link>
-      <Link href="/support">About</Link>
-      <Link href="/quote">Contact</Link>
+      <Link href="/products">Products</Link>
+      <Link href="/fitment-check">Fitment Check</Link>
+      <Link href="/blog">Buyer Guides</Link>
+      <Link href="/about">About Us</Link>
+      <Link href="/contact">Contact</Link>
     </nav>
   );
 }

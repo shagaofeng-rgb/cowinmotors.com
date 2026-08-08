@@ -10,7 +10,6 @@ import {
   filterPublicIndexableRecords,
   normalizeLastmod,
   renderUrlset,
-  submitSearchConsoleSitemap,
   validateSitemapXml,
   writeSitemapFileAtomic,
 } from "../lib/sitemap-core.mjs";
@@ -102,52 +101,4 @@ test("keeps the previous Sitemap when atomic replacement fails", async () => {
   await assert.rejects(writeSitemapFileAtomic(file, next, async () => { throw new Error("simulated disk failure"); }));
   assert.equal(await fs.readFile(file, "utf8"), previous);
   await fs.rm(directory, { recursive: true, force: true });
-});
-
-test("submits a Sitemap with the Search Console Sitemaps API", async () => {
-  const calls = [];
-  const result = await submitSearchConsoleSitemap({
-    enabled: true,
-    siteUrl: `${siteUrl}/`,
-    sitemapUrl: `${siteUrl}/sitemap.xml`,
-    getAccessToken: async () => "test-token",
-    retryDelayMs: 0,
-    fetchImpl: async (url, options) => {
-      calls.push({ url: String(url), method: options?.method });
-      if (String(url).endsWith("/sitemap.xml")) return new Response("<xml />", { status: 200 });
-      return new Response(null, { status: 204 });
-    },
-  });
-  assert.equal(result.status, "success");
-  assert.equal(calls[1].method, "PUT");
-  assert.match(calls[1].url, /webmasters\/v3\/sites/);
-});
-
-test("records authentication failure without breaking Sitemap generation", async () => {
-  const result = await submitSearchConsoleSitemap({
-    enabled: true,
-    siteUrl: `${siteUrl}/`,
-    sitemapUrl: `${siteUrl}/sitemap.xml`,
-    getAccessToken: async () => "bad-token",
-    retries: 1,
-    retryDelayMs: 0,
-    fetchImpl: async (url) => String(url).endsWith("/sitemap.xml")
-      ? new Response("<xml />", { status: 200 })
-      : Response.json({ error: { message: "Invalid Credentials" } }, { status: 401 }),
-  });
-  assert.equal(result.status, "failed");
-  assert.match(result.message, /Invalid Credentials/);
-});
-
-test("does not call Google when submission is disabled", async () => {
-  let calls = 0;
-  const result = await submitSearchConsoleSitemap({
-    enabled: false,
-    siteUrl: `${siteUrl}/`,
-    sitemapUrl: `${siteUrl}/sitemap.xml`,
-    getAccessToken: async () => "unused",
-    fetchImpl: async () => { calls += 1; return new Response(null, { status: 204 }); },
-  });
-  assert.equal(result.status, "disabled");
-  assert.equal(calls, 0);
 });

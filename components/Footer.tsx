@@ -6,8 +6,8 @@ export function Footer() {
     <footer className="site-footer">
       <div className="footer-brand">
         <img src={UI_ASSETS.logo} alt="Cowinmotors logo" />
-        <strong>Cowinmotors</strong>
-        <span>Automotive headlights, tail lights, exhaust systems, wheels, and custom exterior parts for international orders.</span>
+        <strong>Cowinmotors Automotive Parts</strong>
+        <span>China-Based Automotive Parts Sourcing & Export Partner for fitment-led international inquiries.</span>
       </div>
       <div className="footer-company">
         <span>Company</span>
@@ -21,8 +21,8 @@ export function Footer() {
         <Link href="/exhaust">Exhaust Systems</Link>
         <Link href="/wheels">Wheels</Link>
         <Link href="/body-kits">Body Kit RFQ</Link>
-        <Link href="/news">News</Link>
-        <Link href="/blog">Blog</Link>
+        <Link href="/news">News & Insights</Link>
+        <Link href="/blog">Buyer Guides</Link>
       </nav>
       <nav aria-label="Footer contact navigation">
         <span>Contact</span>
@@ -30,6 +30,8 @@ export function Footer() {
         <a href="mailto:davidsha@cowinmotors.com">davidsha@cowinmotors.com</a>
         <a href="mailto:racheljiang@cowinmotors.com">racheljiang@cowinmotors.com</a>
         <Link href="/quote">Request Quote</Link>
+        <Link href="/privacy-policy">Privacy Policy</Link>
+        <Link href="/terms">Terms of Use</Link>
       </nav>
     </footer>
   );

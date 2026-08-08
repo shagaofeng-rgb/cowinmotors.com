@@ -6,6 +6,7 @@ export const metadata = {
   description:
     "Send vehicle fitment, product type, quantity, destination country, and packaging requirements to request a Cowinmotors wholesale quote.",
   alternates: { canonical: "/quote" },
+  robots: { index: false, follow: true },
 };
 
 export default async function QuotePage({ searchParams }: { searchParams: Promise<{ product?: string }> }) {
@@ -19,7 +20,7 @@ export default async function QuotePage({ searchParams }: { searchParams: Promis
           <div className="rfq-copy">
             <p className="eyebrow">Request Quote</p>
             <h1>Tell us your vehicle and order requirement.</h1>
-            <p>Send year, make, model, trim, product type, quantity, destination country, and any certification or packaging requirements.</p>
+            <p>Send the product reference, vehicle details, quantity, destination country, and packaging requirements for review.</p>
           </div>
           <QuoteForm initialProduct={params.product || ""} />
         </section>

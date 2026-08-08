@@ -3,9 +3,9 @@ import { categoryHeroImage, filterProducts, paginateProducts } from "@/lib/produ
 import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const metadata = {
-  title: "Premium LED Headlights by Vehicle Fitment",
+  title: "Headlight Assemblies by Vehicle Fitment",
   description:
-    "Browse LED headlight assemblies and upgrade kits with LHD/RHD, connector, DRL, beam pattern, and vehicle fitment confirmation.",
+    "Browse catalog-listed headlight assemblies with vehicle-fitment inquiry support and configuration confirmation before ordering.",
   alternates: { canonical: "/headlights" },
 };
 
@@ -20,11 +20,11 @@ export default async function HeadlightsPage({
   return (
     <CategoryShowcase
       eyebrow="Headlights"
-      title="Premium headlights"
+      title="Headlight assemblies"
       highlight="by vehicle fitment."
-      description="Find high-performance headlights with precise fitment for your vehicle. Confirm year, make, model, LHD/RHD, connector, beam pattern, DRL and signal options before ordering."
+      description="Browse catalog-listed lighting products. Confirm year, make, model, LHD/RHD, connector, beam pattern, DRL and signal options before ordering."
       heroImage={categoryHeroImage("headlights", UI_ASSETS.headlightHero)}
-      heroAlt="Premium LED headlight assembly"
+      heroAlt="Headlight assembly catalog image"
       basePath="/headlights"
       products={paged.items}
       pageType="headlights"
@@ -37,19 +37,19 @@ export default async function HeadlightsPage({
       finderTitle="Find headlights that fit your vehicle"
       ctaLabel="Request Custom Quote"
       ctaHref="/quote?product=Headlight%20Custom%20Quote"
-      quickStats={["Exact Fitment", "OE-Style Install", "Wide Compatibility", "Global Retail Ordering"]}
+      quickStats={["Fitment Confirmation", "Configuration Review", "Export Packaging Support", "Inquiry Support"]}
       benefits={[
         ["Fitment Support", "Confirm LHD/RHD, plugs, beam pattern and vehicle application."],
-        ["Retail-Friendly Ordering", "Competitive pricing, low MOQs, dropshipping and bulk options."],
-        ["Global Shipping", "Reliable delivery to 200+ countries worldwide."],
-        ["Sourcing Beyond Listed Items", "If it is not here, we help source or customize it."],
+        ["Retail-Friendly Ordering", "Retail-friendly and wholesale inquiries are reviewed individually."],
+        ["Shipping Coordination", "Packaging and destination requirements are confirmed before quotation."],
+        ["Sourcing Beyond Listed Items", "Send the part reference and vehicle details for a sourcing review."],
       ]}
       checklistTitle="How to choose the right headlight"
       checklist={[
         ["Confirm Fitment", "Verify year, make, model, trim, LHD/RHD and connector type."],
         ["Choose Features", "Select DRL style, signal type, beam pattern and color temperature."],
         ["Check Compatibility", "Confirm adaptive, leveling, AFS and sensor requirements."],
-        ["Review Installation", "Most products are plug-and-play; professional installation is recommended."],
+        ["Review Installation", "Confirm installation, coding, and configuration requirements before ordering."],
       ]}
       tabs={["All", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Tesla"]}
       supportTitle="Do not see what you need? We will source it for you."

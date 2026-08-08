@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: article.excerpt,
       images: [article.coverImageUrl],
     },
+    robots: article.indexable ? undefined : { index: false, follow: true },
   };
 }
 
@@ -38,6 +39,8 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
   const article = await getNewsArticle(slug);
   if (!article) notFound();
   const related = (await getPublishedNews({ limit: 4 })).filter((item) => item.slug !== article.slug).slice(0, 3);
+  const paragraphs = article.content.split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+  const hasExternalSource = Boolean(article.canonicalSourceUrl);
 
   return (
     <>
@@ -61,7 +64,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
 
           <figure className="news-cover">
             <img src={article.coverImageUrl} alt={article.coverImageAlt} />
-            <figcaption>Image source: <a href={article.coverImagePageUrl || article.coverImageSourceUrl} target="_blank" rel="noreferrer">external source</a></figcaption>
+            {hasExternalSource ? <figcaption>Image source: <a href={article.coverImagePageUrl || article.coverImageSourceUrl} target="_blank" rel="noreferrer">source page</a></figcaption> : null}
           </figure>
 
           <aside className="news-takeaways">
@@ -71,19 +74,17 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
             </ul>
           </aside>
 
-          <section className="news-body" dangerouslySetInnerHTML={{ __html: article.content }} />
+          <section className="news-body">{paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</section>
 
           <section className="news-source-box">
             <h2>Information Source</h2>
-            <dl>
+            {hasExternalSource ? <><dl>
               <div><dt>Original title</dt><dd>{article.sourceTitle}</dd></div>
               <div><dt>Publisher</dt><dd>{article.sourcePublisher}</dd></div>
               <div><dt>Author</dt><dd>{article.sourceAuthor || "Not listed by source"}</dd></div>
-              <div><dt>Original published time</dt><dd>{new Date(article.sourcePublishedAt).toLocaleString("en-US")}</dd></div>
-              <div><dt>Fetched by Cowinmotors</dt><dd>{new Date(article.sourceFetchedAt).toLocaleString("en-US")}</dd></div>
+              {article.sourcePublishedAt ? <div><dt>Original published time</dt><dd>{new Date(article.sourcePublishedAt).toLocaleString("en-US")}</dd></div> : null}
               <div><dt>Source URL</dt><dd><a href={article.canonicalSourceUrl} target="_blank" rel="noreferrer">Read original source</a></dd></div>
-            </dl>
-            <p>This article is based on public source information and Cowinmotors independent analysis. Original reporting remains the property of the original publisher.</p>
+            </dl><p>This article includes Cowinmotors editorial analysis alongside the linked source. Original reporting remains the property of the original publisher.</p></> : <p>This is Cowinmotors original editorial content. It was manually reviewed before publication.</p>}
           </section>
 
           {article.products.length ? (

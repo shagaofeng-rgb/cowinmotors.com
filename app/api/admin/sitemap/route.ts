@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const unauthorized = await requireAdminApi();
   if (unauthorized) return unauthorized;
-  const payload = await request.json().catch(() => ({})) as { force?: boolean; dryRun?: boolean; submit?: boolean; verbose?: boolean };
+  const payload = await request.json().catch(() => ({})) as { force?: boolean; dryRun?: boolean; verbose?: boolean };
   const result = await runSitemapMaintenance({ trigger: "admin", ...payload });
   return NextResponse.json(result, { status: result.ok ? 200 : 409 });
 }

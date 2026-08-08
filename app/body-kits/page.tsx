@@ -12,11 +12,11 @@ export const metadata = {
 
 const bodyKitChecks = [
   ["Fitment", "Confirm year, make, model, trim, body type and bumper style."],
-  ["Material", "PP, ABS or PU. Confirm strength and flexibility."],
-  ["Finish", "Unpainted, gloss black, carbon look or painted color code."],
-  ["Components", "Confirm included parts and hardware in the full kit."],
+  ["Material", "Confirm the listed material for the requested component."],
+  ["Finish", "Confirm surface finish and paint requirements before ordering."],
+  ["Components", "Confirm included parts and hardware before ordering."],
   ["Packaging", "Box size, protection method and label requirements."],
-  ["Shipping", "Lead time, MOQ, freight method and destination."],
+  ["Shipping", "Packaging, freight method, and destination requirements."],
 ];
 
 export default function BodyKitsPage() {
@@ -32,17 +32,16 @@ export default function BodyKitsPage() {
               Body kits, lips, spoilers, diffusers, side skirts, and exterior styling parts <span>by vehicle fitment.</span>
             </h1>
             <p>
-              Source a wide range of body kits and exterior styling parts for global retail and e-commerce.
-              Confirm material, finish, paint option, packaging and shipping before placing an order.
+              Submit a fitment-led sourcing request for exterior styling parts. Confirm material, finish, paint option, packaging, and destination before ordering.
             </p>
             <div className="category-quick-stats">
               <span>Vehicle Fitment</span>
-              <span>Premium Finishes</span>
-              <span>Global Shipping</span>
+              <span>Product Detail Review</span>
+              <span>Export Coordination</span>
             </div>
             <div className="category-source-box">
               <strong>Can&apos;t find what you need?</strong>
-              <span>We source unlisted or custom body kits and styling parts. Share your request and we will find it.</span>
+              <span>Send the vehicle details, product reference, material or finish requirement, and destination for review.</span>
               <Link href="/quote?product=Body%20Kit%20RFQ">Request a Quote</Link>
             </div>
           </div>
@@ -69,9 +68,9 @@ export default function BodyKitsPage() {
         <section className="category-benefit-row">
           {[
             ["Fitment", "Confirm year, model, trim and body style before ordering."],
-            ["Finish Options", "Unpainted, gloss black, carbon look or painted to match."],
-            ["Packaging", "Carton size, foam protection and part-by-part packing available."],
-            ["Shipping / MOQ", "MOQ varies by product. Global shipping with export documents."],
+            ["Finish Options", "Confirm surface finish and paint requirements before quotation."],
+            ["Packaging", "Packaging requirements are reviewed before ordering."],
+            ["Shipping / Quantity", "Quantity, shipping method, and destination are confirmed per request."],
           ].map(([title, text]) => (
             <article key={title}>
               <i aria-hidden="true" />
@@ -85,8 +84,8 @@ export default function BodyKitsPage() {
           <div className="category-section-head">
             <div>
               <p className="category-kicker">Shop body kits</p>
-              <h2>Quote-only sourcing categories.</h2>
-              <p>Select a body kit category and send your vehicle fitment requirements for a matched quotation.</p>
+              <h2>Exterior-part sourcing requests.</h2>
+              <p>Send the vehicle fitment requirements and product reference for a sourcing review.</p>
             </div>
             <div className="category-tabs">
               <span>All Body Kits</span>
@@ -101,7 +100,7 @@ export default function BodyKitsPage() {
               <Link className="bodykit-request-card" href={`/quote?product=${encodeURIComponent(item)}`} key={item}>
                 <img src={UI_ASSETS.bodyKits[index] || UI_ASSETS.bodyKitHero} alt={`${item} sourcing request`} />
                 <strong>{item}</strong>
-                <span>Submit vehicle fitment, material, finish and destination for quotation.</span>
+                <span>Submit vehicle fitment, material or finish requirement, and destination for quotation.</span>
               </Link>
             ))}
           </div>
@@ -127,7 +126,7 @@ export default function BodyKitsPage() {
           <div>
             <p className="category-kicker">Need a custom solution?</p>
             <h2>Request a quote for special requests or unlisted body kits.</h2>
-            <p>We help global retail and e-commerce buyers source the right body kits and exterior parts with accurate fitment, finishes, and reliable delivery.</p>
+            <p>Send the vehicle configuration and product reference so fitment, available details, packaging, and destination can be reviewed before quotation.</p>
           </div>
           <MissingModelForm />
         </section>

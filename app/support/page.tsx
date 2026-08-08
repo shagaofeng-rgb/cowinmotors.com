@@ -10,14 +10,14 @@ export const metadata = {
 };
 
 const topics = [
-  ["Shipping & Delivery", "Worldwide shipping options, delivery time, tracking and customs information."],
-  ["Payments", "Accepted payment methods, currency, invoices and payment terms."],
-  ["Returns & Warranty", "Return eligibility, process, warranty coverage and claims support."],
-  ["Fitment & Compatibility", "Check fitment by year, model, trim, engine and connector type before ordering."],
-  ["Track Your Order", "Track shipments, view order status and get delivery updates in real time."],
-  ["Installation Guidance", "Installation tips, manuals, wiring guides and product documents."],
-  ["Sourcing & Bulk Orders", "Request sourcing or bulk quotation for products not listed online."],
-  ["Contact Us", "Email, WhatsApp, phone support and regional representative help."],
+  ["Shipping & Delivery", "Review packaging, shipment coordination, and destination requirements.", "/packaging-shipping"],
+  ["Payment Methods", "Confirm payment instructions only after the quotation and product reference are reviewed.", "/payment"],
+  ["Returns & Warranty", "Understand confirmation, issue-review, and order-term requirements.", "/returns-warranty"],
+  ["Fitment & Compatibility", "Send vehicle configuration and product reference before ordering.", "/fitment-check"],
+  ["Track Your Order", "Request shipment-status support using your confirmed order reference.", "/track-your-order"],
+  ["Installation Guidance", "Review installation considerations and request applicable documentation before installation.", "/installation-guidance"],
+  ["Sourcing & Bulk Orders", "Request a fitment-led sourcing quotation for listed or unlisted parts.", "/sourcing-bulk-orders"],
+  ["Contact Us", "Use official email, WhatsApp, phone, or the quotation form.", "/contact-support"],
 ];
 
 export default function SupportPage() {
@@ -30,8 +30,8 @@ export default function SupportPage() {
             <p className="category-kicker">Support Center</p>
             <h1>We&apos;re here to help. Every order, every mile.</h1>
             <p>
-              Global distributor of headlights, tail lights, exhaust systems, wheels and body kits. Expert support for retail buyers
-              worldwide before, during and after your order.
+              Fitment-led sourcing and export support for headlights, tail lights, exhaust systems, forged wheels, and exterior parts.
+              Product, packaging, and destination requirements are reviewed before quotation.
             </p>
             <div className="support-actions">
               <Link href="mailto:racheljiang@cowinmotors.com">Contact Support</Link>
@@ -61,12 +61,12 @@ export default function SupportPage() {
         <section className="support-topic-section">
           <p className="category-kicker">Support Topics</p>
           <div className="support-topic-grid">
-            {topics.map(([title, text]) => (
+            {topics.map(([title, text, href]) => (
               <article key={title}>
                 <i aria-hidden="true" />
                 <h2>{title}</h2>
                 <p>{text}</p>
-                <Link href="/quote">Learn more</Link>
+                <Link href={href}>Learn more</Link>
               </article>
             ))}
           </div>
@@ -76,21 +76,21 @@ export default function SupportPage() {
           <article>
             <strong>Email Us</strong>
             <a href="mailto:racheljiang@cowinmotors.com">racheljiang@cowinmotors.com</a>
-            <span>We reply within 24h.</span>
+            <span>Response timing is confirmed after review.</span>
           </article>
           <article>
             <strong>WhatsApp</strong>
             <a href="https://api.whatsapp.com/send/?phone=%2B8617601255205&text&type=phone_number&app_absent=0" target="_blank">+86 176 0125 5205</a>
-            <span>Chat with our team.</span>
+            <span>Share your product and vehicle details.</span>
           </article>
           <article>
-            <strong>Working Hours</strong>
-            <span>Mon - Fri 9:00 - 18:00 (GMT+8)</span>
-            <span>Weekends by appointment.</span>
+            <strong>Fitment Review</strong>
+            <span>Send year, make, model, trim, and reference.</span>
+            <span>Include LHD/RHD and OE number where applicable.</span>
           </article>
           <article>
-            <strong>Response Promise</strong>
-            <span>We aim to respond to inquiries within 24 hours.</span>
+            <strong>Order Notes</strong>
+            <span>Fitment, packaging, and destination are confirmed before ordering.</span>
           </article>
         </section>
 
@@ -107,7 +107,7 @@ export default function SupportPage() {
             ].map((item) => (
               <details key={item}>
                 <summary>{item}</summary>
-                <p>Please contact our team with your vehicle and order details. We will confirm the correct answer before you place an order.</p>
+                <p>Use the related support page above to prepare the information needed for an accurate answer. Product and order details are confirmed against the specific request.</p>
               </details>
             ))}
           </div>

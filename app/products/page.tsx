@@ -1,14 +1,21 @@
 import { FinderForm } from "@/components/FinderForm";
+import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { ProductBrowser } from "@/components/ProductBrowser";
 import { filterProducts, paginateProducts, productCardData, productCategoryOptions, products as allProducts } from "@/lib/products";
 
-export const metadata = {
+const baseMetadata = {
   title: "Automotive Headlights, Tail Lights, Exhaust and Wheels Catalog",
   description:
     "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, exhaust systems, wheels, and body kit RFQ items.",
   alternates: { canonical: "/products" },
 };
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }): Promise<Metadata> {
+  const params = await searchParams;
+  const filtered = Object.values(params).some(Boolean);
+  return { ...baseMetadata, robots: filtered ? { index: false, follow: true } : undefined };
+}
 
 export default async function ProductsPage({
   searchParams,

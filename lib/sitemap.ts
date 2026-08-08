@@ -1,7 +1,5 @@
 import crypto from "node:crypto";
-import fs from "node:fs";
 import { ensureCoreSchema, getSql } from "@/lib/database";
-import { getGoogleSearchConsoleOAuthAccessToken, getSearchConsoleSiteUrl } from "@/lib/googleSearchConsoleOAuth";
 import { getPublishedNews } from "@/lib/news";
 import { getPublishedBlogPosts } from "@/lib/blog";
 import { productCategoryOptions, productPath, products } from "@/lib/products";
@@ -9,7 +7,6 @@ import {
   buildSitemapBundle,
   diffSitemapEntries,
   filterPublicIndexableRecords,
-  submitSearchConsoleSitemap,
   validateSitemapXml,
   type NormalizedSitemapEntry,
   type SitemapEntry,
@@ -17,17 +14,14 @@ import {
 
 const SITE_URL = "https://www.cowinmotors.com";
 const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
-const CATALOG_UPDATED_AT = process.env.PRODUCT_CATALOG_UPDATED_AT || "2026-07-06T15:54:15+08:00";
-const PUBLIC_PAGES_UPDATED_AT = process.env.PUBLIC_PAGES_UPDATED_AT || "2026-07-08T21:17:48+08:00";
+const CATALOG_UPDATED_AT = process.env.PRODUCT_CATALOG_UPDATED_AT || "2026-08-08T15:30:00+08:00";
+const PUBLIC_PAGES_UPDATED_AT = process.env.PUBLIC_PAGES_UPDATED_AT || "2026-08-08T15:30:00+08:00";
 const LOCK_TTL_SECONDS = 15 * 60;
-const GOOGLE_SUBMISSION_INTERVAL_DAYS = Math.max(3, Number.parseInt(process.env.GOOGLE_SEARCH_CONSOLE_SUBMIT_INTERVAL_DAYS || "3", 10) || 3);
-const GOOGLE_SUBMISSION_INTERVAL_MS = GOOGLE_SUBMISSION_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
 
 type SitemapRunOptions = {
   trigger?: string;
   force?: boolean;
   dryRun?: boolean;
-  submit?: boolean;
   verbose?: boolean;
 };
 
@@ -40,13 +34,6 @@ type SitemapState = {
   manifest: NormalizedSitemapEntry[];
   googleStatus: string;
   googleMessage: string;
-};
-
-type GoogleSubmissionResult = {
-  attempted: boolean;
-  status: "disabled" | "skipped" | "throttled" | "success" | "failed";
-  message: string;
-  httpStatus?: number;
 };
 
 let schemaReady: Promise<boolean> | null = null;
@@ -62,12 +49,8 @@ let fallbackState: SitemapState = {
 };
 let fallbackLock: { owner: string; expiresAt: number } | null = null;
 
-function cleanPrivateKey(value = "") {
-  return value.trim().replace(/\\n/g, "\n");
-}
-
 function stablePageEntries(): SitemapEntry[] {
-  const paths = ["", "/products", "/quote", "/support", "/news", "/blog"];
+  const paths = ["", "/products", "/headlights", "/tail-lights", "/exhaust", "/wheels", "/support", "/news", "/blog", "/about", "/contact", "/quality-control", "/packaging-shipping", "/fitment-check", "/wholesale-auto-parts-sourcing", "/returns-warranty", "/payment", "/privacy-policy", "/terms", "/track-your-order", "/installation-guidance", "/sourcing-bulk-orders", "/contact-support"];
   return paths.map((pathname) => ({ loc: `${SITE_URL}${pathname}`, lastmod: PUBLIC_PAGES_UPDATED_AT, type: "pages" }));
 }
 
@@ -96,7 +79,7 @@ function productEntries(): SitemapEntry[] {
 }
 
 export async function collectSitemapEntries(): Promise<SitemapEntry[]> {
-  const [articles, blogArticles] = await Promise.all([getPublishedNews({ limit: 50_000 }), getPublishedBlogPosts({ limit: 50_000 })]);
+  const [articles, blogArticles] = await Promise.all([getPublishedNews({ limit: 50_000, indexableOnly: true }), getPublishedBlogPosts({ limit: 50_000 })]);
   const postEntries: SitemapEntry[] = articles.map((article) => ({
     loc: `${SITE_URL}/news/${article.slug}`,
     lastmod: article.updatedAt || article.publishedAt,
@@ -254,84 +237,6 @@ async function releaseLock(owner: string) {
   await sql`DELETE FROM cowin_sitemap_locks WHERE id = 'primary' AND owner = ${owner}`;
 }
 
-async function serviceAccountCredentials() {
-  const credentialsPath = process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH || "";
-  if (credentialsPath) {
-    const raw = await fs.promises.readFile(credentialsPath, "utf8");
-    const credentials = JSON.parse(raw) as { client_email?: string; private_key?: string };
-    return { clientEmail: credentials.client_email || "", privateKey: cleanPrivateKey(credentials.private_key) };
-  }
-  return {
-    clientEmail: process.env.GOOGLE_CLIENT_EMAIL || "",
-    privateKey: cleanPrivateKey(process.env.GOOGLE_PRIVATE_KEY),
-  };
-}
-
-async function sitemapAccessToken() {
-  const credentials = await serviceAccountCredentials();
-  if (!credentials.clientEmail || !credentials.privateKey) return getGoogleSearchConsoleOAuthAccessToken();
-  const now = Math.floor(Date.now() / 1000);
-  const encodedHeader = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
-  const encodedPayload = Buffer.from(JSON.stringify({
-    iss: credentials.clientEmail,
-    scope: "https://www.googleapis.com/auth/webmasters",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  })).toString("base64url");
-  const unsigned = `${encodedHeader}.${encodedPayload}`;
-  const signature = crypto.createSign("RSA-SHA256").update(unsigned).sign(credentials.privateKey, "base64url");
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: `${unsigned}.${signature}`,
-    }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || !payload.access_token) throw new Error(payload.error_description || payload.error || `Google OAuth failed: ${response.status}`);
-  return payload.access_token as string;
-}
-
-async function submitSitemapToGoogle(): Promise<GoogleSubmissionResult> {
-  const siteUrl = process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || getSearchConsoleSiteUrl();
-  const sitemapUrl = process.env.GOOGLE_SEARCH_CONSOLE_SITEMAP_URL || SITEMAP_URL;
-  return submitSearchConsoleSitemap({
-    enabled: process.env.GOOGLE_SEARCH_CONSOLE_ENABLED === "true",
-    siteUrl,
-    sitemapUrl,
-    getAccessToken: sitemapAccessToken,
-  });
-}
-
-async function getLastGoogleSubmissionAt() {
-  const sql = getSql();
-  if (!sql) return "";
-  await ensureSitemapSchema();
-  const rows = await sql`
-    SELECT completed_at
-    FROM cowin_sitemap_runs
-    WHERE google_status IN ('success', 'failed')
-      AND completed_at IS NOT NULL
-    ORDER BY completed_at DESC
-    LIMIT 1
-  ` as Array<{ completed_at: Date | string }>;
-  return rows[0]?.completed_at ? new Date(rows[0].completed_at).toISOString() : "";
-}
-
-async function shouldSubmitSitemapToGoogle() {
-  const lastSubmissionAt = await getLastGoogleSubmissionAt();
-  if (!lastSubmissionAt) return { allowed: true, lastSubmissionAt: "", nextAllowedAt: "" };
-  const nextAllowedAt = new Date(new Date(lastSubmissionAt).getTime() + GOOGLE_SUBMISSION_INTERVAL_MS).toISOString();
-  return {
-    allowed: Date.now() >= new Date(nextAllowedAt).getTime(),
-    lastSubmissionAt,
-    nextAllowedAt,
-  };
-}
-
 async function saveRun(run: Record<string, unknown>) {
   const sql = getSql();
   if (!sql) return;
@@ -378,7 +283,7 @@ export async function runSitemapMaintenance(options: SitemapRunOptions = {}) {
     durationMs: 0,
     force: Boolean(options.force),
     dryRun: Boolean(options.dryRun),
-    submit: Boolean(options.submit),
+    submit: false,
     totalUrls: 0,
     successCount: 0,
     skippedCount: 0,
@@ -409,19 +314,8 @@ export async function runSitemapMaintenance(options: SitemapRunOptions = {}) {
     run.added = diff.added;
     run.modified = diff.modified;
     run.removed = diff.removed;
-    let google: GoogleSubmissionResult = { attempted: false, status: "skipped", message: "No Sitemap changes detected." };
-    if (options.submit && changed && !options.dryRun) {
-      const schedule = await shouldSubmitSitemapToGoogle();
-      google = schedule.allowed
-        ? await submitSitemapToGoogle()
-        : {
-          attempted: false,
-          status: "throttled",
-          message: `Google Sitemap submission is limited to every ${GOOGLE_SUBMISSION_INTERVAL_DAYS} days. Last attempted at ${schedule.lastSubmissionAt}; next eligible at ${schedule.nextAllowedAt}.`,
-        };
-    }
-    run.googleStatus = google.status;
-    run.googleMessage = google.message;
+    run.googleStatus = "disabled";
+    run.googleMessage = "Automatic external indexing submission is disabled. Submit the canonical sitemap in Search Console directly.";
     run.status = changed ? (options.dryRun ? "dry-run" : "success") : "unchanged";
     run.completedAt = new Date().toISOString();
     run.durationMs = Date.now() - started;
@@ -431,13 +325,13 @@ export async function runSitemapMaintenance(options: SitemapRunOptions = {}) {
         await sql`
           UPDATE cowin_sitemap_state SET fingerprint = ${bundle.fingerprint}, dirty = FALSE, dirty_reason = '',
             last_generated_at = NOW(), last_success_at = NOW(), manifest = ${JSON.stringify(bundle.entries)}::jsonb,
-            google_status = ${google.status}, google_message = ${google.message}, updated_at = NOW()
+            google_status = ${run.googleStatus}, google_message = ${run.googleMessage}, updated_at = NOW()
           WHERE id = 'primary'
         `;
       } else {
         fallbackState = {
           fingerprint: bundle.fingerprint, dirty: false, dirtyReason: "", lastGeneratedAt: run.completedAt,
-          lastSuccessAt: run.completedAt, manifest: bundle.entries, googleStatus: google.status, googleMessage: google.message,
+          lastSuccessAt: run.completedAt, manifest: bundle.entries, googleStatus: run.googleStatus, googleMessage: run.googleMessage,
         };
       }
     }

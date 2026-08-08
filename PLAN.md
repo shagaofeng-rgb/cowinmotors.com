@@ -2,7 +2,7 @@
 
 ## Goal
 
-Build a Chinese B2B website management backend for Cowinmotors that can support production operations for products, categories, news automation, inquiries, SEO data, media, users, audit logs, settings, and data sync.
+Build a Chinese B2B website management backend for Cowinmotors that supports products, categories, human-reviewed News, inquiries, SEO data, media, users, audit logs, settings, and data sync.
 
 ## Current Stack
 
@@ -12,7 +12,7 @@ Build a Chinese B2B website management backend for Cowinmotors that can support 
 - Product/media assets: `public/assets`.
 - Inquiry persistence: Neon Postgres through `DATABASE_URL` when configured, with temporary file fallback for local development.
 - Analytics persistence: existing analytics store and admin dashboard routes.
-- News automation: `/api/cron/news-automation` with Vercel Cron.
+- News: manual editorial workflow only; no crawler, generator, queue, webhook, or scheduled publishing task.
 - Monthly inquiry email test: `/api/cron/inquiry-email-test` with Vercel Cron.
 - Google Search Console: OAuth/service-account environment variables supported by the existing SEO admin pages.
 
@@ -20,7 +20,7 @@ Build a Chinese B2B website management backend for Cowinmotors that can support 
 
 - Reorganized Chinese admin navigation around the required management modules.
 - Added product categories page and API backed by the real product catalog.
-- Added news categories page and API backed by news automation data.
+- Added News category visibility based on manually reviewed editorial records.
 - Added media library page and API scanning product images and UI asset pack files.
 - Added users and roles page based on the configured production admin account and documented role model.
 - Added audit log page and API, plus durable database table support.

@@ -1,136 +1,95 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
-import { NewsCard } from "@/components/NewsCard";
-import { getRelatedNewsForProduct } from "@/lib/news";
-import { categorySlug, findProduct, inferBuyingPath, products } from "@/lib/products";
-import { UI_ASSETS } from "@/lib/ui-assets";
+import { ProductCard } from "@/components/ProductCard";
+import { QuoteForm } from "@/components/QuoteForm";
+import { categorySlug, findProduct, productPath, products } from "@/lib/products";
+import { productBreadcrumbSchema, productDisplayTitle, productFaqs, productFaqSchema, productSchema, productSeoDescription, productSpecs } from "@/lib/product-detail";
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
-  return products.slice(0, 250).map((product) => ({ id: product.slug || String(product.__id) }));
+  return products.map((product) => ({ id: product.slug || String(product.__id) }));
 }
 
 function absoluteImageUrl(image: string) {
-  if (!image) return `https://www.cowinmotors.com${UI_ASSETS.logo}`;
-  if (image.startsWith("http")) return image;
-  return `https://www.cowinmotors.com${image.startsWith("/") ? image : `/${image}`}`;
+  return image.startsWith("http") ? image : `https://www.cowinmotors.com${image.startsWith("/") ? image : `/${image}`}`;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const product = findProduct(id);
   if (!product) return {};
-  const title = product.title;
-  const imageUrl = absoluteImageUrl(product.localImage);
-  const description =
-    product.description ||
-    `Request a quote for ${product.title}. Confirm vehicle fitment, MOQ, lead time, packaging, and international shipping.`;
+  const title = productDisplayTitle(product);
+  const description = productSeoDescription(product);
   return {
     title,
-    description: description.slice(0, 155),
-    alternates: { canonical: `/product/${product.slug || product.__id}` },
-    openGraph: {
-      title,
-      description,
-      images: [imageUrl],
-    },
+    description,
+    alternates: { canonical: productPath(product) },
+    openGraph: { title, description, type: "website", url: `https://www.cowinmotors.com${productPath(product)}`, images: [{ url: absoluteImageUrl(product.localImage), alt: product.title }] },
+    twitter: { card: "summary_large_image", title, description, images: [absoluteImageUrl(product.localImage)] },
   };
-}
-
-function listingUrl(url?: string) {
-  if (!url) return "";
-  try {
-    const parsed = new URL(url, "https://www.cowinmotors.com");
-    if (parsed.hostname.replace(/^www\./, "") === "cowinmotors.com") return "";
-    return parsed.toString();
-  } catch {
-    return "";
-  }
 }
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const product = findProduct(id);
   if (!product) notFound();
-  const relatedNews = await getRelatedNewsForProduct(product, 3).catch(() => []);
-  const imageUrl = absoluteImageUrl(product.localImage);
-  const externalListingUrl = listingUrl(product.url);
-  const numericPrice = Number(String(product.price || "").replace(/[^0-9.]/g, ""));
-  const schema = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.title,
-    image: [imageUrl],
-    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
-    category: product.category,
-    model: product.model || undefined,
-    sku: product.partNumbers?.[0] || product.slug,
-    description: product.description,
-    offers: Number.isFinite(numericPrice) && numericPrice > 0 ? {
-      "@type": "Offer",
-      price: numericPrice,
-      priceCurrency: "USD",
-      availability: "https://schema.org/InStock",
-      url: `https://www.cowinmotors.com/product/${product.slug || product.__id}`,
-    } : undefined,
-  };
+  const category = categorySlug(product);
+  const title = productDisplayTitle(product);
+  const specs = productSpecs(product);
+  const faqs = productFaqs(product);
+  const related = products.filter((item) => item.__id !== product.__id && categorySlug(item) === category && (item.model === product.model || item.brand === product.brand)).slice(0, 4);
 
   return (
     <>
-      <Header cta="Request quote" />
-      <main className="category-design product-detail-design">
+      <Header cta="Request a Quote" />
+      <main className="product-detail-page">
         <nav className="breadcrumbs" aria-label="Breadcrumb">
-          <Link href="/">Home</Link><span>/</span><Link href="/products">Products</Link><span>/</span><Link href={`/products?category=${categorySlug(product)}`}>{product.category}</Link>
+          <Link href="/">Home</Link><span>/</span><Link href={`/${category}`}>{product.category}</Link><span>/</span><span>{title}</span>
         </nav>
-        <section className="pdp">
-          <div className="pdp-media">
-            <img src={product.localImage} alt={product.title} />
+
+        <section className="product-hero">
+          <div className="product-gallery">
+            <figure><img src={product.localImage} alt={`${title} product image`} /><figcaption>Product image supplied with the catalog record.</figcaption></figure>
           </div>
-          <div className="pdp-copy">
+          <div className="product-summary">
             <p className="eyebrow">{product.category}</p>
-            <h1>{product.title}</h1>
-            <div className="price-row pdp-price">
-              <span className="price">{product.price || "Request quote"}</span>
-              {product.compareAt ? <span className="compare">{product.compareAt}</span> : null}
+            <h1>{title}</h1>
+            <p className="product-fitment">Compatible with {[product.brand, product.model, product.yearRange].filter(Boolean).join(" ") || "vehicle fitment to be confirmed"}</p>
+            {product.partNumbers?.length ? <p className="product-reference">Reference: {product.partNumbers.join(" / ")}</p> : null}
+            <div className="product-actions">
+              <a className="button primary" href="#product-inquiry">Request a Quote</a>
+              <Link className="button secondary" href="/fitment-check">Check Fitment</Link>
+              <a className="button secondary" href={`https://api.whatsapp.com/send/?phone=%2B8617601255205&text=${encodeURIComponent(`Hello, I would like to confirm ${title}.`)}`} target="_blank" rel="noreferrer">WhatsApp Inquiry</a>
             </div>
-            <div className="pdp-actions">
-              <Link className="button primary" href={`/quote?product=${encodeURIComponent(product.title)}`}>Request quote</Link>
-              {externalListingUrl ? <a className="button secondary" href={externalListingUrl} target="_blank" rel="noreferrer">View product listing</a> : null}
-            </div>
-            <dl className="spec-table">
-              <div><dt>Buying path</dt><dd>{inferBuyingPath(product)}</dd></div>
-              <div><dt>Brand</dt><dd>{product.brand || "Confirm by quote"}</dd></div>
-              <div><dt>Model / Fitment</dt><dd>{[product.model, product.yearRange].filter(Boolean).join(" / ") || "Confirm year / make / model / trim before ordering."}</dd></div>
-              {product.partNumbers?.length ? <div><dt>Part number</dt><dd>{product.partNumbers.join(" / ")}</dd></div> : null}
-              {product.side ? <div><dt>Side</dt><dd>{product.side}</dd></div> : null}
-              {product.material ? <div><dt>Material</dt><dd>{product.material}</dd></div> : null}
-              {product.moq ? <div><dt>MOQ</dt><dd>{product.moq}</dd></div> : null}
-              {product.features?.length ? <div><dt>Features</dt><dd>{product.features.join(", ")}</dd></div> : null}
-              <div><dt>Lead time</dt><dd>Estimated before dispatch. Confirm with sales for wholesale or custom orders.</dd></div>
-              <div><dt>Shipping</dt><dd>Destination, carton size, tax/VAT, and customs duties are confirmed before payment.</dd></div>
-              <div><dt>QC</dt><dd>Product and packaging checks can be arranged before shipment.</dd></div>
-            </dl>
-            <section className="pdp-description">
-              <h2>Fitment and quotation notes</h2>
-              <p>{product.description}</p>
-              <p>For an accurate quotation, send the vehicle year, market region, trim, left/right side, OE part number if available, and target quantity. Cowinmotors will confirm fitment, availability, packaging, and export shipping before quotation.</p>
-            </section>
+            <p className="product-confirmation">Before ordering, confirm model year, market version, LHD/RHD where applicable, side or set, connector or configuration, and OE number or reference photo.</p>
           </div>
         </section>
-        {relatedNews.length ? (
-          <section className="related-news-section">
-            <div className="section-title-row compact">
-              <div>
-                <p className="eyebrow">Related News</p>
-                <h2>Market updates linked to this product.</h2>
-              </div>
-            </div>
-            <div className="news-grid">
-              {relatedNews.map((article) => <NewsCard article={article} key={article.id} />)}
-            </div>
-          </section>
-        ) : null}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+
+        <section className="trust-strip" aria-label="Service support"><div><strong>Fitment Confirmation</strong><span>Checked before quotation</span></div><div><strong>Pre-Shipment QC Support</strong><span>Coordination available</span></div><div><strong>Export Packaging Support</strong><span>Reviewed for the order</span></div><div><strong>Worldwide Shipping Coordination</strong><span>By destination requirement</span></div><div><strong>Retail & Wholesale Inquiry Support</strong><span>For qualified requests</span></div></section>
+
+        <section className="product-content-grid">
+          <div className="product-longform">
+            <section><p className="eyebrow">Product overview</p><h2>What this product is</h2><p>{product.description || `This catalog-listed ${product.category.toLowerCase()} item is available for fitment-led sourcing inquiry.`}</p><p>It is intended for buyers who need compatibility confirmation, product-detail review, packaging coordination, and export support before ordering.</p></section>
+            <section><h2>Vehicle compatibility</h2><p>Compatible with {([product.brand, product.model, product.yearRange].filter(Boolean).join(" ") || "the vehicle configuration confirmed by sales")}. Vehicle brand names are used only to indicate compatibility. Cowinmotors Automotive Parts is an independent automotive parts sourcing and export partner.</p></section>
+            <section><h2>Product details</h2><dl className="product-specs">{specs.map((spec) => <div key={spec.label}><dt>{spec.label}</dt><dd>{spec.value}</dd></div>)}</dl></section>
+            <section><h2>What to confirm before ordering</h2><ol className="confirmation-list"><li>Vehicle year</li><li>Make and model</li><li>Trim and engine</li><li>LHD or RHD where applicable</li><li>Left, right, or full set</li><li>OE number or product photo if available</li><li>Destination country</li><li>Quantity and packaging requirements</li></ol></section>
+            <section><h2>Packaging & Export Support</h2><ul><li>Product photo confirmation</li><li>Packaging review</li><li>Pre-shipment QC coordination</li><li>Carton, pallet, or wooden-crate options when applicable</li><li>Shipping coordination</li><li>Export documentation support subject to product and destination requirements</li></ul></section>
+          </div>
+          <aside className="product-buying-notes"><p className="eyebrow">Buying notes</p><h2>Fitment-led sourcing</h2><p>Unlisted specifications are not assumed. Send the exact vehicle and product reference so the quotation can be checked before ordering.</p><Link href="/wholesale-auto-parts-sourcing">How sourcing support works</Link></aside>
+        </section>
+
+        <section id="product-inquiry" className="product-inquiry-section"><div><p className="eyebrow">Request a product quote</p><h2>Send the vehicle details for a fitment check.</h2><p>We will review the product reference, vehicle configuration, quantity, packaging, and destination before quotation.</p></div><QuoteForm initialProduct={title} initialCategory={product.category} /></section>
+
+        <section className="product-faq"><p className="eyebrow">Product FAQ</p><h2>Buying questions</h2>{faqs.map((item) => <details key={item.question}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</section>
+
+        {related.length ? <section className="related-products"><div className="section-title-row compact"><div><p className="eyebrow">Related products</p><h2>More catalog items to compare</h2></div><Link href={`/${category}`}>View category</Link></div><div className="product-grid">{related.map((item) => <ProductCard product={item} key={item.__id} />)}</div></section> : null}
+
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema(product)) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productFaqSchema(product)) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productBreadcrumbSchema(product)) }} />
       </main>
     </>
   );

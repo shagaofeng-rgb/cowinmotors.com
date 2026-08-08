@@ -9,7 +9,7 @@ export function Header({
 }) {
   return (
     <>
-      <div className="announcement">Factory Direct Manufacturer | Worldwide Shipping | Strict QC Inspection</div>
+      <div className="announcement">China-Based Automotive Parts Sourcing & Export Partner | Fitment Confirmation | Export Coordination</div>
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Cowinmotors home">
           <img src={UI_ASSETS.logo} alt="Cowinmotors logo" />

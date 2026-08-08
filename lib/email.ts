@@ -5,6 +5,8 @@ import type { InquiryRecord } from "@/lib/adminData";
 const defaultTo = "davidsha@cowinmotors.com";
 const defaultCc = "racheljiang@cowinmotors.com";
 
+export type InquiryAttachment = { name: string; type: string; contentBase64: string };
+
 function env(name: string) {
   return String(process.env[name] || "").trim();
 }
@@ -46,7 +48,7 @@ function buildInquiryEmail(record: InquiryRecord) {
   };
 }
 
-async function sendViaResend(record: InquiryRecord) {
+async function sendViaResend(record: InquiryRecord, attachment?: InquiryAttachment) {
   const apiKey = env("RESEND_API_KEY");
   if (!apiKey) return null;
 
@@ -65,6 +67,7 @@ async function sendViaResend(record: InquiryRecord) {
       subject: message.subject,
       text: message.text,
       html: message.html,
+      attachments: attachment ? [{ filename: attachment.name, content: attachment.contentBase64, content_type: attachment.type }] : undefined,
     }),
   });
 
@@ -128,9 +131,10 @@ function upgradeToTls(socket: net.Socket, host: string) {
   });
 }
 
-function mimeMessage(record: InquiryRecord, from: string, to: string, cc: string) {
+function mimeMessage(record: InquiryRecord, from: string, to: string, cc: string, attachment?: InquiryAttachment) {
   const message = buildInquiryEmail(record);
   const boundary = `cowinmotors-${Date.now()}`;
+  const mixedBoundary = `${boundary}-mixed`;
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
@@ -138,9 +142,9 @@ function mimeMessage(record: InquiryRecord, from: string, to: string, cc: string
     `Reply-To: ${record.email}`,
     `Subject: ${message.subject}`,
     "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    `Content-Type: ${attachment ? "multipart/mixed" : "multipart/alternative"}; boundary="${attachment ? mixedBoundary : boundary}"`,
   ];
-  const body = [
+  const alternative = [
     `--${boundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
     "Content-Transfer-Encoding: 8bit",
@@ -153,10 +157,29 @@ function mimeMessage(record: InquiryRecord, from: string, to: string, cc: string
     message.html,
     `--${boundary}--`,
   ];
+  if (attachment) {
+    const body = [
+      `--${mixedBoundary}`,
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      "",
+      ...alternative,
+      `--${mixedBoundary}`,
+      `Content-Type: ${attachment.type}; name="${attachment.name}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${attachment.name}"`,
+      "",
+      attachment.contentBase64.replace(/(.{76})/g, "$1\r\n"),
+      `--${mixedBoundary}--`,
+    ];
+    return [...headers, "", ...body].join("\r\n").replace(/\r?\n\./g, "\r\n..");
+  }
+  const body = [
+    ...alternative,
+  ];
   return [...headers, "", ...body].join("\r\n").replace(/\r?\n\./g, "\r\n..");
 }
 
-async function sendViaSmtp(record: InquiryRecord) {
+async function sendViaSmtp(record: InquiryRecord, attachment?: InquiryAttachment) {
   const host = env("SMTP_HOST");
   const user = env("SMTP_USER");
   const password = env("SMTP_PASSWORD") || env("SMTP_PASS");
@@ -186,17 +209,17 @@ async function sendViaSmtp(record: InquiryRecord) {
     await smtpCommand(socket, `RCPT TO:<${recipient}>`, [250, 251]);
   }
   await smtpCommand(socket, "DATA", [354]);
-  await smtpCommand(socket, `${mimeMessage(record, from, to, cc)}\r\n.`, [250]);
+  await smtpCommand(socket, `${mimeMessage(record, from, to, cc, attachment)}\r\n.`, [250]);
   await smtpCommand(socket, "QUIT", [221, 250]);
 
   return { provider: "smtp" };
 }
 
-export async function sendInquiryEmail(record: InquiryRecord) {
-  const resend = await sendViaResend(record);
+export async function sendInquiryEmail(record: InquiryRecord, attachment?: InquiryAttachment) {
+  const resend = await sendViaResend(record, attachment);
   if (resend) return { sent: true, ...resend };
 
-  const smtp = await sendViaSmtp(record);
+  const smtp = await sendViaSmtp(record, attachment);
   if (smtp) return { sent: true, ...smtp };
 
   return {

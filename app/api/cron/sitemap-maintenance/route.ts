@@ -15,7 +15,6 @@ async function handle(request: Request) {
       trigger: url.searchParams.get("trigger") || "manual-command",
       force: url.searchParams.get("force") === "1",
       dryRun: url.searchParams.get("dryRun") === "1",
-      submit: url.searchParams.get("submit") === "1",
       verbose: url.searchParams.get("verbose") === "1",
     });
     return NextResponse.json(result, { status: result.ok ? 200 : 409 });

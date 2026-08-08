@@ -17,7 +17,6 @@ const query = new URLSearchParams({
   trigger: "manual-command",
   force: args.has("--force") ? "1" : "0",
   dryRun: args.has("--dry-run") ? "1" : "0",
-  submit: args.has("--submit") ? "1" : "0",
   verbose: args.has("--verbose") ? "1" : "0",
 });
 

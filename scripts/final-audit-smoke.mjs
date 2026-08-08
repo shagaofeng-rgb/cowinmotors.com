@@ -10,6 +10,10 @@ const paths = [
   "/body-kits",
   "/quote",
   "/support",
+  "/track-your-order",
+  "/installation-guidance",
+  "/sourcing-bulk-orders",
+  "/contact-support",
   "/news",
   "/blog",
   "/sitemap.xml",
@@ -43,7 +47,7 @@ for (const path of paths) {
 const quote = (await fetchText("/quote")).text;
 ok(/name="phone"/.test(quote), "Quote form is missing phone input.");
 ok(/type="tel"/.test(quote), "Quote phone input should use tel type.");
-ok(/Phone \/ WhatsApp/.test(quote), "Quote form is missing phone label.");
+ok(/WhatsApp \/ Phone/.test(quote), "Quote form is missing phone label.");
 
 const missingPhone = await fetch(`${siteUrl}/api/inquiry`, {
   method: "POST",
@@ -56,15 +60,13 @@ const protectedApi = await fetch(`${siteUrl}/api/admin/search-console/overview`)
 ok(protectedApi.status === 401, "Admin API should require authentication.");
 
 const news = (await fetchText("/news")).text;
-ok(/Automotive News|News automation is ready|news-card/.test(news), "News page did not render expected content.");
+ok(/News & Insights|Latest Articles|news-card/.test(news), "News page did not render expected content.");
 const newsApi = JSON.parse((await fetchText("/api/news")).text);
 ok(Array.isArray(newsApi.articles), "News API should return articles array.");
 if (newsApi.articles.length) {
   const first = newsApi.articles[0];
   ok(first.coverImageUrl && /^https?:\/\//.test(first.coverImageUrl), "News article should have an absolute cover image URL.");
-  ok(!/cowinmotors\.com/i.test(new URL(first.coverImageUrl).hostname), "News cover image must not use a Cowinmotors site image.");
-  ok(first.canonicalSourceUrl && /^https?:\/\//.test(first.canonicalSourceUrl), "News article should include canonical source URL.");
-  ok(first.products?.length >= 1, "News article should link at least one product.");
+  ok(typeof first.indexable === "boolean", "News article should declare its indexability.");
 }
 
 const blog = await fetch(`${siteUrl}/blog`, { redirect: "manual" });
@@ -72,7 +74,7 @@ ok(blog.status === 200, "Blog route should render published Blog content.");
 
 const robots = (await fetchText("/robots.txt")).text;
 ok(/sitemap\.xml/.test(robots), "robots.txt missing sitemap.");
-ok(/news-sitemap\.xml/.test(robots), "robots.txt missing news sitemap.");
+ok(!/news-sitemap\.xml/.test(robots), "robots.txt should only declare the canonical sitemap.");
 
 const sitemap = (await fetchText("/sitemap.xml")).text;
 ok(/<sitemapindex/.test(sitemap), "Main Sitemap should be a Sitemap Index.");

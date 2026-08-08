@@ -14,15 +14,15 @@ export default async function AdminBlogPage() {
         <div>
           <p className="eyebrow">Blog Publishing</p>
           <h1>Blog 文章管理</h1>
-          <p>查看来自已签名发布接口的真实文章、分类、封面和发布时间。Blog 没有自动发布任务。</p>
+          <p>查看人工审核后保存的文章、分类、封面和发布时间。Blog 没有自动发布、自动生成或外部发布接口。</p>
         </div>
         <Link className="admin-status good" href="/blog" target="_blank">前台 Blog</Link>
       </header>
       <section className="admin-metric-grid">
         <div className="admin-metric"><span>Published</span><strong>{published}</strong><small>已发布文章</small></div>
         <div className="admin-metric"><span>Categories</span><strong>{data.categories.length}</strong><small>真实文章分类</small></div>
-        <div className="admin-metric"><span>Source</span><strong>Webhook</strong><small>已签名外部发布</small></div>
-        <div className="admin-metric"><span>Automation</span><strong>Off</strong><small>无 Blog 定时发布</small></div>
+        <div className="admin-metric"><span>Source</span><strong>Editorial</strong><small>人工审核内容</small></div>
+        <div className="admin-metric"><span>Automation</span><strong>Off</strong><small>无 Blog 自动发布入口</small></div>
       </section>
       <section className="admin-panel">
         <div className="admin-panel-headline"><div><p className="eyebrow">Articles</p><h2>已发布文章</h2></div><Link href="/api/admin/blog">查看 API</Link></div>

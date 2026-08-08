@@ -1,0 +1,10 @@
+source_pattern,target_or_canonical,rule,indexing_status,notes
+http://cowinmotors.com/*,https://www.cowinmotors.com/*,permanent_redirect,canonical,Configure/verify at Vercel edge after deployment
+https://cowinmotors.com/*,https://www.cowinmotors.com/*,308_middleware_redirect,canonical,Verified locally with Host header
+http://www.cowinmotors.com/*,https://www.cowinmotors.com/*,https_redirect,canonical,Verify Vercel TLS redirect after deployment
+https://www.cowinmotors.com/products?*,https://www.cowinmotors.com/products,self_canonical,noindex_follow,Search/sort/filter combinations are not landing pages
+https://www.cowinmotors.com/quote?*,https://www.cowinmotors.com/quote,self_canonical,noindex_follow,Inquiry parameters are not indexable
+https://www.cowinmotors.com/admin/*,none,robots_disallow,noindex,Authenticated administration area
+https://www.cowinmotors.com/api/*,none,robots_disallow,noindex,Application API endpoints
+https://www.cowinmotors.com/news/[legacy-slug],self_canonical,self_canonical,noindex_follow,Legacy automated News retained for editorial review and excluded from sitemap
+https://www.cowinmotors.com/news/[manual-reviewed-slug],self_canonical,self_canonical,indexable,Only when manually published with indexable enabled
