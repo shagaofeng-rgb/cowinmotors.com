@@ -47,3 +47,5 @@ Local production-build checks on 2026-08-08:
 - `GET /news-sitemap.xml` -> `200`, containing only indexable manual News when any exists
 
 Production verification completed after deployment `dpl_CrcVYBmYoHpxzDDDnppsFk61me34`: root POST returned `405`; the removed Blog Webhook and News Cron returned `404`. Obsolete production variables `WEBHOOK_ARTICLE_SIGN`, `GOOGLE_SEARCH_CONSOLE_SITEMAP_URL`, and `GOOGLE_SEARCH_CONSOLE_ENABLED` were removed before deployment.
+
+Scheduled Buyer Guide verification completed after deployment `dpl_9mZVioD9TGyjN9qKoDyaRb1GAbgo`: the authenticated production task published `How to Confirm Headlight Fitment Before Importing` to `/blog/confirm-headlight-fitment-before-importing-2c68d80d`. The detail page, Blog list, and generated posts sitemap all returned the same article. An unauthenticated call returned `401`.

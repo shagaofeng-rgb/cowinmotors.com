@@ -48,3 +48,5 @@ The audit identifies fields absent from the supplied catalog, including addition
 ## Production verification
 
 Deployment `dpl_CrcVYBmYoHpxzDDDnppsFk61me34` was successfully aliased to `https://www.cowinmotors.com`. The production smoke check passed on 22 key routes including the catalog, all five category pages, RFQ, News, Blog, robots, sitemap, public News APIs, admin login, and the new support pages. `https://cowinmotors.com/products` returned a permanent `308` to the equivalent `www` URL. The remaining external validation is the Google Rich Results Test for the homepage, category page, and representative product URLs; that third-party test has not been represented as completed.
+
+After the later Buyer Guide schedule deployment `dpl_9mZVioD9TGyjN9qKoDyaRb1GAbgo`, the first scheduled article was successfully written to the production database and verified at its front-end URL, the Blog index, and the posts sitemap.
