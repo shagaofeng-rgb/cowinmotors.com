@@ -46,4 +46,4 @@ Local production-build checks on 2026-08-08:
 - `GET /api/news` -> `200`
 - `GET /news-sitemap.xml` -> `200`, containing only indexable manual News when any exists
 
-Production verification and removal of any now-unused Vercel environment variables remain part of the deployment checklist.
+Production verification completed after deployment `dpl_CrcVYBmYoHpxzDDDnppsFk61me34`: root POST returned `405`; the removed Blog Webhook and News Cron returned `404`. Obsolete production variables `WEBHOOK_ARTICLE_SIGN`, `GOOGLE_SEARCH_CONSOLE_SITEMAP_URL`, and `GOOGLE_SEARCH_CONSOLE_ENABLED` were removed before deployment.

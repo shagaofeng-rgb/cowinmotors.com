@@ -45,6 +45,6 @@ News and Buyer Guides remain readable, but no automatic content generation, craw
 
 The audit identifies fields absent from the supplied catalog, including additional gallery images, dimensions, materials, connector and coding information, wheel PCD/offset/center-bore/load data, packaging images, certification documents, installation material, and verified product videos. These are intentionally presented as confirmation requirements rather than invented values.
 
-## Deployment verification still required
+## Production verification
 
-Run the production smoke test after deployment, test all three noncanonical domain combinations, inspect the live XML sitemap, and validate the homepage, category page, and ten representative product URLs in Google Rich Results Test. Those external tests are not claimed as completed by this local report.
+Deployment `dpl_CrcVYBmYoHpxzDDDnppsFk61me34` was successfully aliased to `https://www.cowinmotors.com`. The production smoke check passed on 22 key routes including the catalog, all five category pages, RFQ, News, Blog, robots, sitemap, public News APIs, admin login, and the new support pages. `https://cowinmotors.com/products` returned a permanent `308` to the equivalent `www` URL. The remaining external validation is the Google Rich Results Test for the homepage, category page, and representative product URLs; that third-party test has not been represented as completed.
