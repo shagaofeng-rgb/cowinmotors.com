@@ -3153,12 +3153,15 @@ p {
 .news-detail {
   display: grid;
   gap: 28px;
+  max-width: 1120px;
+  margin-inline: auto;
 }
 
 .news-article {
   display: grid;
   gap: 28px;
   max-width: 1040px;
+  min-width: 0;
 }
 
 .news-article-head {
@@ -3168,6 +3171,8 @@ p {
 
 .news-article-head h1 {
   max-width: 980px;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .news-lede {
@@ -3181,8 +3186,10 @@ p {
 
 .news-cover img {
   width: 100%;
-  aspect-ratio: 16 / 8;
-  object-fit: cover;
+  height: auto;
+  max-height: min(68vh, 720px);
+  object-fit: contain;
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
@@ -3231,6 +3238,32 @@ p {
 .news-body p {
   max-width: 860px;
   margin-bottom: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.8;
+}
+
+.news-body,
+.news-source-box,
+.news-takeaways {
+  min-width: 0;
+}
+
+.news-body img,
+.news-body video,
+.news-body iframe,
+.news-body table {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.news-body pre,
+.news-body code {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .news-source-box dl,
@@ -5282,7 +5315,7 @@ body:has(.home-redesign) .header-cta {
   }
 
   .news-cover img {
-    aspect-ratio: 1 / 0.72;
+    max-height: 52vh;
   }
 
   .whatsapp-float {

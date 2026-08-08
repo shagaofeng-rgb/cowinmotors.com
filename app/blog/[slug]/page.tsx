@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/Header";
 import { BlogCard } from "@/components/BlogCard";
-import { blogArticleJsonLd, getPublishedBlogArticle, getPublishedBlogPosts } from "@/lib/blog";
+import { blogArticleJsonLd, blogArticleParagraphs, getPublishedBlogArticle, getPublishedBlogPosts } from "@/lib/blog";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
   const article = await getPublishedBlogArticle(slug);
   if (!article) notFound();
   const related = (await getPublishedBlogPosts({ limit: 4 })).filter((item) => item.slug !== article.slug).slice(0, 3);
+  const paragraphs = blogArticleParagraphs(article.content);
   return (
     <>
       <Header cta="Request Quote" />
@@ -33,7 +34,7 @@ export default async function BlogDetailPage({ params }: { params: Promise<{ slu
         <article className="news-article">
           <header className="news-article-head"><p className="eyebrow">Cowinmotors Buyer Guide</p><h1>{article.title}</h1><p className="news-lede">{article.excerpt}</p><div className="news-meta"><span>By {article.authorName}</span><time dateTime={article.publishedAt}>Published {new Date(article.publishedAt).toLocaleDateString("en-US")}</time><time dateTime={article.updatedAt}>Updated {new Date(article.updatedAt).toLocaleDateString("en-US")}</time></div></header>
           <figure className="news-cover"><img src={article.coverImageUrl} alt={article.coverImageAlt || article.title} /></figure>
-          <section className="news-body">{article.content.split(/\n{2,}/).filter(Boolean).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</section>
+          <section className="news-body">{paragraphs.map((paragraph, index) => <p key={`${index}-${paragraph.slice(0, 32)}`}>{paragraph}</p>)}</section>
         </article>
         {related.length ? <section className="section related-news-section"><div className="section-title-row compact"><div><p className="eyebrow">More Guides</p><h2>Keep planning with confidence.</h2></div></div><div className="news-grid">{related.map((item) => <BlogCard article={item} key={item.id} />)}</div></section> : null}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(blogArticleJsonLd(article)) }} />
