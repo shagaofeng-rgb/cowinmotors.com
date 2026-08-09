@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
+import { readAnalyticsEvents, type AnalyticsEvent } from "@/lib/analyticsStore";
 import { categorySlug, inferBuyingPath, productCategoryOptions, productPath, products } from "@/lib/products";
 
 export type InquiryRecord = {
@@ -18,6 +19,29 @@ export type InquiryRecord = {
   quantity: string;
   requirement: string;
   source: string;
+  visitorId: string;
+  sessionId: string;
+  landingPage: string;
+  referrer: string;
+};
+
+export type InquiryJourney = {
+  available: boolean;
+  visitorId: string;
+  sessionId: string;
+  events: AnalyticsEvent[];
+  summary: {
+    firstVisit: string;
+    lastActivity: string;
+    pageViews: number;
+    clicks: number;
+    engagements: number;
+    formSubmits: number;
+    totalDuration: number;
+    maxScroll: number;
+    source: string;
+    device: string;
+  };
 };
 
 export type AdminListParams = {
@@ -182,6 +206,10 @@ type InquiryRow = {
   quantity: string | null;
   requirement: string | null;
   source: string | null;
+  visitor_id: string | null;
+  session_id: string | null;
+  landing_page: string | null;
+  referrer: string | null;
 };
 
 function inquiryFromRow(row: InquiryRow): InquiryRecord {
@@ -198,6 +226,10 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
     vehicleInfo: row.vehicle_info || "",
     quantity: row.quantity || "",
     requirement: row.requirement || "",
+    visitorId: row.visitor_id || "",
+    sessionId: row.session_id || "",
+    landingPage: row.landing_page || "",
+    referrer: row.referrer || "",
   };
 }
 
@@ -208,7 +240,8 @@ export async function getInquiries(): Promise<InquiryRecord[]> {
     try {
       await ensureCoreSchema();
       const rows = await sql`
-        SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement
+        SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
+          visitor_id, session_id, landing_page, referrer
         FROM cowin_inquiries
         ORDER BY created_at DESC
         LIMIT 300
@@ -230,7 +263,8 @@ async function persistInquiry(record: InquiryRecord) {
       await ensureCoreSchema();
       await sql`
         INSERT INTO cowin_inquiries (
-          id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement
+          id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
+          visitor_id, session_id, landing_page, referrer
         ) VALUES (
           ${record.id},
           ${record.createdAt},
@@ -243,7 +277,11 @@ async function persistInquiry(record: InquiryRecord) {
           ${record.product},
           ${record.vehicleInfo},
           ${record.quantity},
-          ${record.requirement}
+          ${record.requirement},
+          ${record.visitorId},
+          ${record.sessionId},
+          ${record.landingPage},
+          ${record.referrer}
         )
         ON CONFLICT (id) DO NOTHING
       `;
@@ -257,25 +295,106 @@ async function persistInquiry(record: InquiryRecord) {
   writeJsonFile(inquiryFile, records);
 }
 
-export async function saveInquiry(input: Omit<InquiryRecord, "id" | "createdAt" | "source">): Promise<InquiryRecord> {
+type InquiryInput = Omit<InquiryRecord, "id" | "createdAt" | "source" | "visitorId" | "sessionId" | "landingPage" | "referrer"> &
+  Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer">>;
+
+type InquiryInputWithSource = Omit<InquiryRecord, "id" | "createdAt" | "visitorId" | "sessionId" | "landingPage" | "referrer"> &
+  Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer">>;
+
+export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
   const record: InquiryRecord = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     source: "website-rfq-form",
     ...input,
+    visitorId: input.visitorId || "",
+    sessionId: input.sessionId || "",
+    landingPage: input.landingPage || "",
+    referrer: input.referrer || "",
   };
   await persistInquiry(record);
   return record;
 }
 
-export async function saveInquiryWithSource(input: Omit<InquiryRecord, "id" | "createdAt">): Promise<InquiryRecord> {
+export async function saveInquiryWithSource(input: InquiryInputWithSource): Promise<InquiryRecord> {
   const record: InquiryRecord = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     ...input,
+    visitorId: input.visitorId || "",
+    sessionId: input.sessionId || "",
+    landingPage: input.landingPage || "",
+    referrer: input.referrer || "",
   };
   await persistInquiry(record);
   return record;
+}
+
+function hasJourneyIdentity(value: string) {
+  return Boolean(value && !["anonymous", "session"].includes(value));
+}
+
+export async function getInquiryDetail(id: string): Promise<{ inquiry: InquiryRecord; journey: InquiryJourney } | null> {
+  const inquiry = (await getInquiries()).find((item) => item.id === id);
+  if (!inquiry) return null;
+
+  if (!hasJourneyIdentity(inquiry.visitorId)) {
+    return {
+      inquiry,
+      journey: {
+        available: false,
+        visitorId: "",
+        sessionId: "",
+        events: [],
+        summary: {
+          firstVisit: "",
+          lastActivity: "",
+          pageViews: 0,
+          clicks: 0,
+          engagements: 0,
+          formSubmits: 0,
+          totalDuration: 0,
+          maxScroll: 0,
+          source: "",
+          device: "",
+        },
+      },
+    };
+  }
+
+  const submittedAt = new Date(inquiry.createdAt).getTime();
+  const startAt = submittedAt - 30 * 24 * 60 * 60 * 1000;
+  const endAt = submittedAt + 10 * 60 * 1000;
+  const events = (await readAnalyticsEvents())
+    .filter((event) => {
+      const timestamp = new Date(event.timestamp).getTime();
+      return event.visitorId === inquiry.visitorId && timestamp >= startAt && timestamp <= endAt;
+    })
+    .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+  const first = events[0];
+  const last = events.at(-1);
+
+  return {
+    inquiry,
+    journey: {
+      available: true,
+      visitorId: inquiry.visitorId,
+      sessionId: inquiry.sessionId,
+      events,
+      summary: {
+        firstVisit: first?.timestamp || "",
+        lastActivity: last?.timestamp || "",
+        pageViews: events.filter((event) => event.type === "page_view").length,
+        clicks: events.filter((event) => event.type === "click").length,
+        engagements: events.filter((event) => event.type === "engagement").length,
+        formSubmits: events.filter((event) => event.type === "form_submit").length,
+        totalDuration: events.reduce((total, event) => total + Math.max(0, event.duration || 0), 0),
+        maxScroll: events.reduce((max, event) => Math.max(max, event.scrollDepth || 0), 0),
+        source: first?.sourcePlatform || inquiry.referrer || "Direct",
+        device: first?.device || "Unknown",
+      },
+    },
+  };
 }
 
 export function getAdminProducts() {

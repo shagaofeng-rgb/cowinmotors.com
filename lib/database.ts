@@ -57,6 +57,26 @@ export async function ensureCoreSchema() {
         `;
 
         await sql`
+          ALTER TABLE cowin_inquiries
+          ADD COLUMN IF NOT EXISTS visitor_id TEXT NOT NULL DEFAULT ''
+        `;
+
+        await sql`
+          ALTER TABLE cowin_inquiries
+          ADD COLUMN IF NOT EXISTS session_id TEXT NOT NULL DEFAULT ''
+        `;
+
+        await sql`
+          ALTER TABLE cowin_inquiries
+          ADD COLUMN IF NOT EXISTS landing_page TEXT NOT NULL DEFAULT ''
+        `;
+
+        await sql`
+          ALTER TABLE cowin_inquiries
+          ADD COLUMN IF NOT EXISTS referrer TEXT NOT NULL DEFAULT ''
+        `;
+
+        await sql`
           CREATE TABLE IF NOT EXISTS cowin_analytics_events (
             id TEXT PRIMARY KEY,
             type TEXT NOT NULL,
@@ -89,7 +109,9 @@ export async function ensureCoreSchema() {
 
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_timestamp_idx ON cowin_analytics_events (timestamp DESC)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_type_idx ON cowin_analytics_events (type)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_visitor_session_timestamp_idx ON cowin_analytics_events (visitor_id, session_id, timestamp ASC)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_created_at_idx ON cowin_inquiries (created_at DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_visitor_created_at_idx ON cowin_inquiries (visitor_id, created_at DESC)`);
 
         await sql`
           CREATE TABLE IF NOT EXISTS cowin_admin_audit_logs (

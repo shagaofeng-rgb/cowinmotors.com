@@ -5,8 +5,8 @@ import { sendInquiryEmail } from "@/lib/email";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function clean(value: unknown) {
-  return String(value || "").trim().slice(0, 2000);
+function clean(value: unknown, maxLength = 2000) {
+  return String(value || "").trim().slice(0, maxLength);
 }
 
 function attachmentFrom(value: unknown) {
@@ -51,6 +51,10 @@ export async function POST(request: Request) {
     vehicleInfo: clean(body.vehicleInfo),
     quantity: clean(body.quantity),
     requirement: clean(body.requirement),
+    visitorId: clean(body.visitorId, 80),
+    sessionId: clean(body.sessionId, 80),
+    landingPage: clean(body.landingPage, 240),
+    referrer: clean(body.referrer, 240),
   });
 
   const emailResult = await sendInquiryEmail(inquiry, attachment || undefined).catch(() => ({

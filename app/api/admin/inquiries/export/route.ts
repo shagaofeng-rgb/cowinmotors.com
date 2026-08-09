@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   });
 
   const rows = [
-    ["id", "createdAt", "name", "email", "phone", "country", "productType", "product", "vehicleInfo", "quantity", "requirement", "source"].map(csvCell).join(","),
+    ["id", "createdAt", "name", "email", "phone", "country", "productType", "product", "vehicleInfo", "quantity", "requirement", "source", "landingPage", "referrer", "visitorTracked"].map(csvCell).join(","),
     ...inquiries.map((inquiry) => [
       inquiry.id,
       inquiry.createdAt,
@@ -54,6 +54,9 @@ export async function GET(request: Request) {
       inquiry.quantity,
       inquiry.requirement,
       inquiry.source,
+      inquiry.landingPage,
+      inquiry.referrer,
+      inquiry.visitorId ? "yes" : "no",
     ].map(csvCell).join(",")),
   ];
 

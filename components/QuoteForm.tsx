@@ -11,6 +11,25 @@ async function encodeAttachment(file: File) {
   });
 }
 
+function trackingContext() {
+  try {
+    const visitorKey = "cowinmotors_visitor_id";
+    const sessionKey = "cowinmotors_session_id";
+    const visitorId = window.localStorage.getItem(visitorKey) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const sessionId = window.sessionStorage.getItem(sessionKey) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    window.localStorage.setItem(visitorKey, visitorId);
+    window.sessionStorage.setItem(sessionKey, sessionId);
+    return {
+      visitorId,
+      sessionId,
+      landingPage: `${window.location.pathname}${window.location.search}`,
+      referrer: document.referrer,
+    };
+  } catch {
+    return { visitorId: "", sessionId: "", landingPage: "", referrer: "" };
+  }
+}
+
 export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initialProduct?: string; initialCategory?: string }) {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -66,6 +85,7 @@ export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initi
             `Requirement: ${String(formData.get("requirement") || "")}`,
           ].filter((item) => !item.endsWith(": ")).join(" | "),
           attachment,
+          ...trackingContext(),
         };
 
         const response = await fetch("/api/inquiry", {
@@ -84,8 +104,8 @@ export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initi
               page: window.location.pathname,
               pageTitle: document.title,
               targetText: payload.product || payload.productType,
-              visitorId: window.localStorage.getItem("cowinmotors_visitor_id") || "anonymous",
-              sessionId: window.sessionStorage.getItem("cowinmotors_session_id") || "session",
+              visitorId: payload.visitorId || "anonymous",
+              sessionId: payload.sessionId || "session",
             }),
             keepalive: true,
           }).catch(() => {});

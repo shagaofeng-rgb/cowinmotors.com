@@ -42,7 +42,7 @@ export default async function AdminInquiriesPage({
         <div>
           <p className="eyebrow">询盘数据</p>
           <h1>RFQ 表单提交记录</h1>
-          <p>查看网站询盘表单提交的联系人、电话、产品、车型、数量和需求说明。</p>
+          <p>查看每次询盘的完整提交信息，并打开详情核对提交前的真实访问轨迹。</p>
         </div>
         <span className="admin-status">{filtered.length}/{inquiries.length} records</span>
       </header>
@@ -75,6 +75,8 @@ export default async function AdminInquiriesPage({
                   <th>车型</th>
                   <th>数量</th>
                   <th>需求</th>
+                  <th>访问轨迹</th>
+                  <th aria-label="查看详情" />
                 </tr>
               </thead>
               <tbody>
@@ -82,7 +84,7 @@ export default async function AdminInquiriesPage({
                   <tr key={inquiry.id}>
                     <td>{new Date(inquiry.createdAt).toLocaleString("zh-CN")}</td>
                     <td>
-                      <strong>{inquiry.name}</strong>
+                      <Link href={`/admin/inquiries/${inquiry.id}`}><strong>{inquiry.name}</strong></Link>
                       <span className="admin-muted">{inquiry.email}</span>
                     </td>
                     <td>{inquiry.phone || "-"}</td>
@@ -90,6 +92,12 @@ export default async function AdminInquiriesPage({
                     <td>{inquiry.vehicleInfo || "-"}</td>
                     <td>{inquiry.quantity || "-"}</td>
                     <td>{inquiry.requirement || "-"}</td>
+                    <td>
+                      <span className={`admin-status ${inquiry.visitorId ? "good" : "warn"}`}>
+                        {inquiry.visitorId ? "已关联" : "历史记录"}
+                      </span>
+                    </td>
+                    <td><Link className="admin-table-action" href={`/admin/inquiries/${inquiry.id}`}>查看详情</Link></td>
                   </tr>
                 ))}
               </tbody>
