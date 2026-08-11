@@ -4,58 +4,7 @@ import { ensureCoreSchema, getSql } from "@/lib/database";
 const SITE_URL = "https://www.cowinmotors.com";
 const DEFAULT_COVER_IMAGE = `${SITE_URL}/assets/ui/photography/news/article-fitment-compliance.png`;
 const DEFAULT_AUTHOR = "Cowinmotors Editorial Team";
-
-type ScheduledBuyerGuide = {
-  id: string;
-  title: string;
-  description: string;
-  content: string;
-};
-
-const scheduledBuyerGuides: ScheduledBuyerGuide[] = [
-  {
-    id: "confirm-headlight-fitment-before-importing",
-    title: "How to Confirm Headlight Fitment Before Importing",
-    description: "A practical buyer guide to confirming vehicle configuration, side, market version, connectors, and product references before ordering headlights.",
-    content: `Headlight fitment should be confirmed from the vehicle configuration, not from a model name alone. The same vehicle platform can use different lamps by model year, market, body style, trim, left-hand-drive or right-hand-drive layout, and optional lighting equipment.
-
-Start with the vehicle year, make, model, trim, engine, and market version. For lighting parts, state whether the vehicle is LHD or RHD and whether you need the left lamp, right lamp, or a pair. An OE number, label photo, rear-connector photo, or clear image of the original lamp helps avoid assumptions.
-
-Check the product reference against the specific vehicle information before asking for a quotation. Details such as DRL style, turn-signal function, lens layout, connector type, ballast or module requirement, and coding need can differ by configuration. If any detail is unconfirmed, keep it as a confirmation point rather than treating it as a fixed specification.
-
-Before payment, review the product photo, requested side or set, packaging requirement, quantity, and destination country. This gives the buyer, sourcing partner, and supplier a shared reference for the order.
-
-Cowinmotors Automotive Parts is an independent China-based automotive parts sourcing and export partner. Vehicle brand names are used only to indicate compatibility. Send your vehicle details, OE number, or product photo through the fitment check form before ordering.`,
-  },
-  {
-    id: "wheel-pcd-offset-center-bore-before-ordering",
-    title: "How to Check Wheel PCD, Offset and Center Bore Before Ordering",
-    description: "A buyer checklist for confirming wheel diameter, width, PCD, offset, center bore, and vehicle clearance before requesting forged wheels.",
-    content: `Wheel fitment is a combination of size, bolt pattern, offset, center bore, brake clearance, tire choice, and vehicle use. A wheel that looks suitable in a photograph may not fit a specific vehicle configuration.
-
-Provide the vehicle year, make, model, trim, brake specification if known, and the wheel size you require. Confirm diameter, width, PCD or bolt pattern, offset, center bore, finish, and set quantity. If the vehicle has suspension, brake, or body modifications, include that information in the inquiry.
-
-Do not assume that a wheel specification is interchangeable across every version of a vehicle platform. Regional versions and performance trims can use different fitment requirements. Ask for the exact values to be reviewed against the vehicle before ordering.
-
-Packaging and destination should also be discussed early. Buyers can request product-photo confirmation and packaging review before shipment coordination.
-
-Cowinmotors Automotive Parts can review forged wheel sourcing inquiries using the details supplied by the buyer. Final fitment and local compliance requirements should be confirmed before ordering.`,
-  },
-  {
-    id: "valved-exhaust-buying-checklist",
-    title: "What to Confirm Before Buying a Valved Exhaust System",
-    description: "A fitment-led checklist for buyers sourcing valved exhaust systems, covering vehicle, engine, installation, materials, sound expectations, and road-use considerations.",
-    content: `A valved exhaust request needs more than a vehicle model name. Engine version, model year, drivetrain, existing exhaust configuration, installation position, and the buyer's destination can affect the correct product selection.
-
-Provide the vehicle year, make, model, trim, engine, and any known OEM exhaust reference. State whether the request is for a cat-back, axle-back, downpipe, tips, or another component. If valves, electronic controls, or coding are expected, ask for those details to be confirmed for the exact configuration.
-
-Material, pipe diameter, tip finish, package contents, and installation hardware should not be assumed if they are not identified in the product record. Buyers should also review destination-country road-use, emissions, noise, and import requirements before ordering.
-
-Use product photos, reference numbers, and vehicle photos to reduce ambiguity. Confirm the quantity, packaging requirement, and destination as part of the quotation review.
-
-Cowinmotors Automotive Parts supports fitment-led sourcing and export coordination. It does not represent unverified road-use approvals, certifications, inventory, or delivery times.`,
-  },
-];
+const BLOG_CLASS_IDS = new Set(["blog", "31"]);
 
 type BlogRow = {
   id: string;
@@ -79,6 +28,8 @@ type BlogRow = {
   created_at: Date | string | null;
 };
 
+export type BlogStatus = "draft" | "scheduled" | "published" | "withdrawn";
+
 export type BlogArticle = {
   id: string;
   classId: string;
@@ -90,7 +41,7 @@ export type BlogArticle = {
   authorName: string;
   coverImageUrl: string;
   coverImageAlt: string;
-  status: "published";
+  status: BlogStatus;
   source: string;
   publishedAt: string;
   updatedAt: string;
@@ -98,6 +49,22 @@ export type BlogArticle = {
   seoDescription: string;
   canonicalUrl: string;
   createdAt: string;
+};
+
+export type BlogWebhookInput = {
+  classId: string;
+  title: string;
+  content: string;
+  authorId: string;
+  imageUrl: string;
+};
+
+export type BlogPublicationSummary = {
+  configured: boolean;
+  lastSuccessAt: string;
+  lastFailureAt: string;
+  successfulPublishes: number;
+  failedPublishes: number;
 };
 
 export function blogArticleParagraphs(content: string) {
@@ -129,6 +96,101 @@ function asIso(value: Date | string | null) {
   return value ? new Date(value).toISOString() : "";
 }
 
+function normaliseBlogStatus(value: string | null | undefined): BlogStatus {
+  if (value === "draft" || value === "scheduled" || value === "withdrawn" || value === "published") return value;
+  return "draft";
+}
+
+function hash(value: string) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function normaliseWhitespace(value: string) {
+  return value.replace(/\r\n?/g, "\n").replace(/[\t ]+/g, " ").trim();
+}
+
+function decodeCommonEntities(value: string) {
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+}
+
+function plainTextContent(value: string) {
+  return normaliseWhitespace(
+    decodeCommonEntities(value)
+      .replace(/<\s*br\s*\/?>/gi, "\n")
+      .replace(/<\/(?:p|div|h[1-6]|li|blockquote|section|article)>/gi, "\n\n")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\n{3,}/g, "\n\n"),
+  );
+}
+
+function makeExcerpt(content: string) {
+  const singleLine = content.replace(/\s+/g, " ").trim();
+  return singleLine.length <= 230 ? singleLine : `${singleLine.slice(0, 227).trimEnd()}...`;
+}
+
+function slugify(value: string) {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 92);
+  return normalized || "cowinmotors-blog";
+}
+
+function normaliseImageUrl(value: string) {
+  const candidate = value.trim();
+  if (!candidate) return DEFAULT_COVER_IMAGE;
+  try {
+    const url = new URL(candidate);
+    return url.protocol === "https:" ? url.toString() : DEFAULT_COVER_IMAGE;
+  } catch {
+    return DEFAULT_COVER_IMAGE;
+  }
+}
+
+function cleanInput(value: unknown, maximum: number) {
+  return typeof value === "string" ? value.trim().slice(0, maximum) : "";
+}
+
+function normaliseClassId(value: unknown) {
+  return cleanInput(value, 60).toLowerCase() || "blog";
+}
+
+export function isBlogWebhookConfigured() {
+  return Boolean(process.env.WEBHOOK_ARTICLE_SIGN);
+}
+
+export function isSupportedBlogClassId(value: unknown) {
+  return BLOG_CLASS_IDS.has(normaliseClassId(value));
+}
+
+export function hasCompleteBlogWebhookArticle(input: Record<string, unknown>) {
+  const title = normaliseWhitespace(cleanInput(input.title, 180));
+  const content = plainTextContent(cleanInput(input.content, 100_000));
+  return title.length >= 3 && content.length >= 40;
+}
+
+export function validateBlogWebhookInput(input: Record<string, unknown>): { input?: BlogWebhookInput; error?: string } {
+  const classId = normaliseClassId(input.class_id);
+  const title = normaliseWhitespace(cleanInput(input.title, 180));
+  const content = plainTextContent(cleanInput(input.content, 100_000));
+  const authorId = normaliseWhitespace(cleanInput(input.author_id, 120));
+  const imageUrl = normaliseImageUrl(cleanInput(input.image_url, 2_000));
+
+  if (!BLOG_CLASS_IDS.has(classId)) return { error: "Unsupported class_id. Use blog." };
+  if (title.length < 3) return { error: "title must contain at least 3 characters." };
+  if (content.length < 40) return { error: "content must contain at least 40 characters." };
+  return { input: { classId: "blog", title, content, authorId, imageUrl } };
+}
+
 function rowToBlogArticle(row: BlogRow): BlogArticle {
   return {
     id: row.id,
@@ -141,7 +203,7 @@ function rowToBlogArticle(row: BlogRow): BlogArticle {
     authorName: row.author_name || DEFAULT_AUTHOR,
     coverImageUrl: row.cover_image_url || DEFAULT_COVER_IMAGE,
     coverImageAlt: row.cover_image_alt || row.title,
-    status: "published",
+    status: normaliseBlogStatus(row.status),
     source: row.source || "manual editorial",
     publishedAt: asIso(row.published_at),
     updatedAt: asIso(row.updated_at),
@@ -206,6 +268,18 @@ export async function ensureBlogSchema() {
         `;
         await sql`CREATE INDEX IF NOT EXISTS blog_articles_status_published_at_idx ON blog_articles (status, published_at DESC)`;
         await sql`CREATE INDEX IF NOT EXISTS blog_articles_class_id_idx ON blog_articles (class_id)`;
+        await sql`
+          CREATE TABLE IF NOT EXISTS blog_publication_events (
+            id TEXT PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            status TEXT NOT NULL,
+            article_id TEXT NOT NULL DEFAULT '',
+            fingerprint TEXT NOT NULL DEFAULT '',
+            detail TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `;
+        await sql`CREATE INDEX IF NOT EXISTS blog_publication_events_status_created_at_idx ON blog_publication_events (status, created_at DESC)`;
       } finally {
         await sql`SELECT pg_advisory_unlock(34882941)`;
       }
@@ -248,11 +322,20 @@ export async function getBlogCategories() {
 
 export async function getBlogAdminSnapshot() {
   const sql = getSql();
-  if (!sql) return { articles: [] as BlogArticle[], categories: [] as BlogCategory[] };
+  if (!sql) return {
+    articles: [] as BlogArticle[],
+    categories: [] as BlogCategory[],
+    publication: { configured: isBlogWebhookConfigured(), lastSuccessAt: "", lastFailureAt: "", successfulPublishes: 0, failedPublishes: 0 } satisfies BlogPublicationSummary,
+  };
   await ensureBlogSchema();
-  const articleRows = await sql`SELECT * FROM blog_articles ORDER BY published_at DESC LIMIT 250` as BlogRow[];
-  const categoryRows = await sql`SELECT id, name, slug, description, enabled FROM blog_categories ORDER BY name ASC` as BlogCategory[];
-  return { articles: articleRows.map(rowToBlogArticle), categories: categoryRows };
+  const [articleResult, categoryResult, publication] = await Promise.all([
+    sql`SELECT * FROM blog_articles ORDER BY published_at DESC LIMIT 250`,
+    sql`SELECT id, name, slug, description, enabled FROM blog_categories ORDER BY name ASC`,
+    getBlogPublicationSummary(),
+  ]);
+  const articleRows = articleResult as unknown as BlogRow[];
+  const categoryRows = categoryResult as unknown as BlogCategory[];
+  return { articles: articleRows.map(rowToBlogArticle), categories: categoryRows, publication };
 }
 
 export async function getPublishedBlogArticle(slug: string) {
@@ -267,29 +350,64 @@ export async function getPublishedBlogArticle(slug: string) {
   return rows[0] ? rowToBlogArticle(rows[0]) : null;
 }
 
-export async function publishNextScheduledBuyerGuide() {
+export async function publishBlogWebhookArticle(input: BlogWebhookInput) {
   const sql = getSql();
-  if (!sql) throw new Error("Scheduled Buyer Guide publishing requires a configured database.");
+  if (!sql) throw new Error("Blog publishing is unavailable because the database is not configured.");
   await ensureBlogSchema();
-  const rows = await sql`SELECT external_fingerprint FROM blog_articles WHERE source = 'scheduled-buyer-guide'` as Array<{ external_fingerprint: string }>;
-  const published = new Set(rows.map((row) => row.external_fingerprint));
-  const guide = scheduledBuyerGuides.find((item) => !published.has(`buyer-guide:${item.id}`));
-  if (!guide) return { created: false, reason: "All approved Buyer Guide topics are already published." };
-
-  const fingerprint = `buyer-guide:${guide.id}`;
-  const slug = `${guide.id}-${crypto.createHash("sha256").update(fingerprint).digest("hex").slice(0, 8)}`;
-  const now = new Date().toISOString();
+  const fingerprint = hash(`${input.classId}\n${input.title.toLowerCase()}\n${input.authorId.toLowerCase()}`);
+  const existingRows = await sql`SELECT slug FROM blog_articles WHERE external_fingerprint = ${fingerprint} LIMIT 1` as Array<{ slug: string }>;
+  const slug = existingRows[0]?.slug || `${slugify(input.title)}-${fingerprint.slice(0, 10)}`;
+  const id = crypto.randomUUID();
+  const excerpt = makeExcerpt(input.content);
+  const authorName = input.authorId || DEFAULT_AUTHOR;
   const canonicalUrl = `${SITE_URL}/blog/${slug}`;
   const rowsCreated = await sql`
     INSERT INTO blog_articles (
       id, external_fingerprint, class_id, title, slug, excerpt, content, author_id, author_name,
       cover_image_url, cover_image_alt, status, source, published_at, updated_at, seo_title, seo_description, canonical_url
     ) VALUES (
-      ${crypto.randomUUID()}, ${fingerprint}, 'blog', ${guide.title}, ${slug}, ${guide.description}, ${guide.content}, 'cowinmotors-editorial', ${DEFAULT_AUTHOR},
-      ${DEFAULT_COVER_IMAGE}, ${guide.title}, 'published', 'scheduled-buyer-guide', ${now}, ${now}, ${guide.title}, ${guide.description}, ${canonicalUrl}
-    ) RETURNING *
+      ${id}, ${fingerprint}, ${input.classId}, ${input.title}, ${slug}, ${excerpt}, ${input.content}, ${input.authorId}, ${authorName},
+      ${input.imageUrl}, ${input.title}, 'published', 'plugin-webhook', NOW(), NOW(), ${input.title}, ${excerpt}, ${canonicalUrl}
+    )
+    ON CONFLICT (external_fingerprint) DO UPDATE SET
+      class_id = EXCLUDED.class_id, title = EXCLUDED.title, excerpt = EXCLUDED.excerpt, content = EXCLUDED.content,
+      author_id = EXCLUDED.author_id, author_name = EXCLUDED.author_name, cover_image_url = EXCLUDED.cover_image_url,
+      cover_image_alt = EXCLUDED.cover_image_alt, status = 'published', source = 'plugin-webhook', updated_at = NOW(),
+      seo_title = EXCLUDED.seo_title, seo_description = EXCLUDED.seo_description, canonical_url = EXCLUDED.canonical_url
+    RETURNING *
   ` as BlogRow[];
-  return { created: true, article: rowToBlogArticle(rowsCreated[0]) };
+  return { article: rowToBlogArticle(rowsCreated[0]), created: !existingRows.length, fingerprint };
+}
+
+export async function recordBlogPublicationEvent(input: { status: "success" | "failed"; articleId?: string; fingerprint?: string; detail: string }) {
+  const sql = getSql();
+  if (!sql) return;
+  await ensureBlogSchema();
+  await sql`
+    INSERT INTO blog_publication_events (id, event_type, status, article_id, fingerprint, detail, created_at)
+    VALUES (${crypto.randomUUID()}, 'plugin-webhook', ${input.status}, ${input.articleId || ""}, ${input.fingerprint || ""}, ${input.detail.slice(0, 500)}, NOW())
+  `;
+}
+
+export async function getBlogPublicationSummary(): Promise<BlogPublicationSummary> {
+  const sql = getSql();
+  if (!sql) return { configured: isBlogWebhookConfigured(), lastSuccessAt: "", lastFailureAt: "", successfulPublishes: 0, failedPublishes: 0 };
+  await ensureBlogSchema();
+  const rows = await sql`
+    SELECT status, created_at
+    FROM blog_publication_events
+    WHERE event_type = 'plugin-webhook'
+    ORDER BY created_at DESC
+    LIMIT 200
+  ` as Array<{ status: string; created_at: Date | string }>;
+  const latest = (status: string) => rows.find((row) => row.status === status)?.created_at;
+  return {
+    configured: isBlogWebhookConfigured(),
+    lastSuccessAt: asIso(latest("success") || null),
+    lastFailureAt: asIso(latest("failed") || null),
+    successfulPublishes: rows.filter((row) => row.status === "success").length,
+    failedPublishes: rows.filter((row) => row.status === "failed").length,
+  };
 }
 
 export function blogArticleJsonLd(article: BlogArticle) {

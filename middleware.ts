@@ -7,6 +7,9 @@ export function middleware(request: NextRequest) {
     destination.search = request.nextUrl.search;
     return NextResponse.redirect(destination, 308);
   }
+  if (request.method === "POST" && request.nextUrl.pathname === "/") {
+    return NextResponse.rewrite(new URL("/api/webhook/send_article", request.url));
+  }
   return NextResponse.next();
 }
 

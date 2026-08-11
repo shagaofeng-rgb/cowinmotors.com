@@ -17,7 +17,7 @@ export default async function AdminSyncPage() {
         <div>
           <p className="eyebrow">数据同步</p>
           <h1>Cron、SEO 与数据任务</h1>
-          <p>检查新闻自动发布、Sitemap 每日维护、每月询盘测试邮件、Search Console 同步和数据任务状态。</p>
+          <p>查看签名 Blog 发布、站点地图维护、每月询盘测试邮件和 Search Console 数据读取状态。</p>
         </div>
         <span className={hasWarning ? "admin-status warn" : "admin-status good"}>{hasWarning ? "需要检查" : "已配置"}</span>
       </header>
