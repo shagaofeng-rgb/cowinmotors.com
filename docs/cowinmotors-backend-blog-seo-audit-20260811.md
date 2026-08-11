@@ -130,6 +130,29 @@ The public catalog is real local catalog data loaded from `public/data/site-data
 | Draft exclusion from public Blog | passed |
 | Anonymous admin API access | correctly blocked with `401` |
 
+## Production deployment verification
+
+Commit `6f03df9` was pushed to `main` and the existing Git-to-Vercel integration deployed it. The production verification completed after the new behavior appeared:
+
+| Production check | Result |
+| --- | --- |
+| Full-site smoke test | 22/22 main routes and public endpoints returned HTTP `200` with non-empty responses |
+| Root Webhook POST | HTTP `503` plus the expected JSON configuration response, proving the new rewrite and endpoint are live |
+| Direct Webhook GET | HTTP `405`, as intended for a POST-only API |
+| Removed Buyer Guides cron route | HTTP `404` |
+| Remaining monthly inquiry cron | HTTP `401` without its bearer secret |
+| Protected sitemap-maintenance route | HTTP `401` without its bearer secret |
+
+Measured production response timings before/after this deployment were stable (single-request network samples):
+
+| Route | Before: TTFB / total | After: TTFB / total |
+| --- | --- | --- |
+| `/` | 1.618s / 1.905s | 1.403s / 1.618s |
+| `/products` | 1.092s / 1.411s | 1.100s / 1.484s |
+| `/blog` | 1.249s / 1.351s | 1.103s / 1.271s |
+| `/news` | 1.152s / 1.465s | 1.019s / 1.293s |
+| `/sitemap.xml` | 1.068s / 1.068s | 0.915s / 0.915s |
+
 ## Changed files
 
 - `.env.example`
