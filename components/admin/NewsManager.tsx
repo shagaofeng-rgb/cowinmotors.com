@@ -82,7 +82,7 @@ export function NewsManager({ initialArticles }: { initialArticles: NewsArticle[
   return (
     <div className="admin-stack">
       <section className="admin-metric-grid">
-        <div className="admin-metric"><span>Manual published</span><strong>{articles.filter((article) => article.status === "published" && article.indexable).length}</strong><small>可进入 sitemap</small></div>
+        <div className="admin-metric"><span>Published</span><strong>{articles.filter((article) => article.status === "published" && article.indexable).length}</strong><small>可进入 sitemap</small></div>
         <div className="admin-metric"><span>Draft / review</span><strong>{articles.filter((article) => article.status !== "published").length}</strong><small>等待人工处理</small></div>
         <div className="admin-metric"><span>Legacy noindex</span><strong>{legacyCount}</strong><small>保留 URL，不参与收录</small></div>
       </section>

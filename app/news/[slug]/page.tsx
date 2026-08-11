@@ -64,7 +64,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
 
           <figure className="news-cover">
             <img src={article.coverImageUrl} alt={article.coverImageAlt} />
-            {hasExternalSource ? <figcaption>Image source: <a href={article.coverImagePageUrl || article.coverImageSourceUrl} target="_blank" rel="noreferrer">source page</a></figcaption> : null}
+            <figcaption>{article.coverImagePageUrl ? <>Image source: <a href={article.coverImagePageUrl} target="_blank" rel="noreferrer">source page</a></> : "Image: Cowinmotors neutral editorial asset"}</figcaption>
           </figure>
 
           <aside className="news-takeaways">
@@ -77,14 +77,15 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
           <section className="news-body">{paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</section>
 
           <section className="news-source-box">
-            <h2>Information Source</h2>
+            <h2>Original Source</h2>
             {hasExternalSource ? <><dl>
               <div><dt>Original title</dt><dd>{article.sourceTitle}</dd></div>
               <div><dt>Publisher</dt><dd>{article.sourcePublisher}</dd></div>
               <div><dt>Author</dt><dd>{article.sourceAuthor || "Not listed by source"}</dd></div>
               {article.sourcePublishedAt ? <div><dt>Original published time</dt><dd>{new Date(article.sourcePublishedAt).toLocaleString("en-US")}</dd></div> : null}
               <div><dt>Source URL</dt><dd><a href={article.canonicalSourceUrl} target="_blank" rel="noreferrer">Read original source</a></dd></div>
-            </dl><p>This article includes Cowinmotors editorial analysis alongside the linked source. Original reporting remains the property of the original publisher.</p></> : <p>This is Cowinmotors original editorial content. It was manually reviewed before publication.</p>}
+            </dl><p>This page is an independent editorial summary and analysis. Original reporting remains the property of the original publisher.</p></> : <p>This is Cowinmotors original editorial content. It was manually reviewed before publication.</p>}
+            <p><strong>Editorial disclaimer:</strong> {article.editorialNote || "Facts are attributed to the linked source. Cowinmotors editorial analysis is clearly separated from source reporting."}</p>
           </section>
 
           {article.products.length ? (
@@ -96,7 +97,7 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
                 </div>
               </div>
               <div className="related-product-grid">
-                {article.products.map((product) => (
+                {article.products.slice(0, 1).map((product) => (
                   <Link className="related-product-card" href={product.url} key={product.productId}>
                     <img src={product.image} alt={product.title} />
                     <span>{product.category}</span>

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { ensureCoreSchema, getSql } from "@/lib/database";
 import { productPath, products, type Product } from "@/lib/products";
+import { getNewsSite } from "@/lib/news-site-config";
 
 const SITE_URL = "https://www.cowinmotors.com";
 const DEFAULT_AUTHOR = "Cowinmotors Editorial Team";
@@ -21,6 +22,7 @@ export type NewsProductRelation = {
 
 export type NewsArticle = {
   id: string;
+  siteId: string;
   title: string;
   slug: string;
   excerpt: string;
@@ -178,6 +180,7 @@ function toArticle(row: NewsRow, relations: NewsProductRelation[] = []): NewsArt
   const sourceUrl = safeHttpsUrl(row.canonical_source_url || row.source_url);
   return {
     id: asText(row.id, 100),
+    siteId: asText(row.site_id, 80) || getNewsSite().siteId,
     title,
     slug,
     excerpt: asText(row.excerpt, 500) || excerpt(content),
@@ -283,7 +286,9 @@ export async function ensureNewsSchema() {
         `;
         await sql`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS indexable BOOLEAN NOT NULL DEFAULT TRUE`;
         await sql`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS editorial_note TEXT NOT NULL DEFAULT ''`;
+        await sql`ALTER TABLE news_articles ADD COLUMN IF NOT EXISTS site_id TEXT NOT NULL DEFAULT 'cowinmotors'`;
         await sql`CREATE INDEX IF NOT EXISTS news_articles_public_idx ON news_articles (status, indexable, published_at DESC)`;
+        await sql`CREATE INDEX IF NOT EXISTS news_articles_site_public_idx ON news_articles (site_id, status, indexable, published_at DESC)`;
         await sql`CREATE TABLE IF NOT EXISTS news_products (news_id TEXT NOT NULL, product_id TEXT NOT NULL, relevance_score INTEGER NOT NULL DEFAULT 0, relationship_reason TEXT NOT NULL DEFAULT '', display_order INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (news_id, product_id))`;
       } finally {
         await sql`SELECT pg_advisory_unlock(65120419)`;
@@ -306,12 +311,11 @@ async function selectArticles(where = "", params: unknown[] = [], suffix = "") {
   return rows.map((row) => toArticle(row, relations.get(asText(row.id, 100)) || []));
 }
 
-export async function getPublishedNews({ limit = 12, page = 1, category = "", tag = "", indexableOnly = false } = {}) {
+export async function getPublishedNews({ limit = 12, page = 1, category = "", tag = "", indexableOnly = false, siteId = getNewsSite().siteId } = {}) {
   const safeLimit = Math.min(50_000, Math.max(1, Number(limit) || 12));
   const safePage = Math.max(1, Number(page) || 1);
-  const where: string[] = ["status = 'published'"];
-  const params: unknown[] = [];
-  if (indexableOnly) where.push("indexable = TRUE");
+  const where: string[] = ["status = 'published'", "site_id = $1", "indexable = TRUE"];
+  const params: unknown[] = [siteId];
   if (category) { params.push(category); where.push(`category = $${params.length}`); }
   if (tag) { params.push(tag); where.push(`tags ? $${params.length}`); }
   params.push(safeLimit, (safePage - 1) * safeLimit);
@@ -328,14 +332,14 @@ export async function getNewsCategories() {
   if (!sql) return [] as Array<{ category: string; count: number }>;
   await ensureNewsSchema();
   const rows = await sql.query(
-    "SELECT category, CAST(COUNT(*) AS INTEGER) AS article_count FROM news_articles WHERE status = 'published' GROUP BY category ORDER BY COUNT(*) DESC, category ASC",
-    [],
+    "SELECT category, CAST(COUNT(*) AS INTEGER) AS article_count FROM news_articles WHERE status = 'published' AND indexable = TRUE AND site_id = $1 GROUP BY category ORDER BY COUNT(*) DESC, category ASC",
+    [getNewsSite().siteId],
   ) as Array<{ category: string; article_count: number }>;
   return rows.map((row) => ({ category: row.category, count: Number(row.article_count) || 0 }));
 }
 
 export async function getNewsArticle(slug: string) {
-  const articles = await selectArticles("WHERE slug = $1 AND status = 'published'", [slug], "LIMIT 1");
+  const articles = await selectArticles("WHERE slug = $1 AND status = 'published' AND site_id = $2", [slug, getNewsSite().siteId], "LIMIT 1");
   return articles[0] || null;
 }
 
@@ -347,7 +351,7 @@ export async function getRelatedNewsForProduct(product: Product, limit = 3) {
   const rows = await sql`
     SELECT a.* FROM news_articles a
     INNER JOIN news_products p ON p.news_id = a.id
-    WHERE p.product_id = ${productId} AND a.status = 'published'
+    WHERE p.product_id = ${productId} AND a.status = 'published' AND a.indexable = TRUE AND a.site_id = ${getNewsSite().siteId}
     ORDER BY a.published_at DESC NULLS LAST
     LIMIT ${Math.min(12, Math.max(1, limit))}
   ` as NewsRow[];
@@ -356,7 +360,7 @@ export async function getRelatedNewsForProduct(product: Product, limit = 3) {
 }
 
 export async function getNewsAdminSnapshot() {
-  const articles = await selectArticles();
+  const articles = (await selectArticles()).filter((article) => article.siteId === getNewsSite().siteId);
   return {
     articles,
     manualPublished: articles.filter((article) => article.status === "published" && article.indexable).length,
@@ -398,7 +402,7 @@ async function replaceRelations(newsId: string, productIds: string[]) {
   const sql = getSql();
   if (!sql) return;
   await sql`DELETE FROM news_products WHERE news_id = ${newsId}`;
-  const valid = productIds.map((id, index) => ({ id, index, product: productRecord(id, index) })).filter((item) => item.product);
+  const valid = productIds.slice(0, 1).map((id, index) => ({ id, index, product: productRecord(id, index) })).filter((item) => item.product);
   for (const item of valid) {
     await sql`
       INSERT INTO news_products (news_id, product_id, relevance_score, relationship_reason, display_order)
@@ -418,13 +422,13 @@ export async function createManualNews(raw: ManualNewsInput) {
   const canonicalUrl = `${SITE_URL}/news/${slug}`;
   const rows = await sql`
     INSERT INTO news_articles (
-      id, title, slug, excerpt, content, status, indexable, language, category, tags,
+      id, site_id, title, slug, excerpt, content, status, indexable, language, category, tags,
       cover_image_url, cover_image_source_url, cover_image_page_url, cover_image_alt,
       author_name, published_at, updated_at, seo_title, seo_description, canonical_url,
       source_title, source_author, source_publisher, source_url, canonical_source_url,
       source_published_at, source_fetched_at, editorial_note
     ) VALUES (
-      ${id}, ${input.title}, ${slug}, ${input.excerpt}, ${input.content}, ${input.status}, ${input.indexable}, 'en', ${input.category}, ${JSON.stringify(input.tags)}::jsonb,
+      ${id}, ${getNewsSite().siteId}, ${input.title}, ${slug}, ${input.excerpt}, ${input.content}, ${input.status}, ${input.indexable}, 'en', ${input.category}, ${JSON.stringify(input.tags)}::jsonb,
       ${input.coverImageUrl}, ${input.coverImageUrl}, ${input.sourceUrl}, ${input.coverImageAlt},
       ${input.authorName}, ${input.status === "published" ? input.publishedAt : null}, NOW(), ${input.seoTitle}, ${input.seoDescription}, ${canonicalUrl},
       ${input.sourceTitle}, ${input.sourceAuthor}, ${input.sourcePublisher}, ${input.sourceUrl}, ${input.sourceUrl},
@@ -441,7 +445,7 @@ export async function updateManualNews(id: string, raw: ManualNewsInput) {
   if (!sql) throw new Error("News publishing requires a configured database.");
   await ensureNewsSchema();
   const input = validateManualInput(raw);
-  const existing = await sql`SELECT slug FROM news_articles WHERE id = ${id} LIMIT 1` as Array<{ slug: string }>;
+  const existing = await sql`SELECT slug FROM news_articles WHERE id = ${id} AND site_id = ${getNewsSite().siteId} LIMIT 1` as Array<{ slug: string }>;
   if (!existing[0]) throw new Error("News article not found.");
   const canonicalUrl = `${SITE_URL}/news/${existing[0].slug}`;
   const rows = await sql`
@@ -453,7 +457,7 @@ export async function updateManualNews(id: string, raw: ManualNewsInput) {
       seo_title = ${input.seoTitle}, seo_description = ${input.seoDescription}, canonical_url = ${canonicalUrl},
       source_title = ${input.sourceTitle}, source_author = ${input.sourceAuthor}, source_publisher = ${input.sourcePublisher},
       source_url = ${input.sourceUrl}, canonical_source_url = ${input.sourceUrl}, editorial_note = ${input.editorialNote}
-    WHERE id = ${id} RETURNING *
+    WHERE id = ${id} AND site_id = ${getNewsSite().siteId} RETURNING *
   ` as NewsRow[];
   await replaceRelations(id, input.productIds);
   const relations = await relationMap([id]);
@@ -464,7 +468,7 @@ export async function deleteManualNews(id: string) {
   const sql = getSql();
   if (!sql) throw new Error("News publishing requires a configured database.");
   await ensureNewsSchema();
-  const rows = await sql`DELETE FROM news_articles WHERE id = ${id} RETURNING slug` as Array<{ slug: string }>;
+  const rows = await sql`DELETE FROM news_articles WHERE id = ${id} AND site_id = ${getNewsSite().siteId} RETURNING slug` as Array<{ slug: string }>;
   if (!rows[0]) throw new Error("News article not found.");
   return rows[0];
 }

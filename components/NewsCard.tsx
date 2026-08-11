@@ -22,7 +22,6 @@ export function NewsCard({ article }: { article: NewsArticle }) {
         <p>{article.excerpt}</p>
         <div className="news-source-line">
           <span>Source: {article.sourcePublisher}</span>
-          {article.products[0] ? <Link href={article.products[0].url}>{article.products[0].category}</Link> : null}
         </div>
       </div>
     </article>

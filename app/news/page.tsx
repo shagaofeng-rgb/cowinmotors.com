@@ -81,8 +81,7 @@ export default async function NewsPage({
               <div>
                 <span>Sourcing Insight</span>
                 <h2>Automotive parts buying guidance for global buyers.</h2>
-                <p>Explore product categories, fitment checks, shipping support, and sourcing guidance from Cowinmotors.</p>
-                <Link href="/products">Explore products</Link>
+                <p>Verified industry updates will appear here after source, relevance, and editorial checks are complete.</p>
               </div>
             </article>
           )}
@@ -124,18 +123,7 @@ export default async function NewsPage({
                 <Link href={`/news?category=${encodeURIComponent(item)}`} key={item}>{item}</Link>
               ))}
             </section>
-            <section className="news-cta-box">
-              <h3>Need help sourcing the right parts?</h3>
-              <p>Our team helps global buyers find quality parts, confirm fitment, and get the best shipping solutions.</p>
-              <Link href="/quote">Request sourcing support</Link>
-            </section>
           </aside>
-        </section>
-
-        <section className="news-bottom-cta">
-          <Link href="/products">Explore our products</Link>
-          <Link href="/support">Go to resource center</Link>
-          <Link href="/quote">Talk to our experts</Link>
         </section>
       </main>
     </>
