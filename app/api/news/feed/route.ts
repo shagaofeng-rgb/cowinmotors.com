@@ -4,5 +4,5 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  return NextResponse.redirect(new URL("/news/rss.xml", request.url));
+  return NextResponse.redirect(new URL("/news/rss.xml", request.url), 308);
 }

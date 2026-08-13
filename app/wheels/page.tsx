@@ -36,7 +36,7 @@ export default async function WheelsPage({
       categorySlug="wheels"
       finderTitle="Find wheels that fit your vehicle"
       ctaLabel="Request a Quote"
-      ctaHref="/quote?product=Wheels%20RFQ"
+      ctaHref="/quote"
       quickStats={["Fitment Review", "Packaging Support", "Retail & Wholesale Inquiry", "Export Coordination"]}
       benefits={[
         ["Forged Selection", "Forged automotive wheels for retail and wholesale buyers."],

@@ -36,7 +36,7 @@ export default async function HeadlightsPage({
       categorySlug="headlights"
       finderTitle="Find headlights that fit your vehicle"
       ctaLabel="Request Custom Quote"
-      ctaHref="/quote?product=Headlight%20Custom%20Quote"
+      ctaHref="/quote"
       quickStats={["Fitment Confirmation", "Configuration Review", "Export Packaging Support", "Inquiry Support"]}
       benefits={[
         ["Fitment Support", "Confirm LHD/RHD, plugs, beam pattern and vehicle application."],

@@ -36,7 +36,7 @@ export default async function TailLightsPage({
       categorySlug="tail-lights"
       finderTitle="Find tail lights for your vehicle"
       ctaLabel="Request Sourcing"
-      ctaHref="/quote?product=Tail%20Light%20Sourcing"
+      ctaHref="/quote"
       quickStats={["Fitment Confirmation", "Side and Set Review", "Connector Check", "Inquiry Support"]}
       benefits={[
         ["Wholesale Inquiry", "Retail and wholesale requests are reviewed by product and quantity."],

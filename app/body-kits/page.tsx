@@ -42,7 +42,7 @@ export default function BodyKitsPage() {
             <div className="category-source-box">
               <strong>Can&apos;t find what you need?</strong>
               <span>Send the vehicle details, product reference, material or finish requirement, and destination for review.</span>
-              <Link href="/quote?product=Body%20Kit%20RFQ">Request a Quote</Link>
+              <Link href="/quote">Request a Quote</Link>
             </div>
           </div>
           <div className="category-hero-media">
@@ -97,7 +97,7 @@ export default function BodyKitsPage() {
           </div>
           <div className="bodykit-request-grid">
             {["Full Body Kits", "Front Lips", "Rear Diffusers", "Side Skirts", "Spoilers & Wings"].map((item, index) => (
-              <Link className="bodykit-request-card" href={`/quote?product=${encodeURIComponent(item)}`} key={item}>
+              <Link className="bodykit-request-card" href="/quote" key={item}>
                 <img src={UI_ASSETS.bodyKits[index] || UI_ASSETS.bodyKitHero} alt={`${item} sourcing request`} />
                 <strong>{item}</strong>
                 <span>Submit vehicle fitment, material or finish requirement, and destination for quotation.</span>

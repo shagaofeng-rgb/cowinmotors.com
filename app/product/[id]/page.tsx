@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { QuoteForm } from "@/components/QuoteForm";
@@ -36,6 +36,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const product = findProduct(id);
   if (!product) notFound();
+  const canonicalId = product.slug || String(product.__id);
+  if (id !== canonicalId) permanentRedirect(productPath(product));
   const category = categorySlug(product);
   const title = productDisplayTitle(product);
   const specs = productSpecs(product);

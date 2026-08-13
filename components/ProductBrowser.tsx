@@ -117,7 +117,7 @@ export function ProductBrowser({
         <div className="no-results" id="productGrid">
           <h3>No matching catalog listings yet.</h3>
           <p>Send vehicle fitment, part type, quantity, and destination country. We can confirm sourcing, MOQ, lead time, and shipping options by quote.</p>
-          <Link className="button primary" href="/quote?product=Custom%20fitment%20RFQ">
+          <Link className="button primary" href="/quote">
             Request fitment quote
           </Link>
         </div>

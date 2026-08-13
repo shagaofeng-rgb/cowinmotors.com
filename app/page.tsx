@@ -80,7 +80,7 @@ function featuredFor(category: (typeof categories)[number]) {
       image: category.fallback,
       price: "Request quote",
       href: category.href,
-      quote: `/quote?product=${encodeURIComponent(`${category.label} sourcing request`)}`,
+      quote: "/quote",
     };
   }
 
@@ -90,7 +90,7 @@ function featuredFor(category: (typeof categories)[number]) {
     image: product.localImage,
     price: product.price || "Request quote",
     href: productPath(product),
-    quote: `/quote?product=${encodeURIComponent(product.title)}`,
+    quote: `${productPath(product)}#product-inquiry`,
   };
 }
 
@@ -245,7 +245,7 @@ export default function HomePage() {
               <span>{item.text}</span>
             </Link>
           ))}
-          <Link className="home-category-item" href="/quote?product=More%20Parts%20Sourcing">
+          <Link className="home-category-item" href="/quote">
             <img src={UI_ASSETS.moreParts} alt="More automotive parts sourcing" />
             <strong>More Parts</strong>
             <span>Send OE number, product photo or vehicle details for sourcing.</span>
@@ -318,7 +318,7 @@ export default function HomePage() {
             Send us your part details, OEM number, vehicle information or reference photos. Our team will source
             or customize it according to your requirements and provide a competitive quote.
           </p>
-          <Link className="home-button home-button-primary" href="/quote?product=Sourcing%20Request">Submit a Sourcing Request</Link>
+          <Link className="home-button home-button-primary" href="/quote">Submit a Sourcing Request</Link>
         </div>
         <div className="home-form-panel">
           <MissingModelForm />

@@ -36,7 +36,7 @@ export default function SupportPage() {
             <div className="support-actions">
               <Link href="mailto:racheljiang@cowinmotors.com">Contact Support</Link>
               <Link href="https://api.whatsapp.com/send/?phone=%2B8617601255205&text&type=phone_number&app_absent=0" target="_blank">Chat on WhatsApp</Link>
-              <Link href="/quote?product=Sourcing%20Request">Sourcing Request</Link>
+              <Link href="/quote">Sourcing Request</Link>
             </div>
           </div>
           <img src={UI_ASSETS.supportNetwork} alt="Cowinmotors global order support" />

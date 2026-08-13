@@ -36,7 +36,7 @@ export default async function ExhaustPage({
       categorySlug="exhaust"
       finderTitle="Find the right exhaust fitment"
       ctaLabel="Request a Quote"
-      ctaHref="/quote?product=Exhaust%20System%20RFQ"
+      ctaHref="/quote"
       quickStats={["Fitment Confirmation", "Product Detail Review", "Packaging Support", "Export Coordination"]}
       benefits={[
         ["Fitment Review", "Confirm application information before quotation."],

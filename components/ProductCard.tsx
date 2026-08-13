@@ -34,7 +34,7 @@ export function ProductCard({ product, showLive = false }: { product: Product; s
           <Link className="product-link" href={productPath(product)}>
             View details
           </Link>
-          <Link className="quote-link" href={`/quote?product=${encodeURIComponent(product.title)}`}>
+          <Link className="quote-link" href={`${productPath(product)}#product-inquiry`}>
             Request a Quote
           </Link>
         </div>
