@@ -2463,6 +2463,10 @@ button.nav-drawer-trigger {
   width: min(660px, calc(100vw - 36px));
 }
 
+.nav-drawer.company .nav-panel {
+  width: min(480px, calc(100vw - 36px));
+}
+
 .nav-panel-head {
   display: grid;
   gap: 5px;
@@ -2503,6 +2507,42 @@ button.nav-drawer-trigger {
 }
 
 .nav-category-card:hover {
+  background: rgba(18, 70, 128, 0.8);
+  border-color: rgba(120, 195, 255, 0.56);
+}
+
+.company-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.nav-company-card {
+  display: grid;
+  min-height: 112px;
+  align-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #eaf5ff;
+  background: rgba(14, 35, 60, 0.78);
+  border: 1px solid rgba(113, 174, 255, 0.24);
+  border-radius: 8px;
+}
+
+.nav-company-card span {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.nav-company-card small {
+  color: #9eb2c8;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.nav-company-card:hover {
+  color: #ffffff;
   background: rgba(18, 70, 128, 0.8);
   border-color: rgba(120, 195, 255, 0.56);
 }
@@ -5426,7 +5466,8 @@ body:has(.home-redesign) .header-cta {
   }
 
   .category-panel,
-  .nav-link-grid {
+  .nav-link-grid,
+  .company-panel {
     grid-template-columns: 1fr;
   }
 
