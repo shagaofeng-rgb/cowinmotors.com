@@ -4,8 +4,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { Header } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { QuoteForm } from "@/components/QuoteForm";
-import { categorySlug, findProduct, productPath, products } from "@/lib/products";
-import { productBreadcrumbSchema, productDisplayTitle, productFaqs, productFaqSchema, productSchema, productSeoDescription, productSpecs } from "@/lib/product-detail";
+import { categorySlug, findProduct, hasUsableProductImage, isProductIndexable, productPath, products } from "@/lib/products";
+import { productBreadcrumbSchema, productDisplayTitle, productFaqs, productFaqSchema, productListingFacts, productSchema, productSeoDescription, productSpecs } from "@/lib/product-detail";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +23,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!product) return {};
   const title = productDisplayTitle(product);
   const description = productSeoDescription(product);
+  const image = absoluteImageUrl(product.localImage);
   return {
     title,
     description,
     alternates: { canonical: productPath(product) },
-    openGraph: { title, description, type: "website", url: `https://www.cowinmotors.com${productPath(product)}`, images: [{ url: absoluteImageUrl(product.localImage), alt: product.title }] },
-    twitter: { card: "summary_large_image", title, description, images: [absoluteImageUrl(product.localImage)] },
+    robots: isProductIndexable(product) ? undefined : { index: false, follow: true },
+    openGraph: { title, description, type: "website", url: `https://www.cowinmotors.com${productPath(product)}`, ...(hasUsableProductImage(product) ? { images: [{ url: image, alt: product.title }] } : {}) },
+    twitter: { card: "summary_large_image", title, description, ...(hasUsableProductImage(product) ? { images: [image] } : {}) },
   };
 }
 
@@ -54,7 +56,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
         <section className="product-hero">
           <div className="product-gallery">
-            <figure><img src={product.localImage} alt={`${title} product image`} /><figcaption>Product image supplied with the catalog record.</figcaption></figure>
+            <figure>
+              {hasUsableProductImage(product) ? <img src={product.localImage} alt={`${title} product image`} /> : <div className="product-image-unavailable">Product image is being verified for this catalog record.</div>}
+              <figcaption>Product image supplied with the catalog record.</figcaption>
+            </figure>
           </div>
           <div className="product-summary">
             <p className="eyebrow">{product.category}</p>
@@ -74,7 +79,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
         <section className="product-content-grid">
           <div className="product-longform">
-            <section><p className="eyebrow">Product overview</p><h2>What this product is</h2><p>{product.description || `This catalog-listed ${product.category.toLowerCase()} item is available for fitment-led sourcing inquiry.`}</p><p>It is intended for buyers who need compatibility confirmation, product-detail review, packaging coordination, and export support before ordering.</p></section>
+            <section><p className="eyebrow">Product overview</p><h2>What this product is</h2><p>{product.description || `This catalog-listed ${product.category.toLowerCase()} item is available for fitment-led sourcing inquiry.`}</p>{productListingFacts(product) ? <p>{productListingFacts(product)}</p> : null}<p>It is intended for buyers who need compatibility confirmation, product-detail review, packaging coordination, and export support before ordering.</p></section>
             <section><h2>Vehicle compatibility</h2><p>Compatible with {([product.brand, product.model, product.yearRange].filter(Boolean).join(" ") || "the vehicle configuration confirmed by sales")}. Vehicle brand names are used only to indicate compatibility. Cowinmotors Automotive Parts is an independent automotive parts sourcing and export partner.</p></section>
             <section><h2>Product details</h2><dl className="product-specs">{specs.map((spec) => <div key={spec.label}><dt>{spec.label}</dt><dd>{spec.value}</dd></div>)}</dl></section>
             <section><h2>What to confirm before ordering</h2><ol className="confirmation-list"><li>Vehicle year</li><li>Make and model</li><li>Trim and engine</li><li>LHD or RHD where applicable</li><li>Left, right, or full set</li><li>OE number or product photo if available</li><li>Destination country</li><li>Quantity and packaging requirements</li></ol></section>

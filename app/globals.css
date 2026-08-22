@@ -3487,6 +3487,13 @@ p {
   background: #f5f6f7;
 }
 
+.product-card-image-unavailable {
+  padding: 16px;
+  color: #526376;
+  font-size: 14px;
+  text-align: center;
+}
+
 .product-card img {
   width: 100%;
   height: 100%;
@@ -5923,6 +5930,7 @@ body:has(.quote-page) {
 
 .product-gallery figure { margin: 0; }
 .product-gallery img { width: 100%; aspect-ratio: 1 / 0.8; object-fit: contain; background: #fff; }
+.product-image-unavailable { display: grid; width: 100%; aspect-ratio: 1 / 0.8; place-items: center; padding: 24px; background: #102a48; color: #d6e5f7; text-align: center; }
 .product-gallery figcaption { margin-top: 10px; color: #a8b9ce; font-size: 13px; }
 .product-summary { padding: clamp(22px, 3vw, 42px); }
 .product-summary h1 { max-width: 18ch; font-size: clamp(30px, 3.2vw, 51px); line-height: 1.08; }

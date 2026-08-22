@@ -1,4 +1,4 @@
-import { categorySlug, productPath, type Product } from "@/lib/products";
+import { categorySlug, hasUsableProductImage, productPath, type Product } from "@/lib/products";
 
 const SITE_URL = "https://www.cowinmotors.com";
 
@@ -19,16 +19,29 @@ function fitmentLabel(product: Product) {
 }
 
 export function productDisplayTitle(product: Product) {
-  const kind = productKind(product);
-  const fitment = fitmentLabel(product);
-  if (categorySlug(product) === "wheels") return `${kind} Inquiry | ${product.title}`;
-  return fitment ? `${kind} Compatible with ${fitment}` : product.title;
+  const title = product.title.trim();
+  const reference = (product.partNumbers || []).find((value) => value && !/^sjc$/i.test(value.trim()));
+  if (reference && !title.toLowerCase().includes(reference.toLowerCase())) return `${title} | Ref. ${reference}`;
+  return title;
 }
 
 export function productSeoDescription(product: Product) {
   const fitment = fitmentLabel(product);
-  const subject = fitment ? `${productKind(product)} compatible with ${fitment}` : productKind(product);
-  return `Request a sourcing quote for this ${subject}. Confirm vehicle configuration, product details, packaging, quantity, and destination before ordering.`.slice(0, 158);
+  const reference = (product.partNumbers || []).find((value) => value && !/^sjc$/i.test(value.trim()));
+  const attributes = [reference ? `reference ${reference}` : "", product.side ? `${product.side} side` : "", product.material || ""].filter(Boolean).join(", ");
+  return `${productDisplayTitle(product)}${fitment ? `, compatible with ${fitment}` : ""}${attributes ? `; listed ${attributes}` : ""}. Request a fitment-led sourcing quote before ordering.`.slice(0, 158);
+}
+
+export function productListingFacts(product: Product) {
+  const facts = [
+    product.productType ? `Catalog type: ${product.productType}.` : "",
+    product.side ? `Listed side: ${product.side}.` : "",
+    product.material ? `Listed material: ${product.material}.` : "",
+    product.features?.length ? `Listed features: ${product.features.join(", ")}.` : "",
+    product.partNumbers?.length ? `Catalog reference: ${product.partNumbers.join(" / ")}.` : "",
+    product.rawSourceName ? `Catalog source reference: ${product.rawSourceName}.` : "",
+  ].filter(Boolean);
+  return facts.join(" ");
 }
 
 export function productSpecs(product: Product): DetailSpec[] {
@@ -111,11 +124,12 @@ export function productFaqSchema(product: Product) {
 
 export function productSchema(product: Product) {
   const title = productDisplayTitle(product);
+  const image = product.localImage.startsWith("http") ? product.localImage : `${SITE_URL}${product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`}`;
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     name: title,
-    image: [`${SITE_URL}${product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`}`],
+    ...(hasUsableProductImage(product) ? { image: [image] } : {}),
     description: productSeoDescription(product),
     category: product.category,
     sku: product.partNumbers?.[0] || product.id || product.slug,

@@ -50,6 +50,48 @@ export const products: Product[] = rawData.products.filter(isSupportedCatalogPro
       : `/${product.localImage}`,
 }));
 
+const genericReferencePattern = /^(?:sjc|n\/a|na|unknown)$/i;
+const productImagePattern = /\.(?:avif|gif|jpe?g|jfif|png|webp)(?:[?#].*)?$/i;
+
+function productIndexTitleKey(product: Product) {
+  const title = product.title.trim().toLowerCase();
+  const reference = (product.partNumbers || []).find((value) => value && !genericReferencePattern.test(value.trim()));
+  return `${title}|${reference?.trim().toLowerCase() || ""}`;
+}
+
+const productIndexTitleCounts = products.reduce((counts, product) => {
+  const key = productIndexTitleKey(product);
+  counts.set(key, (counts.get(key) || 0) + 1);
+  return counts;
+}, new Map<string, number>());
+
+/** Only catalog images are eligible for indexable product pages and structured data. */
+export function hasUsableProductImage(product: Product) {
+  const image = String(product.localImage || "").trim();
+  return Boolean(image) && !/facebook\.com\/tr\?/i.test(image) && productImagePattern.test(image);
+}
+
+export function hasProductIndexingEvidence(product: Product) {
+  const hasReference = (product.partNumbers || []).some((reference) => !genericReferencePattern.test(String(reference).trim()));
+  const hasSpecificAttribute = Boolean(
+    product.side ||
+      product.material ||
+      product.size ||
+      product.color ||
+      (product.features || []).length ||
+      hasReference,
+  );
+  return Boolean(product.title?.trim() && product.brand?.trim() && product.model?.trim() && hasSpecificAttribute);
+}
+
+/**
+ * Keep a page indexable only when its catalog record has a genuine image and
+ * enough product-specific information for a buyer to distinguish it.
+ */
+export function isProductIndexable(product: Product) {
+  return hasUsableProductImage(product) && hasProductIndexingEvidence(product) && productIndexTitleCounts.get(productIndexTitleKey(product)) === 1;
+}
+
 export function inferBuyingPath(product: Product) {
   const title = product.title.toLowerCase();
   if (

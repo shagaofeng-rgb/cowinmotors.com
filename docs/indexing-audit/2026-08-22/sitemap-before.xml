@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://www.cowinmotors.com/sitemaps/pages-1.xml</loc>
+    <lastmod>2026-08-08</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.cowinmotors.com/sitemaps/categories-1.xml</loc>
+    <lastmod>2026-08-08</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.cowinmotors.com/sitemaps/products-1.xml</loc>
+    <lastmod>2026-08-08</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://www.cowinmotors.com/sitemaps/posts-1.xml</loc>
+    <lastmod>2026-08-10</lastmod>
+  </sitemap>
+</sitemapindex>

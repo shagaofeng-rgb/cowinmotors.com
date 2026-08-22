@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { ensureCoreSchema, getSql } from "@/lib/database";
 import { getPublishedNews } from "@/lib/news";
 import { getPublishedBlogPosts } from "@/lib/blog";
-import { productCategoryOptions, productPath, products } from "@/lib/products";
+import { isProductIndexable, productCategoryOptions, productPath, products } from "@/lib/products";
 import {
   buildSitemapBundle,
   diffSitemapEntries,
@@ -14,7 +14,7 @@ import {
 
 const SITE_URL = "https://www.cowinmotors.com";
 const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
-const CATALOG_UPDATED_AT = process.env.PRODUCT_CATALOG_UPDATED_AT || "2026-08-08T15:30:00+08:00";
+const CATALOG_UPDATED_AT = process.env.PRODUCT_CATALOG_UPDATED_AT || "2026-08-22T00:00:00+08:00";
 const PUBLIC_PAGES_UPDATED_AT = process.env.PUBLIC_PAGES_UPDATED_AT || "2026-08-08T15:30:00+08:00";
 const LOCK_TTL_SECONDS = 15 * 60;
 
@@ -64,7 +64,7 @@ function categoryEntries(): SitemapEntry[] {
 
 function productEntries(): SitemapEntry[] {
   const records = products
-    .filter((product) => product.localImage)
+    .filter(isProductIndexable)
     .map((product) => ({
       loc: `${SITE_URL}${productPath(product)}`,
       canonical: `${SITE_URL}${productPath(product)}`,
