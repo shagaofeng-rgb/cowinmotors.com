@@ -38,6 +38,17 @@ The rules exclude explicitly marked test inquiries, local development traffic, `
 4. Submit one real controlled inquiry only when operationally required; verify there is a single server-side form event and a linked visitor journey.
 5. Confirm `/admin/inquiries` and its CSV export return the same date-bounded result set.
 
+## Production verification record
+
+The production deployment was verified on 2026-08-23 after the `c5fe47e` release. The protected data-quality route was matched by Vercel, and the public tracking endpoint accepted one controlled event whose campaign source was `Collects`.
+
+- Storage response: PostgreSQL.
+- Schema verification: `traffic_status`, `traffic_reason`, `ip_hash`, and `dedupe_key` are present in the production analytics table.
+- Filtering verification: the controlled event was stored with `traffic_status = excluded` and reason `Internal or collection source`.
+- Idempotency verification: retrying the same event identifier resulted in exactly one database record.
+
+The verification event remains in the audit-only excluded set. It is not included in the default real-traffic, visitor, page-performance, or conversion calculations.
+
 ## Privacy note
 
 Visitor IP data should be handled as personal data. The admin interface exposes only a masked representation and uses a salted hash for grouping. Access remains behind the existing admin authentication.
