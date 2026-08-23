@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { resolveDateRange, type AdminDateRange } from "@/lib/adminDateRange";
+import { ADMIN_REPORT_TIME_ZONE, resolveDateRange, type AdminDateRange } from "@/lib/adminDateRange";
 import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
 import {
   getGoogleSearchConsoleConnectionStatus,
@@ -34,6 +34,10 @@ export type AnalyticsEvent = {
   channel: string;
   sourcePlatform: string;
   sourceDetail: string;
+  trafficStatus: "real" | "excluded" | "review";
+  trafficReason: string;
+  ipHash: string;
+  dedupeKey: string;
   timestamp: string;
   clientTimestamp: string;
 };
@@ -63,6 +67,10 @@ type AnalyticsEventRow = {
   channel: string | null;
   source_platform: string | null;
   source_detail: string | null;
+  traffic_status: "real" | "excluded" | "review" | null;
+  traffic_reason: string | null;
+  ip_hash: string | null;
+  dedupe_key: string | null;
   timestamp: string | Date;
   client_timestamp: string | null;
 };
@@ -129,11 +137,16 @@ function hostFromUrl(value = "") {
   }
 }
 
+function isOwnDomain(value = "") {
+  const host = hostFromUrl(value);
+  return host === "cowinmotors.com" || host.endsWith(".cowinmotors.com");
+}
+
 function detectChannel(event: Pick<AnalyticsEvent, "utm" | "referrer">) {
   const source = event.utm?.source || "";
   const referrer = event.referrer || "";
   if (source) return `Campaign: ${source}`;
-  if (!referrer) return "Direct";
+  if (!referrer || isOwnDomain(referrer)) return "Direct";
   if (/google|bing|yahoo|duckduckgo|yandex|baidu/i.test(referrer)) return "Organic Search";
   if (/facebook|instagram|linkedin|youtube|tiktok|twitter|x\.com/i.test(referrer)) return "Social";
   return "Referral";
@@ -149,7 +162,7 @@ function detectSourcePlatform(event: Pick<AnalyticsEvent, "utm" | "referrer">) {
   if (/youtube|youtu\.be/.test(combined)) return "YouTube";
   if (/bing/.test(combined)) return "Bing";
   if (event.utm?.source) return event.utm.source;
-  if (event.referrer) return hostFromUrl(event.referrer) || "Referral";
+  if (event.referrer && !isOwnDomain(event.referrer)) return hostFromUrl(event.referrer) || "Referral";
   return "Direct";
 }
 
@@ -161,7 +174,58 @@ function sourceDetail(event: Pick<AnalyticsEvent, "utm" | "referrer">) {
       event.utm.campaign ? `utm_campaign=${event.utm.campaign}` : "",
     ].filter(Boolean).join(" / ");
   }
-  return event.referrer ? hostFromUrl(event.referrer) || event.referrer : "Direct";
+  return event.referrer && !isOwnDomain(event.referrer) ? hostFromUrl(event.referrer) || event.referrer : "Direct";
+}
+
+function hashIp(ip = "") {
+  if (!ip) return "";
+  const salt = process.env.ADMIN_JWT_SECRET || process.env.CRON_SECRET || "cowinmotors-analytics";
+  return crypto.createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+}
+
+function normalizedDedupeKey(payload: Record<string, any>) {
+  const value = String(payload.eventId || payload.dedupeKey || "").trim();
+  return /^[a-zA-Z0-9_-]{12,160}$/.test(value) ? value : "";
+}
+
+export function classifyTraffic(event: Pick<AnalyticsEvent, "userAgent" | "utm" | "referrer" | "page" | "sourcePlatform" | "sourceDetail">, qualityHint = "") {
+  const userAgent = event.userAgent.toLowerCase();
+  const source = `${event.utm?.source || ""} ${event.sourcePlatform || ""} ${event.sourceDetail || ""}`.toLowerCase();
+  const referrerHost = hostFromUrl(event.referrer);
+  const hint = qualityHint.toLowerCase();
+
+  if (hint === "test-inquiry" || /(^|[\s_-])(test|collect(?:s|ion)?|codex|internal)([\s_-]|$)/.test(source)) {
+    return { status: "excluded" as const, reason: hint === "test-inquiry" ? "Test inquiry" : "Internal or collection source" };
+  }
+  if (/meta-externalagent|facebookexternalhit|facebot/.test(userAgent)) {
+    return { status: "excluded" as const, reason: "Facebook link preview" };
+  }
+  if (/headless|playwright|puppeteer|lighthouse|selenium/.test(userAgent)) {
+    return { status: "excluded" as const, reason: "Automated browser" };
+  }
+  if (/curl|wget|postmanruntime/.test(userAgent)) {
+    return { status: "excluded" as const, reason: "HTTP test client" };
+  }
+  if (/bot|crawler|spider|slurp|preview/.test(userAgent)) {
+    return { status: "excluded" as const, reason: "Crawler or preview bot" };
+  }
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/i.test(referrerHost)) {
+    return { status: "excluded" as const, reason: "Local development referrer" };
+  }
+  if (/\b(test|smoke-test|health-check)\b/i.test(event.page)) {
+    return { status: "review" as const, reason: "Possible test route" };
+  }
+  return { status: "real" as const, reason: "" };
+}
+
+export function maskIp(ip = "") {
+  if (!ip) return "-";
+  if (ip.includes(".")) {
+    const parts = ip.split(".");
+    return parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.xxx` : "masked";
+  }
+  const parts = ip.split(":").filter(Boolean);
+  return parts.length ? `${parts.slice(0, 2).join(":")}::xxxx` : "masked";
 }
 
 export function getAnalyticsStorageMode() {
@@ -171,8 +235,10 @@ export function getAnalyticsStorageMode() {
 
 export function normalizeAnalyticsEvent(payload: Record<string, any>, request: Request): AnalyticsEvent {
   const userAgent = getHeader(request, "user-agent");
-  const event = {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  const id = normalizedDedupeKey(payload) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const ip = (getHeader(request, "x-forwarded-for").split(",")[0] || getHeader(request, "x-real-ip") || "").trim();
+  const event: AnalyticsEvent = {
+    id,
     type: (payload.type || "page_view") as AnalyticsEvent["type"],
     visitorId: String(payload.visitorId || "anonymous").slice(0, 80),
     sessionId: String(payload.sessionId || "session").slice(0, 80),
@@ -182,8 +248,8 @@ export function normalizeAnalyticsEvent(payload: Record<string, any>, request: R
     referrer: String(payload.referrer || "").slice(0, 240),
     outboundUrl: String(payload.outboundUrl || "").slice(0, 240),
     targetText: String(payload.targetText || "").slice(0, 120),
-    scrollDepth: Number(payload.scrollDepth || 0),
-    duration: Number(payload.duration || 0),
+    scrollDepth: Math.min(100, Math.max(0, Number(payload.scrollDepth || 0))),
+    duration: Math.min(86_400, Math.max(0, Number(payload.duration || 0))),
     utm: {
       source: String(payload.utm?.source || "").slice(0, 80),
       medium: String(payload.utm?.medium || "").slice(0, 80),
@@ -195,13 +261,17 @@ export function normalizeAnalyticsEvent(payload: Record<string, any>, request: R
     os: detectOs(userAgent),
     device: payload.device || detectDevice(userAgent),
     userAgent: userAgent.slice(0, 360),
-    ip: (getHeader(request, "x-forwarded-for").split(",")[0] || getHeader(request, "x-real-ip") || "").trim(),
+    ip,
     country: getHeader(request, "x-vercel-ip-country") || "Unknown",
     region: getHeader(request, "x-vercel-ip-country-region") || "",
     city: getHeader(request, "x-vercel-ip-city") || "",
     channel: "Direct",
     sourcePlatform: "Direct",
     sourceDetail: "Direct",
+    trafficStatus: "real",
+    trafficReason: "",
+    ipHash: hashIp(ip),
+    dedupeKey: normalizedDedupeKey(payload),
     timestamp: new Date().toISOString(),
     clientTimestamp: String(payload.timestamp || ""),
   };
@@ -209,6 +279,9 @@ export function normalizeAnalyticsEvent(payload: Record<string, any>, request: R
   event.channel = detectChannel(event);
   event.sourcePlatform = detectSourcePlatform(event);
   event.sourceDetail = sourceDetail(event);
+  const quality = classifyTraffic(event, String(payload.qualityHint || ""));
+  event.trafficStatus = quality.status;
+  event.trafficReason = quality.reason;
   return event;
 }
 
@@ -222,7 +295,7 @@ export async function appendAnalyticsEvent(event: AnalyticsEvent) {
         INSERT INTO cowin_analytics_events (
           id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
           scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
-          channel, source_platform, source_detail, timestamp, client_timestamp
+          channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
         ) VALUES (
           ${event.id},
           ${event.type},
@@ -248,14 +321,19 @@ export async function appendAnalyticsEvent(event: AnalyticsEvent) {
           ${event.channel},
           ${event.sourcePlatform},
           ${event.sourceDetail},
+          ${event.trafficStatus},
+          ${event.trafficReason},
+          ${event.ipHash},
+          ${event.dedupeKey},
           ${event.timestamp},
           ${event.clientTimestamp}
         )
-        ON CONFLICT (id) DO NOTHING
+        ON CONFLICT DO NOTHING
       `;
       return { ok: true, storageMode: getAnalyticsStorageMode() };
     } catch (error) {
-      console.error("Analytics database write failed; using file fallback.", error);
+      console.error("Analytics database write failed.", error);
+      if (process.env.VERCEL) return { ok: false, storageMode: "database-error" };
     }
   }
 
@@ -264,23 +342,39 @@ export async function appendAnalyticsEvent(event: AnalyticsEvent) {
   return { ok: true, storageMode: getAnalyticsStorageMode() };
 }
 
-export async function readAnalyticsEvents() {
+export async function readAnalyticsEvents(options: { startDate?: Date; endDate?: Date; limit?: number } = {}) {
   const sql = getSql();
+  const limit = Math.min(50_000, Math.max(1, options.limit || 20_000));
 
   if (sql) {
     try {
       await ensureCoreSchema();
-      const rows = await sql`
-        SELECT
-          id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
-          scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
-          channel, source_platform, source_detail, timestamp, client_timestamp
-        FROM cowin_analytics_events
-        ORDER BY timestamp DESC
-        LIMIT 10000
-      ` as AnalyticsEventRow[];
+      let rows: AnalyticsEventRow[];
+      if (options.startDate && options.endDate) {
+        rows = await sql`
+          SELECT
+            id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+            scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+            channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
+          FROM cowin_analytics_events
+          WHERE timestamp >= ${options.startDate.toISOString()} AND timestamp <= ${options.endDate.toISOString()}
+          ORDER BY timestamp DESC
+          LIMIT ${limit}
+        ` as AnalyticsEventRow[];
+      } else {
+        rows = await sql`
+          SELECT
+            id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+            scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+            channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
+          FROM cowin_analytics_events
+          ORDER BY timestamp DESC
+          LIMIT ${limit}
+        ` as AnalyticsEventRow[];
+      }
 
-      return rows.map((row) => ({
+      return rows.map((row) => {
+        const base = {
         id: row.id,
         type: row.type,
         visitorId: row.visitor_id,
@@ -305,11 +399,23 @@ export async function readAnalyticsEvents() {
         channel: row.channel || "",
         sourcePlatform: row.source_platform || "",
         sourceDetail: row.source_detail || "",
+        trafficStatus: row.traffic_status || "real",
+        trafficReason: row.traffic_reason || "",
+        ipHash: row.ip_hash || hashIp(row.ip || ""),
+        dedupeKey: row.dedupe_key || "",
         timestamp: new Date(row.timestamp).toISOString(),
         clientTimestamp: row.client_timestamp || "",
-      })) as AnalyticsEvent[];
+        } as AnalyticsEvent;
+        const quality = classifyTraffic(base);
+        if (!row.traffic_status || (!row.traffic_reason && quality.status !== "real")) {
+          base.trafficStatus = quality.status;
+          base.trafficReason = quality.reason;
+        }
+        return base;
+      });
     } catch (error) {
-      console.error("Analytics database read failed; using file fallback.", error);
+      console.error("Analytics database read failed.", error);
+      if (process.env.VERCEL) return [];
     }
   }
 
@@ -334,7 +440,7 @@ function dayKey(timestamp: string | Date) {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
+    timeZone: ADMIN_REPORT_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -416,8 +522,10 @@ function pageStats(events: AnalyticsEvent[]) {
 
 export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 14 }) {
   const { startDate, endDate, rangeDays } = resolveDateRange(range);
-  const allEvents = await readAnalyticsEvents();
-  const events = allEvents.filter((event) => inRange(event, startDate, endDate));
+  const allEvents = await readAnalyticsEvents({ startDate, endDate });
+  const events = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "real");
+  const excludedEvents = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "excluded");
+  const reviewEvents = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "review");
   const pageViews = events.filter((event) => event.type === "page_view");
   const forms = events.filter((event) => event.type === "form_submit");
   const clicks = events.filter((event) => event.type === "click");
@@ -450,6 +558,9 @@ export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 14 })
       bounceRate: sessionPageViews.size
         ? Math.round(([...sessionPageViews.values()].filter((views) => views <= 1).length / sessionPageViews.size) * 100)
         : 0,
+      trackedEvents: allEvents.length,
+      excludedEvents: excludedEvents.length,
+      reviewEvents: reviewEvents.length,
     },
     traffic: {
       series: seriesByDay(events, startDate, endDate),
@@ -459,12 +570,193 @@ export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 14 })
       devices: countBy(pageViews, "device", 6),
       browsers: countBy(pageViews, "browser", 6),
       operatingSystems: countBy(pageViews, "os", 6),
+      regions: countBy(pageViews, "region", 10),
     },
     visitors: pageViews.slice().sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 100),
     pages: pageStats(events),
     landingJourneys: pageViews.slice().sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 120),
     journeys: [...journeyMap.entries()].map(([route, value]) => ({ route, value })).sort((a, b) => b.value - a.value).slice(0, 100),
     events: events.slice().sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, 200),
+    dataQuality: {
+      excludedByReason: countBy(excludedEvents, "trafficReason", 12),
+      reviewByReason: countBy(reviewEvents, "trafficReason", 12),
+    },
+  };
+}
+
+export type VisitorDirectoryFilters = {
+  query?: string;
+  country?: string;
+  channel?: string;
+  source?: string;
+  device?: string;
+  label?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type VisitorProfile = {
+  visitorId: string;
+  displayId: string;
+  maskedIp: string;
+  country: string;
+  region: string;
+  city: string;
+  channel: string;
+  source: string;
+  device: string;
+  firstSeen: string;
+  lastSeen: string;
+  visits: number;
+  pages: number;
+  pageViews: number;
+  clicks: number;
+  inquiries: number;
+  labels: string[];
+};
+
+function profileLabels(events: AnalyticsEvent[], sessions: Set<string>) {
+  const labels: string[] = [];
+  if (events.some((event) => event.type === "form_submit")) labels.push("已询盘");
+  if (sessions.size > 1) labels.push("回访客户");
+  if (events.filter((event) => event.type === "page_view").length >= 5 || events.some((event) => event.type === "click")) labels.push("高意向");
+  if (!labels.length) labels.push("新访客");
+  return labels;
+}
+
+function profileFromEvents(visitorId: string, events: AnalyticsEvent[]): VisitorProfile {
+  const ordered = events.slice().sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+  const first = ordered[0];
+  const last = ordered.at(-1) || first;
+  const sessions = new Set(ordered.map((event) => event.sessionId).filter(Boolean));
+  const pageViews = ordered.filter((event) => event.type === "page_view");
+  return {
+    visitorId,
+    displayId: visitorId.slice(-10) || "anonymous",
+    maskedIp: maskIp(last?.ip || first?.ip || ""),
+    country: last?.country || first?.country || "Unknown",
+    region: last?.region || first?.region || "",
+    city: last?.city || first?.city || "",
+    channel: last?.channel || first?.channel || "Direct",
+    source: last?.sourcePlatform || first?.sourcePlatform || "Direct",
+    device: last?.device || first?.device || "Unknown",
+    firstSeen: first?.timestamp || "",
+    lastSeen: last?.timestamp || "",
+    visits: sessions.size,
+    pages: new Set(pageViews.map((event) => event.page)).size,
+    pageViews: pageViews.length,
+    clicks: ordered.filter((event) => event.type === "click").length,
+    inquiries: ordered.filter((event) => event.type === "form_submit").length,
+    labels: profileLabels(ordered, sessions),
+  };
+}
+
+function matchesVisitorFilter(profile: VisitorProfile, filters: VisitorDirectoryFilters) {
+  const query = String(filters.query || "").trim().toLowerCase();
+  if (query) {
+    const haystack = [profile.displayId, profile.country, profile.region, profile.city, profile.source, profile.channel, profile.device, ...profile.labels].join(" ").toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+  if (filters.country && profile.country !== filters.country) return false;
+  if (filters.channel && profile.channel !== filters.channel) return false;
+  if (filters.source && profile.source !== filters.source) return false;
+  if (filters.device && profile.device !== filters.device) return false;
+  if (filters.label && !profile.labels.includes(filters.label)) return false;
+  return true;
+}
+
+export async function getVisitorDirectory(range: AdminDateRange, filters: VisitorDirectoryFilters = {}) {
+  const { startDate, endDate } = resolveDateRange(range);
+  const allEvents = await readAnalyticsEvents({ startDate, endDate });
+  const grouped = new Map<string, AnalyticsEvent[]>();
+  for (const event of allEvents.filter((item) => item.trafficStatus === "real")) {
+    const events = grouped.get(event.visitorId) || [];
+    events.push(event);
+    grouped.set(event.visitorId, events);
+  }
+  const profiles = [...grouped.entries()]
+    .map(([visitorId, events]) => profileFromEvents(visitorId, events))
+    .filter((profile) => matchesVisitorFilter(profile, filters))
+    .sort((left, right) => right.lastSeen.localeCompare(left.lastSeen));
+  const pageSize = [25, 50, 100].includes(Number(filters.pageSize)) ? Number(filters.pageSize) : 25;
+  const totalPages = Math.max(1, Math.ceil(profiles.length / pageSize));
+  const currentPage = Math.min(Math.max(1, Number(filters.page) || 1), totalPages);
+  const offset = (currentPage - 1) * pageSize;
+
+  return {
+    items: profiles.slice(offset, offset + pageSize),
+    total: profiles.length,
+    currentPage,
+    totalPages,
+    pageSize,
+    options: {
+      countries: countBy(allEvents.filter((event) => event.trafficStatus === "real" && event.type === "page_view"), "country", 100).map((row) => row.label),
+      channels: countBy(allEvents.filter((event) => event.trafficStatus === "real" && event.type === "page_view"), "channel", 100).map((row) => row.label),
+      sources: countBy(allEvents.filter((event) => event.trafficStatus === "real" && event.type === "page_view"), "sourcePlatform", 100).map((row) => row.label),
+      devices: countBy(allEvents.filter((event) => event.trafficStatus === "real" && event.type === "page_view"), "device", 20).map((row) => row.label),
+    },
+  };
+}
+
+export async function getVisitorProfile(visitorId: string) {
+  const endDate = new Date();
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(startDate.getUTCDate() - 180);
+  const events = (await readAnalyticsEvents({ startDate, endDate }))
+    .filter((event) => event.visitorId === visitorId && event.trafficStatus === "real")
+    .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+  if (!events.length) return null;
+  return { profile: profileFromEvents(visitorId, events), events };
+}
+
+export async function getAnalyticsHealth() {
+  const sql = getSql();
+  if (!sql) return { configured: false, connected: false, storageMode: getAnalyticsStorageMode(), events: 0, lastEventAt: "", error: "DATABASE_URL is not configured." };
+  try {
+    await ensureCoreSchema();
+    const rows = await sql`SELECT COUNT(*)::int AS events, MAX(timestamp) AS last_event_at FROM cowin_analytics_events` as { events: number; last_event_at: string | Date | null }[];
+    return {
+      configured: true,
+      connected: true,
+      storageMode: getAnalyticsStorageMode(),
+      events: Number(rows[0]?.events || 0),
+      lastEventAt: rows[0]?.last_event_at ? new Date(rows[0].last_event_at).toISOString() : "",
+      error: "",
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      connected: false,
+      storageMode: "database-error",
+      events: 0,
+      lastEventAt: "",
+      error: error instanceof Error ? error.message.slice(0, 160) : "Analytics database connection failed.",
+    };
+  }
+}
+
+export async function getTrafficQualityReport(range: AdminDateRange) {
+  const { startDate, endDate } = resolveDateRange(range);
+  const events = await readAnalyticsEvents({ startDate, endDate });
+  const excluded = events.filter((event) => event.trafficStatus === "excluded");
+  const review = events.filter((event) => event.trafficStatus === "review");
+  return {
+    totalEvents: events.length,
+    realEvents: events.filter((event) => event.trafficStatus === "real").length,
+    excludedEvents: excluded.length,
+    reviewEvents: review.length,
+    reasons: countBy(excluded, "trafficReason", 20),
+    sources: countBy(excluded, "sourcePlatform", 20),
+    recent: [...excluded, ...review].sort((left, right) => right.timestamp.localeCompare(left.timestamp)).slice(0, 100).map((event) => ({
+      id: event.id,
+      timestamp: event.timestamp,
+      status: event.trafficStatus,
+      reason: event.trafficReason || "待复核",
+      source: event.sourcePlatform || "Direct",
+      country: event.country || "Unknown",
+      page: event.page,
+      maskedIp: maskIp(event.ip),
+    })),
   };
 }
 

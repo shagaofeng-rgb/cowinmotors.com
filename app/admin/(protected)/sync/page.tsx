@@ -9,7 +9,7 @@ export const metadata = {
 
 export default async function AdminSyncPage() {
   const jobs = await getSyncJobs();
-  const hasWarning = jobs.some((job) => job.status !== "正常" || job.errorMessage);
+  const hasWarning = !jobs.length || jobs.some((job) => job.status !== "正常" || job.errorMessage);
 
   return (
     <div className="admin-page">
@@ -19,7 +19,7 @@ export default async function AdminSyncPage() {
           <h1>Cron、SEO 与数据任务</h1>
           <p>查看签名 Blog 发布、站点地图维护、每月询盘测试邮件和 Search Console 数据读取状态。</p>
         </div>
-        <span className={hasWarning ? "admin-status warn" : "admin-status good"}>{hasWarning ? "需要检查" : "已配置"}</span>
+        <span className={hasWarning ? "admin-status warn" : "admin-status good"}>{!jobs.length ? "暂无运行日志" : hasWarning ? "需要检查" : "已配置"}</span>
       </header>
 
       <section className="admin-panel">
@@ -32,7 +32,7 @@ export default async function AdminSyncPage() {
           </div>
         </div>
         <div className="admin-table-wrap">
-          <table className="admin-table">
+          {jobs.length ? <table className="admin-table">
             <thead>
               <tr>
                 <th>任务</th>
@@ -55,7 +55,7 @@ export default async function AdminSyncPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table> : <div className="admin-empty">暂无可验证的任务运行记录。系统不会再用“已配置”的静态占位数据代替真实运行状态。</div>}
         </div>
       </section>
     </div>

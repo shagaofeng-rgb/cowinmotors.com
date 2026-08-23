@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { MetricCard, BarList } from "@/components/admin/AdminWidgets";
 import { getAdminDateRange } from "@/lib/adminDateRange";
 import { getAdminOverview } from "@/lib/adminData";
-import { getAnalyticsSnapshot } from "@/lib/analyticsStore";
+import { getAnalyticsHealth, getAnalyticsSnapshot } from "@/lib/analyticsStore";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,13 @@ export default async function AdminOverviewPage({
 }) {
   const range = getAdminDateRange(await searchParams);
   const analytics = await getAnalyticsSnapshot(range);
+  const analyticsHealth = await getAnalyticsHealth();
   const data = await getAdminOverview();
   const metrics = [
-    { label: "PV", value: analytics.overview.pageViews, note: `${range.days}天页面浏览` },
-    { label: "UV", value: analytics.overview.uniqueVisitors, note: "匿名访客" },
-    { label: "询盘", value: data.metrics.inquiries + analytics.overview.inquiries, note: "RFQ + 表单事件" },
-    { label: "产品", value: data.metrics.products, note: `${data.metrics.categories} 个分类` },
+    { label: "真实 PV", value: analytics.overview.pageViews, note: `${analytics.rangeDays} 天已过滤自动化流量` },
+    { label: "真实 UV", value: analytics.overview.uniqueVisitors, note: "匿名访客" },
+    { label: "RFQ 提交", value: analytics.overview.inquiries, note: "同一事件仅统计一次" },
+    { label: "已排除", value: analytics.overview.excludedEvents, note: "预览、爬虫、测试与自动化" },
   ];
 
   return (
@@ -34,7 +36,7 @@ export default async function AdminOverviewPage({
           <h1>网站后台数据总览</h1>
           <p>集中查看 Cowinmotors 当前流量、访客、询盘、产品、页面和基础健康状态。</p>
         </div>
-        <AdminDateRangeFilter range={range} />
+        <div className="admin-page-actions"><AdminLiveRefresh /><AdminDateRangeFilter range={range} /></div>
       </header>
 
       <section className="admin-metric-grid">
@@ -102,12 +104,12 @@ export default async function AdminOverviewPage({
         <div className="admin-panel">
           <div className="admin-panel-headline">
             <div>
-              <p className="eyebrow">访客设备</p>
-              <h2>设备分布</h2>
+              <p className="eyebrow">访客地域</p>
+              <h2>国家与设备</h2>
             </div>
             <Link href="/admin/visitors">查看访客</Link>
           </div>
-          <BarList rows={analytics.traffic.devices} />
+          <BarList rows={[...analytics.traffic.countries.slice(0, 5), ...analytics.traffic.devices]} />
         </div>
       </section>
 
@@ -118,7 +120,7 @@ export default async function AdminOverviewPage({
             <h2>内容与资源状态</h2>
           </div>
           <span className={data.metrics.missingImages ? "admin-status warn" : "admin-status good"}>
-            {data.metrics.missingImages ? "需要检查" : `${analytics.storageMode} / 正常`}
+            {analyticsHealth.connected ? `${analyticsHealth.storageMode} / 已连接` : "数据连接需检查"}
           </span>
         </div>
         {data.missingImages.length ? (
@@ -143,7 +145,9 @@ export default async function AdminOverviewPage({
             </table>
           </div>
         ) : (
-          <div className="admin-empty">产品图片路径检查通过。</div>
+          <div className="admin-empty">
+            数据库连接：{analyticsHealth.connected ? "正常" : "异常"} · 最后事件：{analyticsHealth.lastEventAt ? new Date(analyticsHealth.lastEventAt).toLocaleString("zh-CN") : "暂无"} · 产品图片路径检查通过。
+          </div>
         )}
       </section>
     </div>

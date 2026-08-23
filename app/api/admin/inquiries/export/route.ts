@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminAuth";
 import { filterByQuery, getInquiries, recordAuditLog } from "@/lib/adminData";
+import { getAdminDateRange, resolveDateRange } from "@/lib/adminDateRange";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,13 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const q = url.searchParams.get("q") || "";
-  const inquiries = filterByQuery(await getInquiries(), q, (inquiry) => [
+  const range = getAdminDateRange(url.searchParams);
+  const { startDate, endDate } = resolveDateRange(range);
+  const inquiriesInRange = (await getInquiries()).filter((inquiry) => {
+    const createdAt = new Date(inquiry.createdAt).getTime();
+    return createdAt >= startDate.getTime() && createdAt <= endDate.getTime();
+  });
+  const inquiries = filterByQuery(inquiriesInRange, q, (inquiry) => [
     inquiry.name,
     inquiry.email,
     inquiry.phone,
@@ -36,7 +43,7 @@ export async function GET(request: Request) {
     resourceId: q || "all",
     ip: headerList.get("x-forwarded-for") || "",
     userAgent: headerList.get("user-agent") || "",
-    metadata: { count: inquiries.length, query: q },
+    metadata: { count: inquiries.length, query: q, startDate: startDate.toISOString(), endDate: endDate.toISOString() },
   });
 
   const rows = [

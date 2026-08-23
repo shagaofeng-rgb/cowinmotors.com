@@ -1,4 +1,5 @@
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { EmptyState } from "@/components/admin/AdminWidgets";
 import { getAdminDateRange } from "@/lib/adminDateRange";
 import { getAnalyticsSnapshot } from "@/lib/analyticsStore";
@@ -25,7 +26,7 @@ export default async function AdminJourneysPage({
           <h1>客户浏览路径</h1>
           <p>查看客户从哪些页面进入产品、询盘和联系方式页面。</p>
         </div>
-        <AdminDateRangeFilter range={range} />
+        <div className="admin-page-actions"><AdminLiveRefresh /><AdminDateRangeFilter range={range} /></div>
       </header>
 
       <section className="admin-grid-2">

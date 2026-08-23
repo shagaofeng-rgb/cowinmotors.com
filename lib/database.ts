@@ -102,14 +102,39 @@ export async function ensureCoreSchema() {
             channel TEXT NOT NULL DEFAULT '',
             source_platform TEXT NOT NULL DEFAULT '',
             source_detail TEXT NOT NULL DEFAULT '',
+            traffic_status TEXT NOT NULL DEFAULT 'real',
+            traffic_reason TEXT NOT NULL DEFAULT '',
+            ip_hash TEXT NOT NULL DEFAULT '',
+            dedupe_key TEXT NOT NULL DEFAULT '',
             timestamp TIMESTAMPTZ NOT NULL,
             client_timestamp TEXT NOT NULL DEFAULT ''
           )
         `;
 
+        await sql`
+          ALTER TABLE cowin_analytics_events
+          ADD COLUMN IF NOT EXISTS traffic_status TEXT NOT NULL DEFAULT 'real'
+        `;
+        await sql`
+          ALTER TABLE cowin_analytics_events
+          ADD COLUMN IF NOT EXISTS traffic_reason TEXT NOT NULL DEFAULT ''
+        `;
+        await sql`
+          ALTER TABLE cowin_analytics_events
+          ADD COLUMN IF NOT EXISTS ip_hash TEXT NOT NULL DEFAULT ''
+        `;
+        await sql`
+          ALTER TABLE cowin_analytics_events
+          ADD COLUMN IF NOT EXISTS dedupe_key TEXT NOT NULL DEFAULT ''
+        `;
+
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_timestamp_idx ON cowin_analytics_events (timestamp DESC)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_type_idx ON cowin_analytics_events (type)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_visitor_session_timestamp_idx ON cowin_analytics_events (visitor_id, session_id, timestamp ASC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_status_timestamp_idx ON cowin_analytics_events (traffic_status, timestamp DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_country_timestamp_idx ON cowin_analytics_events (country, timestamp DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_analytics_events_channel_timestamp_idx ON cowin_analytics_events (channel, timestamp DESC)`);
+        await ignoreExistingRelation(sql`CREATE UNIQUE INDEX IF NOT EXISTS cowin_analytics_events_dedupe_key_idx ON cowin_analytics_events (dedupe_key) WHERE dedupe_key <> ''`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_created_at_idx ON cowin_inquiries (created_at DESC)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_visitor_created_at_idx ON cowin_inquiries (visitor_id, created_at DESC)`);
 

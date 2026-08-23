@@ -13,7 +13,10 @@ export async function POST(request: Request) {
     }
     const event = normalizeAnalyticsEvent(payload, request);
     const result = await appendAnalyticsEvent(event);
-    return Response.json({ ok: result.ok, eventType: event.type, storageMode: result.storageMode });
+    return Response.json(
+      { ok: result.ok, eventType: event.type, storageMode: result.storageMode },
+      { status: result.ok ? 200 : 503 },
+    );
   } catch (error) {
     console.error("Analytics tracking failed", error);
     return Response.json({ ok: false }, { status: 400 });

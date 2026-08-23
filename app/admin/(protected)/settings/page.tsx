@@ -1,7 +1,6 @@
 import { isAdminAuthConfigured } from "@/lib/adminAuth";
-import { getAnalyticsStorageMode } from "@/lib/analyticsStore";
+import { getAnalyticsHealth } from "@/lib/analyticsStore";
 import { getSystemSettingsSnapshot } from "@/lib/adminData";
-import { isDatabaseConfigured } from "@/lib/database";
 import { getGoogleOAuthConfig } from "@/lib/googleSearchConsoleOAuth";
 
 export const dynamic = "force-dynamic";
@@ -14,16 +13,18 @@ function configured(value: unknown) {
   return value ? "已启用" : "未启用";
 }
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
   const authConfigured = isAdminAuthConfigured();
   const googleOAuth = getGoogleOAuthConfig();
   const settings = getSystemSettingsSnapshot();
+  const analyticsHealth = await getAnalyticsHealth();
   const rows = [
     ["管理员账号", process.env.ADMIN_EMAIL || "admin@cowinmotors.com"],
     ["密码登录", configured(process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_PASSWORD)],
     ["会话安全", configured(process.env.ADMIN_JWT_SECRET)],
-    ["访问数据存储", getAnalyticsStorageMode()],
-    ["业务数据库", isDatabaseConfigured() ? "已启用" : "未启用"],
+    ["访问数据存储", analyticsHealth.storageMode],
+    ["业务数据库", analyticsHealth.connected ? `已连接 · ${analyticsHealth.events} 条事件` : `连接异常 · ${analyticsHealth.error || "请检查数据库"}`],
+    ["最近埋点", analyticsHealth.lastEventAt ? new Date(analyticsHealth.lastEventAt).toLocaleString("zh-CN", { hour12: false }) : "暂无记录"],
     ["Search Console 站点", process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "-"],
     ["Google 授权", configured(googleOAuth.clientId && googleOAuth.clientSecret)],
     ["Google 回调地址", googleOAuth.redirectUri],

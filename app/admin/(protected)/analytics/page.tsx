@@ -1,4 +1,5 @@
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { BarList, MetricCard } from "@/components/admin/AdminWidgets";
 import { getAdminDateRange } from "@/lib/adminDateRange";
 import { getAnalyticsSnapshot } from "@/lib/analyticsStore";
@@ -25,14 +26,14 @@ export default async function AdminAnalyticsPage({
           <h1>来源渠道与设备分析</h1>
           <p>查看客户从哪里进入网站、使用什么设备、哪些渠道带来询盘。</p>
         </div>
-        <AdminDateRangeFilter range={range} />
+        <div className="admin-page-actions"><AdminLiveRefresh /><AdminDateRangeFilter range={range} /></div>
       </header>
 
       <section className="admin-metric-grid">
-        <MetricCard label="PV" value={data.overview.pageViews} note="页面浏览" />
-        <MetricCard label="UV" value={data.overview.uniqueVisitors} note="独立访客" />
-        <MetricCard label="Sessions" value={data.overview.sessions} note="访问会话" />
-        <MetricCard label="Bounce" value={`${data.overview.bounceRate}%`} note="跳出率" />
+        <MetricCard label="真实 PV" value={data.overview.pageViews} note="已排除自动化流量" />
+        <MetricCard label="真实 UV" value={data.overview.uniqueVisitors} note="独立访客" />
+        <MetricCard label="Sessions" value={data.overview.sessions} note="30 分钟会话窗口" />
+        <MetricCard label="Bounce" value={`${data.overview.bounceRate}%`} note="真实会话跳出率" />
       </section>
 
       <section className="admin-grid-2">
@@ -58,6 +59,19 @@ export default async function AdminAnalyticsPage({
           <p className="eyebrow">设备</p>
           <h2>设备 / 浏览器</h2>
           <BarList rows={[...data.traffic.devices, ...data.traffic.browsers]} />
+        </article>
+      </section>
+
+      <section className="admin-grid-2">
+        <article className="admin-panel">
+          <p className="eyebrow">地域</p>
+          <h2>访问国家 / 地区</h2>
+          <BarList rows={data.traffic.countries} />
+        </article>
+        <article className="admin-panel">
+          <p className="eyebrow">数据质量</p>
+          <h2>默认未计入报表的流量</h2>
+          <BarList rows={data.dataQuality.excludedByReason} />
         </article>
       </section>
     </div>

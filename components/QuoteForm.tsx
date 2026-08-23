@@ -15,18 +15,31 @@ function trackingContext() {
   try {
     const visitorKey = "cowinmotors_visitor_id";
     const sessionKey = "cowinmotors_session_id";
+    const sessionTimeKey = "cowinmotors_session_at";
     const visitorId = window.localStorage.getItem(visitorKey) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const sessionId = window.sessionStorage.getItem(sessionKey) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const existingSession = window.sessionStorage.getItem(sessionKey);
+    const sessionTouchedAt = Number(window.sessionStorage.getItem(sessionTimeKey) || 0);
+    const sessionExpired = Date.now() - sessionTouchedAt > 30 * 60 * 1000;
+    const sessionId = existingSession && !sessionExpired ? existingSession : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     window.localStorage.setItem(visitorKey, visitorId);
     window.sessionStorage.setItem(sessionKey, sessionId);
+    window.sessionStorage.setItem(sessionTimeKey, String(Date.now()));
+    const params = new URLSearchParams(window.location.search);
     return {
       visitorId,
       sessionId,
       landingPage: `${window.location.pathname}${window.location.search}`,
       referrer: document.referrer,
+      utm: {
+        source: params.get("utm_source") || "",
+        medium: params.get("utm_medium") || "",
+        campaign: params.get("utm_campaign") || "",
+        term: params.get("utm_term") || "",
+        content: params.get("utm_content") || "",
+      },
     };
   } catch {
-    return { visitorId: "", sessionId: "", landingPage: "", referrer: "" };
+    return { visitorId: "", sessionId: "", landingPage: "", referrer: "", utm: {} };
   }
 }
 
@@ -96,19 +109,6 @@ export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initi
 
         if (response.ok) {
           window.dispatchEvent(new CustomEvent("cowinmotors:form-submit", { detail: payload }));
-          fetch("/api/analytics/track", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "form_submit",
-              page: window.location.pathname,
-              pageTitle: document.title,
-              targetText: payload.product || payload.productType,
-              visitorId: payload.visitorId || "anonymous",
-              sessionId: payload.sessionId || "session",
-            }),
-            keepalive: true,
-          }).catch(() => {});
           form.reset();
           setNote("RFQ received. Our team will review fitment, MOQ, lead time, and shipping details.");
         } else {

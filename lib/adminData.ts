@@ -646,19 +646,7 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
     }
   }
 
-  return [
-    {
-      id: "cron-inquiry-email-test",
-      jobType: "inquiry-email-test",
-      status: process.env.CRON_SECRET ? "正常" : "需配置",
-      scheduledAt: "monthly",
-      startedAt: "",
-      completedAt: "",
-      retryCount: 0,
-      errorMessage: process.env.CRON_SECRET ? "" : "定时任务安全密钥未设置，每月表单测试无法执行。",
-      metadata: { path: "/api/cron/inquiry-email-test", schedule: "每月 1 日测试询盘邮件" },
-    },
-  ];
+  return [];
 }
 
 export function getSystemSettingsSnapshot() {
