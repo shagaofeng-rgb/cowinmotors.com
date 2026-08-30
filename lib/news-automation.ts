@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { ensureCoreSchema, getSql } from "@/lib/database";
+import { composeSourceBackedNews, type ComposedNewsArticle } from "@/lib/news-editorial-composer";
 import { getNewsSite, type NewsSiteConfig, type NewsSourceConfig, validateNewsSiteConfig } from "@/lib/news-site-config";
 import { markSitemapDirty } from "@/lib/sitemap";
 
@@ -24,21 +25,27 @@ type Candidate = {
   copyrightStatus: string;
 };
 
-type ComposedArticle = {
-  title: string;
-  excerpt: string;
-  content: string;
-  category: string;
-  tags: string[];
-  seoTitle: string;
-  seoDescription: string;
-  editorialNote: string;
-};
+type ComposedArticle = ComposedNewsArticle;
 
 let schemaReady: Promise<boolean> | null = null;
 
 function text(value: unknown, max = 20_000) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
+}
+
+function richText(value: unknown, max = 100_000) {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|h[1-6]|li|section|article)>/gi, "\n\n")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\t ]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, max);
 }
 
 function hash(value: string) {
@@ -106,13 +113,22 @@ function scoreCandidate(site: NewsSiteConfig, source: NewsSourceConfig, candidat
   const corpus = `${candidate.title} ${candidate.summary}`.toLowerCase();
   const relevantTerms = ["headlight", "tail light", "lighting", "exhaust", "wheel", "forged", "body", "fitment", "aftermarket", "automotive", "vehicle", "repair", "supply chain", "packaging", "safety", "standard", "regulation"];
   const impactTerms = ["recall", "regulation", "standard", "safety", "supply", "technology", "launch", "repair", "compliance", "logistics"];
-  const relevance = Math.min(30, relevantTerms.filter((term) => corpus.includes(term)).length * 5);
-  const impact = Math.min(20, impactTerms.filter((term) => corpus.includes(term)).length * 4);
+  const relevanceMatches = relevantTerms.filter((term) => corpus.includes(term)).length;
+  const impactMatches = impactTerms.filter((term) => corpus.includes(term)).length;
+  const relevance = relevanceMatches >= 3 ? 30 : relevanceMatches === 2 ? 24 : relevanceMatches === 1 ? 18 : 0;
+  const impact = impactMatches >= 2 ? 20 : impactMatches === 1 ? 14 : 0;
   const freshness = ageHours(candidate.sourcePublishedAt, now) <= 24 ? 15 : ageHours(candidate.sourcePublishedAt, now) <= 72 ? 10 : 0;
   const verification = Math.min(15, Math.round(source.sourceTrustScore / 6));
   const theme = activeTheme(site, now);
   const productContext = theme && corpus.includes(theme.productName.split(" ")[0].toLowerCase()) ? 15 : 5;
   return Math.min(100, relevance + impact + freshness + verification + productContext + 5);
+}
+
+function outOfScopeReason(title: string, summary: string) {
+  const corpus = `${title} ${summary}`.toLowerCase();
+  if (/\b(appoints?|appointed|joins?|hired?|promoted|chief executive|new president|personnel)\b/.test(corpus)) return "personnel announcement is outside the configured industry scope";
+  if (/\b(giveaway|sweepstakes|coupon|promotion|sale event|sponsored content)\b/.test(corpus)) return "promotional content is outside the configured industry scope";
+  return "";
 }
 
 function activeTheme(site: NewsSiteConfig, now: Date) {
@@ -273,7 +289,7 @@ export async function runNewsIngest(siteId = "cowinmotors", now = new Date(), so
   const validation = validateNewsSiteConfig(site);
   if (!validation.ok) throw new Error(`Invalid News site config: ${validation.failures.join("; ")}`);
   if (!site.enabled || !site.news.enabled) return { ok: true, skipped: true, reason: "News is disabled for this site." };
-  if (!site.publishing.productionEnabled) return { ok: true, skipped: true, reason: "Production News automation is disabled by configuration." };
+  if (!site.publishing.productionEnabled) return { ok: false, skipped: true, reason: "Production News automation is disabled by the operational kill switch." };
   if (!getSql()) throw new Error("News ingest requires a configured database.");
   await ensureNewsAutomationSchema();
   await upsertThemePlan(site);
@@ -289,6 +305,9 @@ export async function runNewsIngest(siteId = "cowinmotors", now = new Date(), so
   try {
     await sql`INSERT INTO news_ingest_runs (id, site_id, cycle_key, status, started_at) VALUES (${runId}, ${siteId}, ${cycle}, 'running', NOW()) ON CONFLICT (site_id, cycle_key) DO UPDATE SET status = 'running', started_at = NOW(), completed_at = NULL`;
     const sources = sourceGroup === "primary" ? site.sources.primaryWhitelist : site.sources.fallbackWhitelist;
+    const maximumAgeHours = sourceGroup === "primary"
+      ? site.news.candidateMaxAgeHours
+      : site.news.fallbackCandidateMaxAgeDays * 24;
     for (const source of sources) {
       try {
         const response = await fetch(source.rssOrApiUrl, { headers: { "user-agent": "CowinmotorsNewsIngest/1.0 (+https://www.cowinmotors.com/news)" }, signal: AbortSignal.timeout(12_000) });
@@ -305,9 +324,10 @@ export async function runNewsIngest(siteId = "cowinmotors", now = new Date(), so
           let normalizedUrl = "";
           if (!title || !sourceUrl || !sourcePublishedAt) rejectReason = "missing title, URL or trustworthy publication date";
           else if (!isAllowedUrl(sourceUrl, source)) rejectReason = "source URL is outside the configured whitelist domain";
-          else if (ageHours(sourcePublishedAt, now) < -2 || ageHours(sourcePublishedAt, now) > site.news.candidateMaxAgeHours) rejectReason = "source is outside the 72-hour candidate window";
+          else if (ageHours(sourcePublishedAt, now) < -2 || ageHours(sourcePublishedAt, now) > maximumAgeHours) rejectReason = `source is outside the ${maximumAgeHours}-hour candidate window`;
           else normalizedUrl = normaliseUrl(sourceUrl);
           const summary = text(stripMarkup(item.summary), 2_000);
+          if (!rejectReason) rejectReason = outOfScopeReason(title, summary);
           const draft: Candidate = { id: crypto.randomUUID(), siteId, sourceId: source.id, sourceDomain: source.domain, title, summary, sourceUrl, normalizedUrl, sourcePublishedAt, sourceAuthor: text(item.author, 160), language: site.publicationLanguage, score: 0, status: "rejected", rejectReason, copyrightStatus: "owned-neutral-image" };
           if (!rejectReason) {
             draft.score = scoreCandidate(site, source, draft, now);
@@ -346,7 +366,7 @@ export async function runNewsIngest(siteId = "cowinmotors", now = new Date(), so
 async function composeWithAdapter(site: NewsSiteConfig, candidate: Candidate, theme: NonNullable<ReturnType<typeof activeTheme>>) {
   const endpoint = process.env.NEWS_COMPOSER_URL;
   const token = process.env.NEWS_COMPOSER_TOKEN;
-  if (!endpoint || !token) throw new Error("News composer is not configured. Set NEWS_COMPOSER_URL and NEWS_COMPOSER_TOKEN before enabling production automation.");
+  if (!endpoint || !token) throw new Error("external News composer is not configured");
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
@@ -356,28 +376,78 @@ async function composeWithAdapter(site: NewsSiteConfig, candidate: Candidate, th
   if (!response.ok) throw new Error(`News composer HTTP ${response.status}`);
   const payload = await response.json() as Partial<ComposedArticle>;
   return {
-    title: text(payload.title, 180), excerpt: text(payload.excerpt, 360), content: text(payload.content, 100_000), category: text(payload.category, 120) || "Automotive Parts Insights", tags: Array.isArray(payload.tags) ? payload.tags.map((tag) => text(tag, 80)).filter(Boolean).slice(0, 8) : [], seoTitle: text(payload.seoTitle, 180), seoDescription: text(payload.seoDescription, 320), editorialNote: text(payload.editorialNote, 1_200),
+    title: text(payload.title, 180), excerpt: text(payload.excerpt, 360), content: richText(payload.content, 100_000), category: text(payload.category, 120) || "Automotive Parts Insights", tags: Array.isArray(payload.tags) ? payload.tags.map((tag) => text(tag, 80)).filter(Boolean).slice(0, 8) : [], seoTitle: text(payload.seoTitle, 180), seoDescription: text(payload.seoDescription, 320), editorialNote: text(payload.editorialNote, 1_200),
   };
 }
 
+async function composeNews(site: NewsSiteConfig, candidate: Candidate, theme: NonNullable<ReturnType<typeof activeTheme>>, runId: string) {
+  if (process.env.NEWS_COMPOSER_URL && process.env.NEWS_COMPOSER_TOKEN) {
+    try {
+      return { article: await composeWithAdapter(site, candidate, theme), mode: "external" as const };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "external composer failed";
+      await audit(site.siteId, "news_composer_fallback", "warning", "External composer failed; using the source-backed built-in composer.", { error: message.slice(0, 500) }, runId);
+    }
+  }
+  const article = composeSourceBackedNews(
+    {
+      brandName: site.brandName,
+      industry: site.industry,
+      targetMarkets: site.targetMarkets,
+      desiredWordCount: site.news.desiredWordCount,
+    },
+    {
+      title: candidate.title,
+      summary: candidate.summary,
+      sourceDomain: candidate.sourceDomain,
+      sourcePublishedAt: candidate.sourcePublishedAt,
+      sourceAuthor: candidate.sourceAuthor,
+    },
+    { productName: theme.productName },
+  );
+  return { article, mode: "built-in" as const };
+}
+
 async function verifyFrontend(site: NewsSiteConfig, article: { id: string; slug: string; title: string; sourceUrl: string }, runId: string) {
-  const listUrl = new URL(site.news.listRoute, site.siteUrl).toString();
-  const detailUrl = new URL(site.news.detailRoutePattern.replace("[slug]", article.slug), site.siteUrl).toString();
-  const sitemapUrl = new URL(site.news.sitemapRoute, site.siteUrl).toString();
-  const rssUrl = new URL(site.news.rssRoute, site.siteUrl).toString();
-  const [list, detail, sitemap, rss] = await Promise.all([fetch(listUrl), fetch(detailUrl), fetch(sitemapUrl), fetch(rssUrl)]);
-  const [listBody, detailBody, sitemapBody, rssBody] = await Promise.all([list.text(), detail.text(), sitemap.text(), rss.text()]);
-  const passed = list.ok && detail.ok && sitemap.ok && rss.ok && listBody.includes(article.title) && detailBody.includes(article.title) && detailBody.includes(article.sourceUrl) && sitemapBody.includes(`/news/${article.slug}`) && rssBody.includes(`/news/${article.slug}`);
+  const publicListUrl = new URL(site.news.listRoute, site.siteUrl).toString();
+  const publicDetailUrl = new URL(site.news.detailRoutePattern.replace("[slug]", article.slug), site.siteUrl).toString();
+  const publicSitemapUrl = new URL(site.news.sitemapRoute, site.siteUrl).toString();
+  const publicRssUrl = new URL(site.news.rssRoute, site.siteUrl).toString();
+  const publicBlogUrl = new URL(site.blog.listRoute, site.siteUrl).toString();
+  const cacheBusted = (value: string) => {
+    const url = new URL(value);
+    url.searchParams.set("news_verify", runId);
+    return url.toString();
+  };
+  const request = (value: string) => fetch(cacheBusted(value), { cache: "no-store", headers: { "cache-control": "no-cache" } });
+  const [list, detail, sitemap, rss, blog] = await Promise.all([
+    request(publicListUrl),
+    request(publicDetailUrl),
+    request(publicSitemapUrl),
+    request(publicRssUrl),
+    request(publicBlogUrl),
+  ]);
+  const [listBody, detailBody, sitemapBody, rssBody, blogBody] = await Promise.all([list.text(), detail.text(), sitemap.text(), rss.text(), blog.text()]);
+  const sourceHost = new URL(article.sourceUrl).hostname;
+  const evidence = {
+    listHasTitle: listBody.includes(article.title),
+    detailHasTitle: detailBody.includes(article.title),
+    detailHasSource: detailBody.includes(sourceHost),
+    sitemapHasUrl: sitemapBody.includes(`/news/${article.slug}`),
+    rssHasUrl: rssBody.includes(`/news/${article.slug}`),
+    blogIsIsolated: blog.ok && !blogBody.includes(article.title),
+  };
+  const passed = list.ok && detail.ok && sitemap.ok && rss.ok && Object.values(evidence).every(Boolean);
   const sql = getSql();
-  if (sql) await sql`INSERT INTO news_delivery_checks (id, site_id, publication_run_id, article_id, list_url, detail_url, list_status, detail_status, sitemap_status, rss_status, passed, evidence) VALUES (${crypto.randomUUID()}, ${site.siteId}, ${runId}, ${article.id}, ${listUrl}, ${detailUrl}, ${list.status}, ${detail.status}, ${sitemap.status}, ${rss.status}, ${passed}, ${JSON.stringify({ listHasTitle: listBody.includes(article.title), detailHasTitle: detailBody.includes(article.title), detailHasSource: detailBody.includes(article.sourceUrl), sitemapHasUrl: sitemapBody.includes(`/news/${article.slug}`), rssHasUrl: rssBody.includes(`/news/${article.slug}`) })}::jsonb)`;
-  return { passed, listUrl, detailUrl, statuses: { list: list.status, detail: detail.status, sitemap: sitemap.status, rss: rss.status } };
+  if (sql) await sql`INSERT INTO news_delivery_checks (id, site_id, publication_run_id, article_id, list_url, detail_url, list_status, detail_status, sitemap_status, rss_status, passed, evidence) VALUES (${crypto.randomUUID()}, ${site.siteId}, ${runId}, ${article.id}, ${publicListUrl}, ${publicDetailUrl}, ${list.status}, ${detail.status}, ${sitemap.status}, ${rss.status}, ${passed}, ${JSON.stringify({ ...evidence, blogStatus: blog.status })}::jsonb)`;
+  return { passed, listUrl: publicListUrl, detailUrl: publicDetailUrl, statuses: { list: list.status, detail: detail.status, sitemap: sitemap.status, rss: rss.status, blog: blog.status }, evidence };
 }
 
 export async function runNewsPublish(siteId = "cowinmotors", now = new Date()) {
   const site = getNewsSite(siteId);
   const validation = validateNewsSiteConfig(site);
   if (!validation.ok) throw new Error(`Invalid News site config: ${validation.failures.join("; ")}`);
-  if (!site.publishing.productionEnabled) return { ok: true, skipped: true, reason: "Production News automation is disabled by configuration." };
+  if (!site.publishing.productionEnabled) return { ok: false, skipped: true, reason: "Production News automation is disabled by the operational kill switch." };
   if (!getSql()) throw new Error("News publishing requires a configured database.");
   await ensureNewsAutomationSchema();
   const sql = getSql()!;
@@ -386,49 +456,101 @@ export async function runNewsPublish(siteId = "cowinmotors", now = new Date()) {
   const cycle = cycleKey(now, site.news.publishIntervalHours);
   const owner = crypto.randomUUID();
   if (!(await acquireLock(siteId, "publish", cycle, owner, 45))) return { ok: false, locked: true };
-  const runId = crypto.randomUUID();
+  let runId: string = crypto.randomUUID();
+  let candidateId = "";
+  let articleId = "";
+  let contentFingerprint = "";
   try {
-    await sql`INSERT INTO news_publication_runs (id, site_id, cycle_key, status, started_at, correlation_id) VALUES (${runId}, ${siteId}, ${cycle}, 'selecting', NOW(), ${runId}) ON CONFLICT (site_id, cycle_key) DO UPDATE SET status = 'selecting', started_at = NOW(), completed_at = NULL, attempt_count = news_publication_runs.attempt_count + 1, error_message = ''`;
-    let candidateRows = await sql`SELECT * FROM news_candidates WHERE site_id = ${siteId} AND status = 'candidate' AND source_published_at >= ${new Date(now.getTime() - site.news.candidateMaxAgeHours * 3_600_000).toISOString()} ORDER BY score DESC, source_published_at DESC LIMIT 1` as Array<Record<string, unknown>>;
+    const publicationRows = await sql`
+      INSERT INTO news_publication_runs (id, site_id, cycle_key, status, attempt_count, started_at, correlation_id)
+      VALUES (${runId}, ${siteId}, ${cycle}, 'selecting', 1, NOW(), ${runId})
+      ON CONFLICT (site_id, cycle_key) DO UPDATE SET
+        status = 'selecting', started_at = NOW(), completed_at = NULL,
+        attempt_count = news_publication_runs.attempt_count + 1, error_message = ''
+      RETURNING id
+    ` as Array<{ id: string }>;
+    runId = publicationRows[0].id;
+    let candidateRows = await sql`
+      SELECT c.* FROM news_candidates c
+      WHERE c.site_id = ${siteId} AND c.status = 'candidate'
+        AND c.source_published_at >= ${new Date(now.getTime() - site.news.candidateMaxAgeHours * 3_600_000).toISOString()}
+        AND NOT EXISTS (
+          SELECT 1 FROM news_articles a
+          WHERE a.site_id = c.site_id AND a.source_fingerprint = c.normalized_url_hash AND a.status = 'published'
+        )
+      ORDER BY c.score DESC, c.source_published_at DESC LIMIT 1
+    ` as Array<Record<string, unknown>>;
     if (!candidateRows[0]) {
       await runNewsIngest(siteId, now, "fallback");
-      candidateRows = await sql`SELECT * FROM news_candidates WHERE site_id = ${siteId} AND status = 'candidate' AND source_published_at >= ${new Date(now.getTime() - site.news.fallbackCandidateMaxAgeDays * 86_400_000).toISOString()} ORDER BY score DESC, source_published_at DESC LIMIT 1` as Array<Record<string, unknown>>;
+      candidateRows = await sql`
+        SELECT c.* FROM news_candidates c
+        WHERE c.site_id = ${siteId} AND c.status = 'candidate'
+          AND c.source_published_at >= ${new Date(now.getTime() - site.news.fallbackCandidateMaxAgeDays * 86_400_000).toISOString()}
+          AND NOT EXISTS (
+            SELECT 1 FROM news_articles a
+            WHERE a.site_id = c.site_id AND a.source_fingerprint = c.normalized_url_hash AND a.status = 'published'
+          )
+        ORDER BY c.score DESC, c.source_published_at DESC LIMIT 1
+      ` as Array<Record<string, unknown>>;
     }
     if (!candidateRows[0]) throw new Error("No verified candidate is available after primary and fallback ingest.");
     const row = candidateRows[0];
     const candidate: Candidate = { id: text(row.id, 100), siteId, sourceId: text(row.source_id, 100), sourceDomain: text(row.source_domain, 240), title: text(row.title, 240), summary: text(row.summary, 2_000), sourceUrl: text(row.source_url, 2_000), normalizedUrl: text(row.normalized_url, 2_000), sourcePublishedAt: new Date(String(row.source_published_at)).toISOString(), sourceAuthor: text(row.source_author, 160), language: text(row.language, 20), score: Number(row.score) || 0, status: "candidate", rejectReason: "", copyrightStatus: text(row.copyright_status, 120) };
+    candidateId = candidate.id;
     const theme = activeTheme(site, now);
     if (!theme) throw new Error("No active product theme is configured for this publication window.");
-    await sql`UPDATE news_candidates SET status = 'reserved_for_cycle', reserved_cycle_key = ${cycle}, updated_at = NOW() WHERE id = ${candidate.id} AND site_id = ${siteId}`;
+    const reserved = await sql`UPDATE news_candidates SET status = 'reserved_for_cycle', reserved_cycle_key = ${cycle}, updated_at = NOW() WHERE id = ${candidate.id} AND site_id = ${siteId} AND status = 'candidate' RETURNING id` as Array<{ id: string }>;
+    if (!reserved[0]) throw new Error("Candidate could not be reserved for this publication cycle.");
     await sql`UPDATE news_publication_runs SET status = 'composing', candidate_id = ${candidate.id} WHERE id = ${runId}`;
-    const composed = await composeWithAdapter(site, candidate, theme);
+    const composition = await composeNews(site, candidate, theme, runId);
+    const composed = composition.article;
     const preflight = validateComposedNews(site, composed);
     if (!preflight.ok) throw new Error(`News preflight rejected: ${preflight.failures.join("; ")}`);
-    const fingerprint = hash(`${siteId}\n${cycle}\n${composed.title.toLowerCase()}\n${candidate.normalizedUrl}`);
-    await sql`UPDATE news_publication_runs SET status = 'publishing', content_fingerprint = ${fingerprint} WHERE id = ${runId}`;
-    const existing = await sql`SELECT id, slug FROM news_articles WHERE site_id = ${siteId} AND source_fingerprint = ${hash(candidate.normalizedUrl)} LIMIT 1` as Array<{ id: string; slug: string }>;
-    if (existing[0]) throw new Error("Candidate source already has a News article for this site.");
-    const articleId = crypto.randomUUID();
-    const slug = `${slugify(composed.title)}-${fingerprint.slice(0, 8)}`;
+    contentFingerprint = hash(`${siteId}\n${cycle}\n${composed.title.toLowerCase()}\n${candidate.normalizedUrl}`);
+    await sql`UPDATE news_publication_runs SET status = 'publishing', content_fingerprint = ${contentFingerprint} WHERE id = ${runId}`;
+    const sourceFingerprint = hash(candidate.normalizedUrl);
+    const existing = await sql`SELECT id, slug, status, event_fingerprint FROM news_articles WHERE site_id = ${siteId} AND source_fingerprint = ${sourceFingerprint} LIMIT 1` as Array<{ id: string; slug: string; status: string; event_fingerprint: string }>;
+    articleId = existing[0]?.id || crypto.randomUUID();
+    const slug = existing[0]?.slug || `${slugify(composed.title)}-${contentFingerprint.slice(0, 8)}`;
     const canonicalUrl = `${site.siteUrl}/news/${slug}`;
     const authorName = `${site.brandName} Editorial Team`;
-    const inserted = await sql`
-      INSERT INTO news_articles (id, site_id, title, slug, excerpt, content, status, indexable, language, category, tags, cover_image_url, cover_image_source_url, cover_image_page_url, cover_image_alt, author_name, published_at, updated_at, seo_title, seo_description, canonical_url, source_title, source_author, source_publisher, source_url, canonical_source_url, source_published_at, source_fetched_at, source_fingerprint, event_fingerprint, content_hash, relevance_score, credibility_score, editorial_note)
-      VALUES (${articleId}, ${siteId}, ${composed.title}, ${slug}, ${composed.excerpt}, ${composed.content}, 'published', TRUE, ${site.publicationLanguage}, ${composed.category}, ${JSON.stringify(composed.tags)}::jsonb, ${site.ownedNeutralImage.url}, ${site.ownedNeutralImage.url}, '', ${site.ownedNeutralImage.alt}, ${authorName}, NOW(), NOW(), ${composed.seoTitle || composed.title}, ${composed.seoDescription || composed.excerpt}, ${canonicalUrl}, ${candidate.title}, ${candidate.sourceAuthor}, ${candidate.sourceDomain}, ${candidate.sourceUrl}, ${candidate.normalizedUrl}, ${candidate.sourcePublishedAt}, NOW(), ${hash(candidate.normalizedUrl)}, ${fingerprint}, ${hash(composed.content)}, ${candidate.score}, 0, ${composed.editorialNote || 'Independent editorial summary and analysis based on the linked original source.'})
-      RETURNING id, slug, title, source_url
-    ` as Array<{ id: string; slug: string; title: string; source_url: string }>;
-    await markSitemapDirty("automated News article published after source and frontend verification");
+    const sourceTrustScore = [...site.sources.primaryWhitelist, ...site.sources.fallbackWhitelist].find((source) => source.id === candidate.sourceId)?.sourceTrustScore || 0;
+    if (existing[0]) {
+      await sql`
+        UPDATE news_articles SET
+          title = ${composed.title}, excerpt = ${composed.excerpt}, content = ${composed.content}, status = 'published', indexable = TRUE,
+          language = ${site.publicationLanguage}, category = ${composed.category}, tags = ${JSON.stringify(composed.tags)}::jsonb,
+          cover_image_url = ${site.ownedNeutralImage.url}, cover_image_source_url = ${site.ownedNeutralImage.url}, cover_image_page_url = '', cover_image_alt = ${site.ownedNeutralImage.alt},
+          author_name = ${authorName}, published_at = NOW(), updated_at = NOW(), seo_title = ${composed.seoTitle || composed.title}, seo_description = ${composed.seoDescription || composed.excerpt}, canonical_url = ${canonicalUrl},
+          source_title = ${candidate.title}, source_author = ${candidate.sourceAuthor}, source_publisher = ${candidate.sourceDomain}, source_url = ${candidate.sourceUrl}, canonical_source_url = ${candidate.normalizedUrl},
+          source_published_at = ${candidate.sourcePublishedAt}, source_fetched_at = NOW(), source_fingerprint = ${sourceFingerprint}, event_fingerprint = ${contentFingerprint}, content_hash = ${hash(composed.content)},
+          relevance_score = ${candidate.score}, credibility_score = ${sourceTrustScore}, editorial_note = ${composed.editorialNote || 'Independent editorial summary and analysis based on the linked original source.'}
+        WHERE id = ${articleId} AND site_id = ${siteId}
+      `;
+    } else {
+      await sql`
+        INSERT INTO news_articles (id, site_id, title, slug, excerpt, content, status, indexable, language, category, tags, cover_image_url, cover_image_source_url, cover_image_page_url, cover_image_alt, author_name, published_at, updated_at, seo_title, seo_description, canonical_url, source_title, source_author, source_publisher, source_url, canonical_source_url, source_published_at, source_fetched_at, source_fingerprint, event_fingerprint, content_hash, relevance_score, credibility_score, editorial_note)
+        VALUES (${articleId}, ${siteId}, ${composed.title}, ${slug}, ${composed.excerpt}, ${composed.content}, 'published', TRUE, ${site.publicationLanguage}, ${composed.category}, ${JSON.stringify(composed.tags)}::jsonb, ${site.ownedNeutralImage.url}, ${site.ownedNeutralImage.url}, '', ${site.ownedNeutralImage.alt}, ${authorName}, NOW(), NOW(), ${composed.seoTitle || composed.title}, ${composed.seoDescription || composed.excerpt}, ${canonicalUrl}, ${candidate.title}, ${candidate.sourceAuthor}, ${candidate.sourceDomain}, ${candidate.sourceUrl}, ${candidate.normalizedUrl}, ${candidate.sourcePublishedAt}, NOW(), ${sourceFingerprint}, ${contentFingerprint}, ${hash(composed.content)}, ${candidate.score}, ${sourceTrustScore}, ${composed.editorialNote || 'Independent editorial summary and analysis based on the linked original source.'})
+      `;
+    }
+    await markSitemapDirty("automated News article is pending public delivery verification");
     await sql`UPDATE news_publication_runs SET status = 'frontend_verifying', article_id = ${articleId} WHERE id = ${runId}`;
-    const verification = await verifyFrontend(site, { ...inserted[0], sourceUrl: inserted[0].source_url }, runId);
+    const verification = await verifyFrontend(site, { id: articleId, slug, title: composed.title, sourceUrl: candidate.normalizedUrl }, runId);
     if (!verification.passed) throw new Error(`Frontend verification failed: ${JSON.stringify(verification.statuses)}`);
     await sql`UPDATE news_candidates SET status = 'used', used_article_id = ${articleId}, updated_at = NOW() WHERE id = ${candidate.id}`;
     await sql`UPDATE news_publication_runs SET status = 'published_success', completed_at = NOW() WHERE id = ${runId}`;
-    await audit(siteId, "news_publish_verified", "info", "News article passed frontend list, detail, sitemap and RSS checks.", { articleId, slug, verification }, runId);
-    return { ok: true, runId, articleId, slug, verification };
+    await audit(siteId, "news_publish_verified", "info", "News article passed frontend list, detail, sitemap, RSS and Blog-isolation checks.", { articleId, slug, composerMode: composition.mode, verification }, runId);
+    return { ok: true, runId, articleId, slug, composerMode: composition.mode, verification };
   } catch (error) {
     const message = error instanceof Error ? error.message : "News publishing failed.";
+    if (articleId && contentFingerprint) {
+      await sql`UPDATE news_articles SET status = 'draft', indexable = FALSE, updated_at = NOW() WHERE id = ${articleId} AND site_id = ${siteId} AND event_fingerprint = ${contentFingerprint}`.catch(() => undefined);
+    }
+    if (candidateId) {
+      await sql`UPDATE news_candidates SET status = 'candidate', reserved_cycle_key = '', updated_at = NOW() WHERE id = ${candidateId} AND site_id = ${siteId} AND status = 'reserved_for_cycle'`.catch(() => undefined);
+    }
     await sql`UPDATE news_publication_runs SET status = 'retry_pending', completed_at = NOW(), error_message = ${message.slice(0, 1_000)} WHERE id = ${runId}`.catch(() => undefined);
-    await audit(siteId, "news_publish_failed", "critical", message, { cycle }, runId).catch(() => undefined);
+    await audit(siteId, "news_publish_failed", "critical", message, { cycle, candidateId, articleId }, runId).catch(() => undefined);
     throw error;
   } finally {
     await releaseLock(siteId, "publish", cycle, owner);

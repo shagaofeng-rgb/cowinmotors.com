@@ -1,5 +1,7 @@
 # News Automation Unification: Local Implementation Summary
 
+> Historical pre-deployment record from 2026-08-11. For the repaired and production-verified state, use `10-production-repair-20260830.md`.
+
 ## Scope and safety boundary
 
 This implementation covers the single configured site, `cowinmotors` (`https://www.cowinmotors.com`). It was prepared locally on 2026-08-11 and has **not** been deployed, pushed, or enabled in production. The rollback baseline is the Git tag `pre-news-automation-unification-20260811`; the configuration backup is stored outside the repository at `/Users/apple/Documents/cowinmotors.com-backups/news-automation-unification-20260811`.

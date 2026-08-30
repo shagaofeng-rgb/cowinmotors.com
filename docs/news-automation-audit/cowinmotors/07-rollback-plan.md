@@ -4,6 +4,8 @@
 
 - Git tag: `pre-news-automation-unification-20260811`.
 - Local configuration/code backup: `/Users/apple/Documents/cowinmotors.com-backups/news-automation-unification-20260811/`.
+- News repair baseline tag: `pre-news-repair-20260830-9bf1451`.
+- Production News table export before repair: `/Users/apple/Documents/cowinmotors.com-backups/news-repair-20260830-194219/`.
 - Existing content is not deleted by the new migration; the migration only adds fields/tables/indexes.
 
 ## Application rollback

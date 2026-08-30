@@ -2292,6 +2292,7 @@ body:has(.home-exact) .site-footer small {
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -5545,7 +5546,8 @@ body:has(.home-redesign) .header-cta {
   }
 
   .nav-panel,
-  .nav-drawer.wide .nav-panel {
+  .nav-drawer.wide .nav-panel,
+  .nav-drawer.company .nav-panel {
     left: 16px;
     right: 16px;
     width: auto;
@@ -5558,6 +5560,12 @@ body:has(.home-redesign) .header-cta {
   .nav-link-grid,
   .company-panel {
     grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .nav-company-card {
+    min-width: 0;
+    max-width: 100%;
   }
 
   h1 {

@@ -117,7 +117,9 @@ const cowinmotors: NewsSiteConfig = {
     contentStatusAfterPublish: "published",
     requireFrontendVerification: true,
     alertChannel: "news-automation-audit-events",
-    productionEnabled: process.env.NEWS_AUTOMATION_PRODUCTION_ENABLED === "true",
+    // Production is on by default for this approved site. Set the variable to
+    // "false" to activate the operational kill switch without a code change.
+    productionEnabled: process.env.NEWS_AUTOMATION_PRODUCTION_ENABLED !== "false",
   },
   ownedNeutralImage: {
     url: "https://www.cowinmotors.com/assets/ui/photography/news/article-fitment-compliance.png",

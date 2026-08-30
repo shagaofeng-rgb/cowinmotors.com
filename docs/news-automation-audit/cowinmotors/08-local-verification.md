@@ -1,5 +1,7 @@
 # Local Verification and Production Readiness: cowinmotors
 
+> Historical local-only record from 2026-08-11. For current production evidence, use `10-production-repair-20260830.md`.
+
 ## Completed locally
 
 - `pnpm typecheck` passed.
