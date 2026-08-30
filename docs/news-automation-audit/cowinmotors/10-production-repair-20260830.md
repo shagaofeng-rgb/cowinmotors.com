@@ -21,7 +21,7 @@ Vercel invoked both News cron routes and received HTTP 200, but `NEWS_AUTOMATION
 - Baseline commit: `9bf14511b5614a1879c98c720ec95364b5e89b28`.
 - Baseline tag: `pre-news-repair-20260830-9bf1451`.
 - Pre-change News export: `/Users/apple/Documents/cowinmotors.com-backups/news-repair-20260830-194219/`.
-- Vercel Production now explicitly contains `NEWS_AUTOMATION_PRODUCTION_ENABLED=true`; its value is non-secret and requires the new deployment to take effect.
+- Vercel Production explicitly contains the exact value `NEWS_AUTOMATION_PRODUCTION_ENABLED=true`; deployment `dpl_AWkA8Pc298PnDyDyVjnTdjkkgkke` was rebuilt after the environment update and reached `READY` at `2026-08-30 20:10` Asia/Shanghai.
 - Existing News and Blog content was not deleted or overwritten.
 - Schema changes were additive (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, and indexes).
 
@@ -39,6 +39,8 @@ At `2026-08-30T11:51:41Z`, the publisher used the approved fallback list and sel
 - Delivery check: list 200, detail 200, News sitemap 200, RSS 200, Blog 200 and isolated
 
 Browser checks at 1440px and 390px confirmed the title, nine body paragraphs, source panel, valid JSON-LD, no exposed markup and no console errors. The local mobile regression after the CSS patch confirmed `scrollWidth=clientWidth=390`.
+
+Post-deployment browser checks repeated the same desktop and mobile assertions against `https://www.cowinmotors.com`. HTTP checks returned 200 for the News list, detail, News sitemap, RSS, Blog and robots.txt; the article was present in the News sitemap and RSS and absent from Blog. Vercel reported no runtime error clusters for the selected News routes during the post-deployment window.
 
 ## Verification commands
 
