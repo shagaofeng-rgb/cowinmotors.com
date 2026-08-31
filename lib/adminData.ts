@@ -23,6 +23,8 @@ export type InquiryRecord = {
   sessionId: string;
   landingPage: string;
   referrer: string;
+  isTest: boolean;
+  testReason: string;
 };
 
 export type InquiryJourney = {
@@ -111,6 +113,7 @@ export type SyncJobRecord = {
   retryCount: number;
   errorMessage: string;
   metadata: Record<string, unknown>;
+  healthy: boolean;
 };
 
 const inquiryFile = path.join(os.tmpdir(), "cowinmotors-inquiries.json");
@@ -210,6 +213,8 @@ type InquiryRow = {
   session_id: string | null;
   landing_page: string | null;
   referrer: string | null;
+  is_test: boolean | null;
+  test_reason: string | null;
 };
 
 function inquiryFromRow(row: InquiryRow): InquiryRecord {
@@ -230,29 +235,42 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
     sessionId: row.session_id || "",
     landingPage: row.landing_page || "",
     referrer: row.referrer || "",
+    isTest: Boolean(row.is_test),
+    testReason: row.test_reason || "",
   };
 }
 
-export async function getInquiries(): Promise<InquiryRecord[]> {
+export async function getInquiries({ includeTests = false }: { includeTests?: boolean } = {}): Promise<InquiryRecord[]> {
   const sql = getSql();
 
   if (sql) {
     try {
       await ensureCoreSchema();
-      const rows = await sql`
-        SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-          visitor_id, session_id, landing_page, referrer
-        FROM cowin_inquiries
-        ORDER BY created_at DESC
-        LIMIT 300
-      ` as InquiryRow[];
+      const rows = includeTests
+        ? await sql`
+            SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
+              visitor_id, session_id, landing_page, referrer, is_test, test_reason
+            FROM cowin_inquiries
+            ORDER BY created_at DESC
+            LIMIT 300
+          ` as InquiryRow[]
+        : await sql`
+            SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
+              visitor_id, session_id, landing_page, referrer, is_test, test_reason
+            FROM cowin_inquiries
+            WHERE is_test = FALSE
+            ORDER BY created_at DESC
+            LIMIT 300
+          ` as InquiryRow[];
       return rows.map(inquiryFromRow);
     } catch (error) {
       console.error("Inquiry database read failed; using file fallback.", error);
     }
   }
 
-  return readJsonFile<InquiryRecord[]>(inquiryFile, []).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return readJsonFile<InquiryRecord[]>(inquiryFile, [])
+    .filter((record) => includeTests || !record.isTest)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 async function persistInquiry(record: InquiryRecord) {
@@ -264,7 +282,7 @@ async function persistInquiry(record: InquiryRecord) {
       await sql`
         INSERT INTO cowin_inquiries (
           id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-          visitor_id, session_id, landing_page, referrer
+          visitor_id, session_id, landing_page, referrer, is_test, test_reason
         ) VALUES (
           ${record.id},
           ${record.createdAt},
@@ -281,7 +299,9 @@ async function persistInquiry(record: InquiryRecord) {
           ${record.visitorId},
           ${record.sessionId},
           ${record.landingPage},
-          ${record.referrer}
+          ${record.referrer},
+          ${record.isTest},
+          ${record.testReason}
         )
         ON CONFLICT (id) DO NOTHING
       `;
@@ -295,11 +315,11 @@ async function persistInquiry(record: InquiryRecord) {
   writeJsonFile(inquiryFile, records);
 }
 
-type InquiryInput = Omit<InquiryRecord, "id" | "createdAt" | "source" | "visitorId" | "sessionId" | "landingPage" | "referrer"> &
-  Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer">>;
+type InquiryInput = Omit<InquiryRecord, "id" | "createdAt" | "source" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason"> &
+  Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason">>;
 
-type InquiryInputWithSource = Omit<InquiryRecord, "id" | "createdAt" | "visitorId" | "sessionId" | "landingPage" | "referrer"> &
-  Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer">>;
+type InquiryInputWithSource = Omit<InquiryRecord, "id" | "createdAt" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason"> &
+  Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason">>;
 
 export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
   const record: InquiryRecord = {
@@ -311,6 +331,8 @@ export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
     sessionId: input.sessionId || "",
     landingPage: input.landingPage || "",
     referrer: input.referrer || "",
+    isTest: Boolean(input.isTest),
+    testReason: input.testReason || "",
   };
   await persistInquiry(record);
   return record;
@@ -325,6 +347,8 @@ export async function saveInquiryWithSource(input: InquiryInputWithSource): Prom
     sessionId: input.sessionId || "",
     landingPage: input.landingPage || "",
     referrer: input.referrer || "",
+    isTest: Boolean(input.isTest),
+    testReason: input.testReason || "",
   };
   await persistInquiry(record);
   return record;
@@ -335,7 +359,7 @@ function hasJourneyIdentity(value: string) {
 }
 
 export async function getInquiryDetail(id: string): Promise<{ inquiry: InquiryRecord; journey: InquiryJourney } | null> {
-  const inquiry = (await getInquiries()).find((item) => item.id === id);
+  const inquiry = (await getInquiries({ includeTests: true })).find((item) => item.id === id);
   if (!inquiry) return null;
 
   if (!hasJourneyIdentity(inquiry.visitorId)) {
@@ -612,11 +636,11 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
   if (sql) {
     try {
       await ensureCoreSchema();
-      const rows = await sql`
+      const coreRows = await sql`
         SELECT id, job_type, status, scheduled_at, started_at, completed_at, retry_count, error_message, metadata
         FROM cowin_sync_jobs
         ORDER BY started_at DESC NULLS LAST
-        LIMIT 200
+        LIMIT 100
       ` as {
         id: string;
         job_type: string;
@@ -628,6 +652,51 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
         error_message: string;
         metadata: Record<string, unknown>;
       }[];
+
+      const readOptionalRows = async (query: string) => {
+        try {
+          return await sql.query(query, []) as Array<{
+            id: string;
+            job_type: string;
+            status: string;
+            scheduled_at: string | Date | null;
+            started_at: string | Date | null;
+            completed_at: string | Date | null;
+            retry_count: number;
+            error_message: string;
+            metadata: Record<string, unknown>;
+          }>;
+        } catch {
+          return [];
+        }
+      };
+
+      const [ingestRows, publicationRows, blogRows] = await Promise.all([
+        readOptionalRows(`
+          SELECT id, 'news-ingest' AS job_type, status, NULL::timestamptz AS scheduled_at, started_at, completed_at,
+            0 AS retry_count, error_message,
+            jsonb_build_object('cycle', cycle_key, 'discovered', discovered_count, 'candidates', candidate_count, 'rejected', rejected_count, 'sourceHealth', source_health) AS metadata
+          FROM news_ingest_runs ORDER BY started_at DESC LIMIT 40
+        `),
+        readOptionalRows(`
+          SELECT id, 'news-publish' AS job_type, status, NULL::timestamptz AS scheduled_at, started_at, completed_at,
+            GREATEST(attempt_count - 1, 0) AS retry_count, error_message,
+            jsonb_build_object('cycle', cycle_key, 'candidateId', candidate_id, 'articleId', article_id) AS metadata
+          FROM news_publication_runs ORDER BY started_at DESC LIMIT 40
+        `),
+        readOptionalRows(`
+          SELECT id, CASE WHEN status = 'success' THEN 'blog-webhook' ELSE 'blog-webhook-rejected' END AS job_type,
+            status, NULL::timestamptz AS scheduled_at, created_at AS started_at, created_at AS completed_at,
+            0 AS retry_count, CASE WHEN status = 'failed' THEN detail ELSE '' END AS error_message,
+            jsonb_build_object('eventType', event_type, 'articleId', article_id, 'detail', detail) AS metadata
+          FROM blog_publication_events ORDER BY created_at DESC LIMIT 40
+        `),
+      ]);
+
+      const healthyStatuses = new Set(["正常", "completed", "published_success", "success", "unchanged"]);
+      const rows = [...coreRows, ...ingestRows, ...publicationRows, ...blogRows]
+        .sort((left, right) => new Date(right.started_at || 0).getTime() - new Date(left.started_at || 0).getTime())
+        .slice(0, 200);
       if (rows.length) {
         return rows.map((row) => ({
           id: row.id,
@@ -639,6 +708,7 @@ export async function getSyncJobs(): Promise<SyncJobRecord[]> {
           retryCount: row.retry_count,
           errorMessage: row.error_message,
           metadata: row.metadata || {},
+          healthy: healthyStatuses.has(row.status) && !row.error_message,
         }));
       }
     } catch (error) {

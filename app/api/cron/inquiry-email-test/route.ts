@@ -25,6 +25,8 @@ export async function GET(request: Request) {
     vehicleInfo: "Automated test triggered by Vercel Cron",
     quantity: "1",
     requirement: `Automated monthly test submitted at ${now.toISOString()} to verify that website form emails can still reach the Cowinmotors inbox.`,
+    isTest: true,
+    testReason: "Monthly automated inquiry email delivery check",
   });
 
   const emailResult = await sendInquiryEmail(inquiry).catch((error: Error) => ({

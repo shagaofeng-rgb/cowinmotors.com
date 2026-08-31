@@ -48,6 +48,7 @@ export async function POST(request: Request) {
 
   const source = clean(body.source) || "website-rfq-form";
   const requirement = clean(body.requirement);
+  const testInquiry = isTestInquiry({ name, email, source, requirement });
   const inquiry = await saveInquiryWithSource({
     source,
     name,
@@ -63,6 +64,8 @@ export async function POST(request: Request) {
     sessionId: clean(body.sessionId, 80),
     landingPage: clean(body.landingPage, 240),
     referrer: clean(body.referrer, 240),
+    isTest: testInquiry,
+    testReason: testInquiry ? "Automated or explicitly marked test inquiry" : "",
   });
 
   const analyticsEvent = normalizeAnalyticsEvent({
@@ -75,15 +78,17 @@ export async function POST(request: Request) {
     targetText: inquiry.product || inquiry.productType,
     visitorId: inquiry.visitorId || "anonymous",
     sessionId: inquiry.sessionId || "session",
-    qualityHint: isTestInquiry({ name, email, source, requirement }) ? "test-inquiry" : "",
+    qualityHint: testInquiry ? "test-inquiry" : "",
   }, request);
   const analyticsResult = await appendAnalyticsEvent(analyticsEvent);
 
-  const emailResult = await sendInquiryEmail(inquiry, attachment || undefined).catch(() => ({
-    sent: false,
-    provider: "error",
-    reason: "Email delivery failed. Please check SMTP credentials and provider settings.",
-  }));
+  const emailResult = testInquiry
+    ? { sent: false, provider: "skipped", reason: "Marked test inquiry; customer notification was not sent." }
+    : await sendInquiryEmail(inquiry, attachment || undefined).catch(() => ({
+        sent: false,
+        provider: "error",
+        reason: "Email delivery failed. Please check SMTP credentials and provider settings.",
+      }));
 
   return NextResponse.json({
     ok: true,
@@ -92,5 +97,6 @@ export async function POST(request: Request) {
     emailProvider: emailResult.provider,
     emailWarning: emailResult.sent ? "" : emailResult.reason,
     analyticsStored: analyticsResult.ok,
+    testExcluded: testInquiry,
   });
 }

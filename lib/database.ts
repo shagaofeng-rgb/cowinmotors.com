@@ -77,6 +77,16 @@ export async function ensureCoreSchema() {
         `;
 
         await sql`
+          ALTER TABLE cowin_inquiries
+          ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE
+        `;
+
+        await sql`
+          ALTER TABLE cowin_inquiries
+          ADD COLUMN IF NOT EXISTS test_reason TEXT NOT NULL DEFAULT ''
+        `;
+
+        await sql`
           CREATE TABLE IF NOT EXISTS cowin_analytics_events (
             id TEXT PRIMARY KEY,
             type TEXT NOT NULL,
@@ -137,6 +147,7 @@ export async function ensureCoreSchema() {
         await ignoreExistingRelation(sql`CREATE UNIQUE INDEX IF NOT EXISTS cowin_analytics_events_dedupe_key_idx ON cowin_analytics_events (dedupe_key) WHERE dedupe_key <> ''`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_created_at_idx ON cowin_inquiries (created_at DESC)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_visitor_created_at_idx ON cowin_inquiries (visitor_id, created_at DESC)`);
+        await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_inquiries_test_created_at_idx ON cowin_inquiries (is_test, created_at DESC)`);
 
         await sql`
           CREATE TABLE IF NOT EXISTS cowin_admin_audit_logs (

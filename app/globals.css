@@ -5568,6 +5568,12 @@ body:has(.home-redesign) .header-cta {
     max-width: 100%;
   }
 
+  .nav-company-card small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
   h1 {
     font-size: 42px;
   }
@@ -5906,6 +5912,22 @@ body:has(.quote-page) {
 }
 
 @media (max-width: 640px) {
+  .finder-form :is(input, select),
+  .rfq-form :is(input, select, textarea),
+  .home-fitment-form :is(input, select),
+  .home-quick-form :is(input, select, textarea),
+  .product-search :is(input, select),
+  .home-search input,
+  .site-search input {
+    font-size: 16px;
+  }
+
+  .finder-form label,
+  .rfq-form label,
+  .product-card :is(a, button) {
+    font-size: 12px;
+  }
+
   .site-header .main-nav,
   .home-header .home-nav {
     gap: 4px 14px;
