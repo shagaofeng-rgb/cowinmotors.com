@@ -48,7 +48,11 @@ export async function POST(request: Request) {
     if (!hasCompleteBlogWebhookArticle(payload)) return response(1, "验证成功");
 
     const validated = validateBlogWebhookInput(payload);
-    if (!validated.input) return response(0, validated.error || "Invalid article data.", 400);
+    if (!validated.input) {
+      const detail = validated.error || "Invalid article data.";
+      await recordBlogPublicationEvent({ status: "failed", detail: `Content validation rejected: ${detail}` }).catch(() => undefined);
+      return response(0, detail, 400);
+    }
     const result = await publishBlogWebhookArticle(validated.input);
     await markSitemapDirty("Blog article published through signed webhook");
     await recordBlogPublicationEvent({

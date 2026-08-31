@@ -12,6 +12,7 @@
     "sitemap:generate": "node scripts/sitemap.mjs",
     "sitemap:test": "node --test scripts/sitemap.test.mjs",
     "news:test": "node --test scripts/news-editorial-composer.test.mjs",
+    "blog:test": "node --test scripts/blog-webhook-validation.test.mjs",
     "catalog:test": "node scripts/catalog-selfcheck.mjs"
   },
   "dependencies": {

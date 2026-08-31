@@ -52,6 +52,13 @@ No secret values are included in this report.
 - Rejected Blog webhook requests are displayed separately from accepted Blog publication runs. A bad-signature request remains visible as a security event but no longer masks a later valid publication success.
 - Added 10/25/50/100-row pagination to the synchronization log.
 
+### Blog content governance
+
+- Production verification found seven third-party Blog posts about electric bicycles, motorcycles, dirt bikes, or wheelchairs. These subjects are outside the Cowinmotors automotive-parts scope.
+- Preserved those records but changed them to `withdrawn`, removing them from the public Blog and sitemap without deleting audit history.
+- Added server-side webhook industry validation. Signed requests must now demonstrate a clear automotive-parts and vehicle-fitment focus; adjacent industries and generic supplier content are rejected and logged.
+- Added automated tests for an accepted automotive fitment guide and rejected out-of-scope content.
+
 ### Responsive behavior
 
 - Added safe wrapping for long mobile navigation company text.
@@ -83,6 +90,7 @@ No duplicate Vercel Cron entry for these jobs was found in `vercel.json`.
 - TypeScript type check: passed.
 - Catalog self-check: passed.
 - Sitemap and News tests: 11 passed, 0 failed.
+- Blog webhook scope tests: 3 passed, 0 failed.
 - Next.js production build: passed; 1,461 static pages generated.
 - Production-route crawl: 1,323 sitemap URLs returned 200 at baseline.
 - Mobile responsive checks: passed on eight representative public/admin routes.
@@ -97,6 +105,10 @@ No duplicate Vercel Cron entry for these jobs was found in `vercel.json`.
 - `components/MissingModelForm.tsx`
 - `lib/adminData.ts`
 - `lib/database.ts`
+- `lib/blog.ts`
+- `lib/blog-industry-scope.ts`
+- `scripts/blog-webhook-validation.test.mjs`
+- `package.json`
 - `docs/cowinmotors-full-site-audit-20260831.md`
 
 Database migration:

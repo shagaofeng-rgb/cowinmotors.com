@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
 import { ensureCoreSchema, getSql } from "@/lib/database";
+import { validateBlogIndustryScope } from "./blog-industry-scope";
+
+export { validateBlogIndustryScope } from "./blog-industry-scope";
 
 const SITE_URL = "https://www.cowinmotors.com";
 const DEFAULT_COVER_IMAGE = `${SITE_URL}/assets/ui/photography/news/article-fitment-compliance.png`;
@@ -188,6 +191,8 @@ export function validateBlogWebhookInput(input: Record<string, unknown>): { inpu
   if (!BLOG_CLASS_IDS.has(classId)) return { error: "Unsupported class_id. Use blog." };
   if (title.length < 3) return { error: "title must contain at least 3 characters." };
   if (content.length < 40) return { error: "content must contain at least 40 characters." };
+  const industryScope = validateBlogIndustryScope(title, content);
+  if (!industryScope.ok) return { error: industryScope.error };
   return { input: { classId: "blog", title, content, authorId, imageUrl } };
 }
 
