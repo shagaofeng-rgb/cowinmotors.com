@@ -37,9 +37,21 @@ Date: 2026-09-07
   - quote URL: `noindex,follow` and not blocked in robots;
   - sitemap: six valid child sitemaps and 907 total URLs, including 876 product URLs and no wheel URLs.
 
-## Post-deployment acceptance checks
+## Production acceptance record
 
-1. Call the protected sitemap maintenance endpoint once and verify a Search Console API success response is logged.
-2. Confirm Search Console accepts the updated sitemap index and reads its product chunks.
-3. Recheck the 210 discovered product URLs after 7, 14, and 28 days; only request validation for repaired duplicate and legacy-URL issues.
-4. Do not request validation for intentionally noindexed or redirected pages.
+- Production deployment: `dpl_J2pequgBWQhV5KybiUrq4gt5g9cv`, aliased to `https://www.cowinmotors.com`.
+- Vercel Cron Jobs is enabled and shows `/api/cron/sitemap-maintenance` at `10 2 * * *` (UTC). The task itself enforces the three-day external submission interval.
+- A manual production run completed at `2026-09-07T06:08:42.747Z` and finished at `2026-09-07T06:08:43.189Z`.
+- The run generated 907 URLs across six sitemap files, added four URLs, removed 412 URLs, and logged `Search Console accepted the canonical sitemap submission.`
+- Independent live HTTP checks after deployment confirmed:
+  - `/headlights?category=headlights&make=Audi&page=1` returns HTTP 308 to `/headlights?make=Audi`;
+  - `/headlights?page=2` returns HTTP 200 with a page-two canonical;
+  - `/headlights?make=Audi` returns `noindex,follow` with the clean category canonical;
+  - `/quote?product=example` returns `noindex,follow` and `/quote` is not blocked in `robots.txt`;
+  - the sitemap index has six children, three product chunks, 876 product URLs, and zero wheel URLs.
+
+## Follow-up measurement
+
+1. Recheck the 210 discovered product URLs after 7, 14, and 28 days. Sitemap acceptance is a crawl hint, not an indexing guarantee.
+2. Only request Search Console validation for repaired duplicate and legacy-URL issues.
+3. Do not request validation for intentionally noindexed or redirected pages.
