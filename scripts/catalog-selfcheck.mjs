@@ -19,4 +19,11 @@ const included = wheels.filter(supported);
 const invalid = included.filter((product) => wheelAccessoryTerms.test(product.title) || unsupportedWheelUseTerms.test(product.title));
 if (invalid.length) throw new Error(`Unsupported wheel records remain: ${invalid.map((item) => item.title).join(", ")}`);
 if (included.some((product) => /\bHF-?\d/i.test(product.title))) throw new Error("Vossen HF hybrid wheels must not be public.");
-console.log(JSON.stringify({ ok: true, sourceWheelRecords: wheels.length, publicForgedWheelRecords: included.length, excludedRecords: wheels.length - included.length }, null, 2));
+const sitemapEligible = included.filter((product) => {
+  const firstPartyImage = !/^https?:\/\//i.test(String(product.localImage || ""));
+  return Boolean(product.size && product.material && (product.color || product.finish) && product.partNumbers?.length && firstPartyImage);
+});
+if (sitemapEligible.some((product) => !product.size || !product.material || !product.partNumbers?.length || /^https?:\/\//i.test(String(product.localImage || "")))) {
+  throw new Error("A wheel without verified first-party media and technical specifications is eligible for the Sitemap.");
+}
+console.log(JSON.stringify({ ok: true, sourceWheelRecords: wheels.length, publicForgedWheelRecords: included.length, sitemapEligibleWheelRecords: sitemapEligible.length, excludedRecords: wheels.length - included.length }, null, 2));

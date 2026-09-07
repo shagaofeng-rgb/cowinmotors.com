@@ -73,6 +73,9 @@ export function hasUsableProductImage(product: Product) {
 
 export function hasProductIndexingEvidence(product: Product) {
   const hasReference = (product.partNumbers || []).some((reference) => !genericReferencePattern.test(String(reference).trim()));
+  const isWheel = product.category.includes("Wheel");
+  const hasFirstPartyImage = !/^https?:\/\//i.test(String(product.localImage || ""));
+  const hasWheelSpecs = Boolean(product.size && product.material && (product.color || product.finish) && hasReference);
   const hasSpecificAttribute = Boolean(
     product.side ||
       product.material ||
@@ -81,6 +84,9 @@ export function hasProductIndexingEvidence(product: Product) {
       (product.features || []).length ||
       hasReference,
   );
+  if (isWheel) {
+    return Boolean(product.title?.trim() && product.brand?.trim() && product.model?.trim() && hasFirstPartyImage && hasWheelSpecs);
+  }
   return Boolean(product.title?.trim() && product.brand?.trim() && product.model?.trim() && hasSpecificAttribute);
 }
 

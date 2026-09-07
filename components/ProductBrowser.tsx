@@ -31,6 +31,7 @@ export function ProductBrowser({
   initialBrand = "all",
   initialCategory = "",
   initialSearch = "",
+  initialYear = "",
   totalCount,
   currentPage = 1,
   totalPages = 1,
@@ -42,6 +43,7 @@ export function ProductBrowser({
   initialBrand?: string;
   initialCategory?: string;
   initialSearch?: string;
+  initialYear?: string;
   totalCount?: number;
   currentPage?: number;
   totalPages?: number;
@@ -50,16 +52,23 @@ export function ProductBrowser({
   const filterOptions = pageType === "wheels" ? wheelBrandFilters : pageType === "products" ? brandFilters : vehicleBrandFilters;
   const activeBrand = filterOptions.includes(initialBrand) ? initialBrand : "all";
   const startingCategory = categoryFilters.includes(initialCategory) ? initialCategory : "";
+  const categoryInPath = basePath !== "/products";
   const visible = limit ? products.slice(0, limit) : products;
-  const activeCriteria = [startingCategory, initialSearch.trim(), activeBrand !== "all" ? activeBrand : ""].filter(Boolean);
+  const activeCriteria = [startingCategory, initialYear.trim(), initialSearch.trim(), activeBrand !== "all" ? activeBrand : ""].filter(Boolean);
   const makeHref = (params: Record<string, string | number>) => {
     const search = new URLSearchParams();
-    if (startingCategory) search.set("category", startingCategory);
+    if (startingCategory && !categoryInPath) search.set("category", startingCategory);
     if (initialSearch.trim()) search.set("q", initialSearch.trim());
+    if (initialYear.trim()) search.set("year", initialYear.trim());
     if (activeBrand !== "all") search.set("make", activeBrand);
     Object.entries(params).forEach(([key, value]) => {
-      if (value) search.set(key, String(value));
-      else search.delete(key);
+      if (key === "page" && String(value) === "1") {
+        search.delete(key);
+      } else if (value) {
+        search.set(key, String(value));
+      } else {
+        search.delete(key);
+      }
     });
     const query = search.toString();
     return `${basePath}${query ? `?${query}` : ""}`;
@@ -69,8 +78,9 @@ export function ProductBrowser({
     <>
       {pageType !== "home" ? (
         <form className="product-search" action={basePath}>
-          {startingCategory ? <input type="hidden" name="category" value={startingCategory} /> : null}
+          {startingCategory && !categoryInPath ? <input type="hidden" name="category" value={startingCategory} /> : null}
           {activeBrand !== "all" ? <input type="hidden" name="make" value={activeBrand} /> : null}
+          {initialYear.trim() ? <input type="hidden" name="year" value={initialYear} /> : null}
           <input
             name="q"
             type="search"
@@ -124,9 +134,16 @@ export function ProductBrowser({
       )}
       {totalPages > 1 ? (
         <nav className="pagination" aria-label="Product pagination">
-          <Link className={currentPage <= 1 ? "disabled" : ""} href={makeHref({ page: Math.max(1, currentPage - 1) })}>Previous</Link>
-          <span>Page {currentPage} of {totalPages}</span>
-          <Link className={currentPage >= totalPages ? "disabled" : ""} href={makeHref({ page: Math.min(totalPages, currentPage + 1) })}>Next</Link>
+          {currentPage > 1 ? <Link href={makeHref({ page: currentPage - 1 })}>Previous</Link> : <span className="disabled">Previous</span>}
+          {[...new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages].filter((page) => page >= 1 && page <= totalPages))]
+            .sort((left, right) => left - right)
+            .map((page, index, pages) => (
+              <span key={page} className="pagination-page">
+                {index > 0 && page - pages[index - 1] > 1 ? <span className="pagination-gap" aria-hidden="true">…</span> : null}
+                {page === currentPage ? <span aria-current="page">{page}</span> : <Link href={makeHref({ page })}>{page}</Link>}
+              </span>
+            ))}
+          {currentPage < totalPages ? <Link href={makeHref({ page: currentPage + 1 })}>Next</Link> : <span className="disabled">Next</span>}
         </nav>
       ) : null}
     </>

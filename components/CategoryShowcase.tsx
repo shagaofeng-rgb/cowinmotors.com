@@ -16,6 +16,7 @@ type CategoryShowcaseProps = {
   pageType: "headlights" | "tail-lights" | "exhaust" | "wheels";
   initialBrand: string;
   initialSearch: string;
+  initialYear: string;
   totalCount: number;
   currentPage: number;
   totalPages: number;
@@ -44,6 +45,7 @@ export function CategoryShowcase({
   pageType,
   initialBrand,
   initialSearch,
+  initialYear,
   totalCount,
   currentPage,
   totalPages,
@@ -95,7 +97,7 @@ export function CategoryShowcase({
           <form action={basePath}>
             <label>
               Year
-              <select name="year" defaultValue="">
+              <select name="year" defaultValue={initialYear}>
                 <option value="">Select Year</option>
                 <option>2026</option>
                 <option>2025</option>
@@ -126,9 +128,7 @@ export function CategoryShowcase({
             </label>
             <label>
               Type
-              <select name="category" defaultValue={categorySlug}>
-                <option value={categorySlug}>{eyebrow}</option>
-              </select>
+              <input value={eyebrow} readOnly aria-label="Product type" />
             </label>
             <button type="submit">Search</button>
             <Link href={basePath}>Clear all filters</Link>
@@ -163,6 +163,7 @@ export function CategoryShowcase({
             initialBrand={initialBrand}
             initialCategory={categorySlug}
             initialSearch={initialSearch}
+            initialYear={initialYear}
             totalCount={totalCount}
             currentPage={currentPage}
             totalPages={totalPages}

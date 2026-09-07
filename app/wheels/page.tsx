@@ -1,21 +1,29 @@
+import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import { CategoryShowcase } from "@/components/CategoryShowcase";
+import { categoryPageMetadata, categorySearchPath, shouldNormalizeCategorySearch, type CategorySearchParams } from "@/lib/category-url";
 import { categoryHeroImage, filterProducts, paginateProducts } from "@/lib/products";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
-export const metadata = {
+const baseMetadata = {
   title: "Forged Automotive Wheels by Fitment",
   description:
     "Browse forged automotive wheels with diameter, PCD, offset, center bore, finish, and export quotation support.",
-  alternates: { canonical: "/wheels" },
 };
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<CategorySearchParams> }): Promise<Metadata> {
+  return categoryPageMetadata({ ...baseMetadata, basePath: "/wheels", params: await searchParams });
+}
 
 export default async function WheelsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ make?: string; q?: string; page?: string }>;
+  searchParams: Promise<CategorySearchParams>;
 }) {
   const params = await searchParams;
-  const paged = paginateProducts(filterProducts({ category: "wheels", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 25);
+  if (shouldNormalizeCategorySearch(params)) permanentRedirect(categorySearchPath("/wheels", params));
+  const query = [params.year, params.q].filter(Boolean).join(" ");
+  const paged = paginateProducts(filterProducts({ category: "wheels", brand: params.make || "", query }), Number(params.page || 1), 25);
 
   return (
     <CategoryShowcase
@@ -30,6 +38,7 @@ export default async function WheelsPage({
       pageType="wheels"
       initialBrand={params.make || "all"}
       initialSearch={params.q || ""}
+      initialYear={params.year || ""}
       totalCount={paged.total}
       currentPage={paged.currentPage}
       totalPages={paged.totalPages}

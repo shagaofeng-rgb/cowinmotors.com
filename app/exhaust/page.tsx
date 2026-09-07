@@ -1,21 +1,29 @@
+import type { Metadata } from "next";
+import { permanentRedirect } from "next/navigation";
 import { CategoryShowcase } from "@/components/CategoryShowcase";
+import { categoryPageMetadata, categorySearchPath, shouldNormalizeCategorySearch, type CategorySearchParams } from "@/lib/category-url";
 import { categoryHeroImage, filterProducts, paginateProducts } from "@/lib/products";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
-export const metadata = {
+const baseMetadata = {
   title: "Performance Exhaust Systems by Vehicle Fitment",
   description:
     "Browse catalog-listed exhaust systems with vehicle, engine, installation, and destination-requirement confirmation before ordering.",
-  alternates: { canonical: "/exhaust" },
 };
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<CategorySearchParams> }): Promise<Metadata> {
+  return categoryPageMetadata({ ...baseMetadata, basePath: "/exhaust", params: await searchParams });
+}
 
 export default async function ExhaustPage({
   searchParams,
 }: {
-  searchParams: Promise<{ make?: string; q?: string; page?: string }>;
+  searchParams: Promise<CategorySearchParams>;
 }) {
   const params = await searchParams;
-  const paged = paginateProducts(filterProducts({ category: "exhaust", brand: params.make || "", query: params.q || "" }), Number(params.page || 1), 25);
+  if (shouldNormalizeCategorySearch(params)) permanentRedirect(categorySearchPath("/exhaust", params));
+  const query = [params.year, params.q].filter(Boolean).join(" ");
+  const paged = paginateProducts(filterProducts({ category: "exhaust", brand: params.make || "", query }), Number(params.page || 1), 25);
 
   return (
     <CategoryShowcase
@@ -30,6 +38,7 @@ export default async function ExhaustPage({
       pageType="exhaust"
       initialBrand={params.make || "all"}
       initialSearch={params.q || ""}
+      initialYear={params.year || ""}
       totalCount={paged.total}
       currentPage={paged.currentPage}
       totalPages={paged.totalPages}
