@@ -20,7 +20,7 @@ Date: 2026-09-08
 ## Changes
 
 1. Product indexability now requires a genuine non-generic reference or a four-digit year range in addition to existing image, vehicle, and product-specific data requirements. This removes 21 weakly identified pages from the sitemap while preserving their public inquiry pages as `noindex,follow`.
-2. Canonical-host redirects now combine the non-www redirect with legacy `/collections`, `/search`, and order-tracking normalization into one 308 hop.
+2. Legacy `/collections`, `/search`, and order-tracking paths normalize to their canonical public destinations with HTTP 308. Vercel applies the non-www host redirect before application middleware, so a non-www legacy URL can retain a second canonical-host 308; this is intentional and avoids weakening the canonical-host policy.
 3. Three known legacy wheel/accessory URLs with no current compatible product are explicitly returned as HTTP 410. No unrelated URL is redirected to the homepage.
 
 ## Google submission status
@@ -28,3 +28,11 @@ Date: 2026-09-08
 - Production has `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, and `GOOGLE_SEARCH_CONSOLE_SITE_URL` configured as protected environment variables.
 - Sitemap maintenance uses the official Search Console Sitemap API and stores execution records in the production database.
 - The latest recorded successful canonical sitemap submission was 2026-09-07T06:08:42.747Z. The application enforces a minimum three-day external submission interval, so this deployment must not bypass that throttle with a duplicate request.
+- On 2026-09-08, Search Console's `Blocked by robots.txt` remediation was submitted through the property UI. The console showed `Validation started`; this covers the eight historical quote URLs that are no longer disallowed by the live robots policy.
+
+## Production verification after deployment
+
+- Deployment `dpl_CWezcE1Y4T1p5s5QzriLUbwAGXUp` is ready and aliased to `https://www.cowinmotors.com`.
+- The live sitemap contains 886 URLs: 19 pages, 5 categories, 855 products, and 7 posts.
+- Sampled retired product URLs return 410. The quote page and quote parameters return HTTP 200 with `noindex,follow` and canonical `https://www.cowinmotors.com/quote`.
+- A redundant filtered category page-one URL returns 308 to its clean filtered equivalent.
