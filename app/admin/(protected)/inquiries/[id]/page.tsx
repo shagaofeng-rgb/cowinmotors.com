@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getInquiryDetail, type InquiryJourney } from "@/lib/adminData";
+import { customerIdForInquiry, getInquiryDetail, type InquiryJourney } from "@/lib/adminData";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +92,7 @@ export default async function AdminInquiryDetailPage({ params }: { params: Promi
           <h1>{inquiry.name}</h1>
           <p>提交于 {formatTime(inquiry.createdAt)} · 来源：{inquiry.source || "website-rfq-form"}</p>
         </div>
-        <span className="admin-status">RFQ</span>
+        <div className="admin-page-actions">{customerIdForInquiry(inquiry) ? <Link className="admin-secondary-button" href={`/admin/customers/${encodeURIComponent(customerIdForInquiry(inquiry))}`}>客户完整档案</Link> : null}<span className="admin-status">RFQ</span></div>
       </header>
 
       <section className="admin-detail-grid">

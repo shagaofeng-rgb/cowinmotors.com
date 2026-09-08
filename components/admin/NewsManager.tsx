@@ -48,7 +48,18 @@ export function NewsManager({ initialArticles }: { initialArticles: NewsArticle[
   const [form, setForm] = useState<FormState>(blankForm);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const legacyCount = useMemo(() => articles.filter((article) => !article.indexable).length, [articles]);
+  const filteredArticles = useMemo(() => articles.filter((article) => {
+    const haystack = `${article.title} ${article.status} ${article.category} ${article.sourcePublisher}`.toLowerCase();
+    return (!query || haystack.includes(query.toLowerCase())) && (!statusFilter || article.status === statusFilter);
+  }), [articles, query, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredArticles.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageArticles = filteredArticles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setForm((current) => ({ ...current, [key]: value }));
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
@@ -115,7 +126,9 @@ export function NewsManager({ initialArticles }: { initialArticles: NewsArticle[
       </section>
 
       <section className="admin-panel"><div className="admin-panel-headline"><div><p className="eyebrow">Editorial library</p><h2>News records</h2></div><a href="/news" target="_blank" rel="noreferrer">View public News</a></div>
-        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Title</th><th>Status</th><th>Index</th><th>Updated</th><th>Actions</th></tr></thead><tbody>{articles.map((article) => <tr key={article.id}><td>{article.title}</td><td>{article.status}</td><td>{article.indexable ? "Indexable" : "noindex"}</td><td>{new Date(article.updatedAt).toLocaleString("zh-CN")}</td><td><button type="button" onClick={() => setForm(formFromArticle(article))}>Edit</button><button type="button" onClick={() => removeArticle(article.id)}>Delete</button></td></tr>)}{!articles.length ? <tr><td colSpan={5}>No News articles yet.</td></tr> : null}</tbody></table></div>
+        <div className="admin-toolbar admin-filter-form"><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="搜索标题、状态、分类或来源" /><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1); }}><option value="">全部状态</option><option value="draft">Draft</option><option value="review_required">Review required</option><option value="published">Published</option><option value="archived">Archived</option></select><select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value="25">25 / 页</option><option value="50">50 / 页</option><option value="100">100 / 页</option></select></div>
+        <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Title</th><th>Status</th><th>Index</th><th>Updated</th><th>Actions</th></tr></thead><tbody>{pageArticles.map((article) => <tr key={article.id}><td>{article.title}</td><td>{article.status}</td><td>{article.indexable ? "Indexable" : "noindex"}</td><td>{new Date(article.updatedAt).toLocaleString("zh-CN")}</td><td><button type="button" onClick={() => setForm(formFromArticle(article))}>Edit</button><button type="button" onClick={() => removeArticle(article.id)}>Delete</button></td></tr>)}{!pageArticles.length ? <tr><td colSpan={5}>No matching News articles.</td></tr> : null}</tbody></table></div>
+        <div className="admin-pagination"><button type="button" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>上一页</button><span>{currentPage} / {totalPages} · {filteredArticles.length} 篇</span><button type="button" disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>下一页</button></div>
       </section>
     </div>
   );

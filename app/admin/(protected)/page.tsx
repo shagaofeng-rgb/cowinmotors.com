@@ -2,8 +2,8 @@ import Link from "next/link";
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
 import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { MetricCard, BarList } from "@/components/admin/AdminWidgets";
-import { getAdminDateRange } from "@/lib/adminDateRange";
-import { getAdminOverview } from "@/lib/adminData";
+import { getAdminDateRange, resolveDateRange } from "@/lib/adminDateRange";
+import { getAdminOverview, getCustomerDirectory } from "@/lib/adminData";
 import { getAnalyticsHealth, getAnalyticsSnapshot } from "@/lib/analyticsStore";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +21,12 @@ export default async function AdminOverviewPage({
   const analytics = await getAnalyticsSnapshot(range);
   const analyticsHealth = await getAnalyticsHealth();
   const data = await getAdminOverview();
+  const customers = await getCustomerDirectory(resolveDateRange(range), { pageSize: 10 });
   const metrics = [
     { label: "真实 PV", value: analytics.overview.pageViews, note: `${analytics.rangeDays} 天已过滤自动化流量` },
     { label: "真实 UV", value: analytics.overview.uniqueVisitors, note: "匿名访客" },
     { label: "RFQ 提交", value: analytics.overview.inquiries, note: "同一事件仅统计一次" },
+    { label: "已识别客户", value: customers.total, note: "已留邮箱或电话的真实客户" },
     { label: "已排除", value: analytics.overview.excludedEvents, note: "预览、爬虫、测试与自动化" },
   ];
 
@@ -110,6 +112,17 @@ export default async function AdminOverviewPage({
             <Link href="/admin/visitors">查看访客</Link>
           </div>
           <BarList rows={[...analytics.traffic.countries.slice(0, 5), ...analytics.traffic.devices]} />
+        </div>
+      </section>
+
+      <section className="admin-grid-2">
+        <div className="admin-panel">
+          <div className="admin-panel-headline"><div><p className="eyebrow">最近真实访问</p><h2>实时客户活动</h2></div><Link href="/admin/visitors">查看访客</Link></div>
+          {analytics.visitors.length ? <div className="admin-stack">{analytics.visitors.slice(0, 10).map((visitor) => <Link className="admin-mini-record" href={`/admin/visitors/${encodeURIComponent(visitor.visitorId)}`} key={visitor.id}><strong>{visitor.page}</strong><span>{visitor.country || "Unknown"} · {visitor.sourcePlatform} · {new Date(visitor.timestamp).toLocaleString("zh-CN", { hour12: false })}</span></Link>)}</div> : <div className="admin-empty">当前范围内暂无真实访问。</div>}
+        </div>
+        <div className="admin-panel">
+          <div className="admin-panel-headline"><div><p className="eyebrow">客户归属</p><h2>最新已识别客户</h2></div><Link href="/admin/customers">查看客户</Link></div>
+          {customers.items.length ? <div className="admin-stack">{customers.items.map((customer) => <Link className="admin-mini-record" href={`/admin/customers/${encodeURIComponent(customer.customerId)}`} key={customer.customerId}><strong>{customer.displayName}</strong><span>{customer.country || "Unknown"} · {customer.inquiries} 条询盘 · {customer.pageViews} PV</span></Link>)}</div> : <div className="admin-empty">当前范围内暂无已识别客户。</div>}
         </div>
       </section>
 

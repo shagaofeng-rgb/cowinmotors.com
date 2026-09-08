@@ -46,6 +46,26 @@ export type InquiryJourney = {
   };
 };
 
+export type CustomerRecord = {
+  customerId: string;
+  displayName: string;
+  email: string;
+  phone: string;
+  country: string;
+  visitorIds: string[];
+  firstSeen: string;
+  lastSeen: string;
+  inquiries: number;
+  sessions: number;
+  pageViews: number;
+  labels: string[];
+};
+
+export type CustomerProfile = CustomerRecord & {
+  inquiryRecords: InquiryRecord[];
+  events: AnalyticsEvent[];
+};
+
 export type AdminListParams = {
   query: string;
   page: number;
@@ -134,7 +154,7 @@ export function getAdminListParams(searchParams?: Record<string, string | string
   };
   const page = Math.max(1, Number.parseInt(read("page"), 10) || 1);
   const pageSizeInput = Number.parseInt(read("pageSize"), 10) || 25;
-  const pageSize = [10, 25, 50, 100].includes(pageSizeInput) ? pageSizeInput : 25;
+  const pageSize = [25, 50, 100].includes(pageSizeInput) ? pageSizeInput : 25;
 
   return {
     query: read("q").trim(),
@@ -240,8 +260,9 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
   };
 }
 
-export async function getInquiries({ includeTests = false }: { includeTests?: boolean } = {}): Promise<InquiryRecord[]> {
+export async function getInquiries({ includeTests = false, limit = 5000 }: { includeTests?: boolean; limit?: number } = {}): Promise<InquiryRecord[]> {
   const sql = getSql();
+  const safeLimit = Math.min(5000, Math.max(1, Math.round(limit)));
 
   if (sql) {
     try {
@@ -252,7 +273,7 @@ export async function getInquiries({ includeTests = false }: { includeTests?: bo
               visitor_id, session_id, landing_page, referrer, is_test, test_reason
             FROM cowin_inquiries
             ORDER BY created_at DESC
-            LIMIT 300
+            LIMIT ${safeLimit}
           ` as InquiryRow[]
         : await sql`
             SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
@@ -260,7 +281,7 @@ export async function getInquiries({ includeTests = false }: { includeTests?: bo
             FROM cowin_inquiries
             WHERE is_test = FALSE
             ORDER BY created_at DESC
-            LIMIT 300
+            LIMIT ${safeLimit}
           ` as InquiryRow[];
       return rows.map(inquiryFromRow);
     } catch (error) {
@@ -271,6 +292,99 @@ export async function getInquiries({ includeTests = false }: { includeTests?: bo
   return readJsonFile<InquiryRecord[]>(inquiryFile, [])
     .filter((record) => includeTests || !record.isTest)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+function normalizedEmail(value = "") {
+  const email = value.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+function normalizedPhone(value = "") {
+  const phone = value.replace(/[^\d+]/g, "").replace(/^00/, "+");
+  return phone.replace(/\D/g, "").length >= 7 ? phone : "";
+}
+
+export function customerIdForInquiry(inquiry: Pick<InquiryRecord, "email" | "phone">) {
+  const email = normalizedEmail(inquiry.email);
+  const phone = normalizedPhone(inquiry.phone);
+  if (!email && !phone) return "";
+  const identity = email || phone;
+  return `customer-${crypto.createHash("sha256").update(identity).digest("hex").slice(0, 20)}`;
+}
+
+function customerLabels(inquiries: InquiryRecord[], events: AnalyticsEvent[]) {
+  const sessions = new Set(events.map((event) => event.sessionId).filter(Boolean));
+  const labels: string[] = ["已询盘"];
+  if (inquiries.length > 1 || sessions.size > 1) labels.push("回访客户");
+  if (events.filter((event) => event.type === "page_view").length >= 5 || events.some((event) => event.type === "click")) labels.push("高意向");
+  return labels;
+}
+
+function customerFromRecords(customerId: string, inquiries: InquiryRecord[], events: AnalyticsEvent[]): CustomerRecord {
+  const orderedInquiries = inquiries.slice().sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  const orderedEvents = events.slice().sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+  const firstInquiry = orderedInquiries[0];
+  const lastInquiry = orderedInquiries.at(-1) || firstInquiry;
+  const timestamps = [...orderedInquiries.map((item) => item.createdAt), ...orderedEvents.map((item) => item.timestamp)].sort();
+  return {
+    customerId,
+    displayName: lastInquiry?.name || firstInquiry?.name || "客户",
+    email: lastInquiry?.email || firstInquiry?.email || "",
+    phone: lastInquiry?.phone || firstInquiry?.phone || "",
+    country: lastInquiry?.country || firstInquiry?.country || "",
+    visitorIds: [...new Set(orderedInquiries.map((item) => item.visitorId).filter(hasJourneyIdentity))],
+    firstSeen: timestamps[0] || "",
+    lastSeen: timestamps.at(-1) || "",
+    inquiries: orderedInquiries.length,
+    sessions: new Set(orderedEvents.map((event) => event.sessionId).filter(Boolean)).size,
+    pageViews: orderedEvents.filter((event) => event.type === "page_view").length,
+    labels: customerLabels(orderedInquiries, orderedEvents),
+  };
+}
+
+export async function getCustomerDirectory(range: { startDate: Date; endDate: Date }, filters: { query?: string; country?: string; label?: string; page?: number; pageSize?: number } = {}) {
+  const inquiries = await getInquiries();
+  const allEvents = await readAnalyticsEvents({ limit: 50_000 });
+  const groups = new Map<string, InquiryRecord[]>();
+  for (const inquiry of inquiries) {
+    const customerId = customerIdForInquiry(inquiry);
+    if (!customerId) continue;
+    const group = groups.get(customerId) || [];
+    group.push(inquiry);
+    groups.set(customerId, group);
+  }
+  const profiles = [...groups.entries()].map(([customerId, customerInquiries]) => {
+    const visitorIds = new Set(customerInquiries.map((item) => item.visitorId).filter(hasJourneyIdentity));
+    const events = allEvents.filter((event) => event.trafficStatus === "real" && visitorIds.has(event.visitorId));
+    return customerFromRecords(customerId, customerInquiries, events);
+  }).filter((profile) => {
+    const activity = new Date(profile.lastSeen || profile.firstSeen || 0).getTime();
+    const inRange = activity >= range.startDate.getTime() && activity <= range.endDate.getTime();
+    if (!inRange) return false;
+    const query = String(filters.query || "").trim().toLowerCase();
+    if (query && ![profile.displayName, profile.email, profile.phone, profile.country, ...profile.labels].join(" ").toLowerCase().includes(query)) return false;
+    if (filters.country && profile.country !== filters.country) return false;
+    if (filters.label && !profile.labels.includes(filters.label)) return false;
+    return true;
+  }).sort((left, right) => right.lastSeen.localeCompare(left.lastSeen));
+  const page = paginate(profiles, Number(filters.page) || 1, Number(filters.pageSize) || 25);
+  return {
+    ...page,
+    options: {
+      countries: [...new Set(profiles.map((item) => item.country).filter(Boolean))].sort(),
+    },
+  };
+}
+
+export async function getCustomerProfile(customerId: string, range?: { startDate: Date; endDate: Date }): Promise<CustomerProfile | null> {
+  const inquiries = (await getInquiries()).filter((item) => customerIdForInquiry(item) === customerId);
+  if (!inquiries.length) return null;
+  const visitorIds = new Set(inquiries.map((item) => item.visitorId).filter(hasJourneyIdentity));
+  const events = (await readAnalyticsEvents({ limit: 50_000 }))
+    .filter((event) => event.trafficStatus === "real" && visitorIds.has(event.visitorId))
+    .filter((event) => !range || (new Date(event.timestamp) >= range.startDate && new Date(event.timestamp) <= range.endDate))
+    .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+  return { ...customerFromRecords(customerId, inquiries, events), inquiryRecords: inquiries, events };
 }
 
 async function persistInquiry(record: InquiryRecord) {

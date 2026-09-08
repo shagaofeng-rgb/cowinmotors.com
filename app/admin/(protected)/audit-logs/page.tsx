@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { getAdminDateRange, resolveDateRange } from "@/lib/adminDateRange";
 import { filterByQuery, getAdminListParams, getAuditLogs, paginate } from "@/lib/adminData";
 
 export const dynamic = "force-dynamic";
@@ -7,11 +9,15 @@ export const metadata = {
   title: "操作日志 | Cowinmotors 后台",
 };
 
-function pageHref(params: { q: string; pageSize: number; page: number }) {
+function pageHref(params: { q: string; pageSize: number; page: number; range?: string; days?: number; startDate?: string; endDate?: string }) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   query.set("pageSize", String(params.pageSize));
   query.set("page", String(params.page));
+  if (params.range) query.set("range", params.range);
+  if (params.days) query.set("days", String(params.days));
+  if (params.startDate) query.set("startDate", params.startDate);
+  if (params.endDate) query.set("endDate", params.endDate);
   return `/admin/audit-logs?${query.toString()}`;
 }
 
@@ -20,9 +26,15 @@ export default async function AdminAuditLogsPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = getAdminListParams(await searchParams);
+  const rawParams = await searchParams;
+  const params = getAdminListParams(rawParams);
+  const range = getAdminDateRange(rawParams);
+  const { startDate, endDate } = resolveDateRange(range);
   const logs = await getAuditLogs();
-  const filtered = filterByQuery(logs, params.query, (log) => [
+  const filtered = filterByQuery(logs.filter((log) => {
+    const timestamp = new Date(log.createdAt).getTime();
+    return timestamp >= startDate.getTime() && timestamp <= endDate.getTime();
+  }), params.query, (log) => [
     log.actorEmail,
     log.action,
     log.resourceType,
@@ -41,7 +53,7 @@ export default async function AdminAuditLogsPage({
           <h1>后台审计记录</h1>
           <p>记录后台导出、数据读取、同步任务和客户表单等关键事件。</p>
         </div>
-        <span className="admin-status">{filtered.length} logs</span>
+        <div className="admin-page-actions"><span className="admin-status">{filtered.length} logs</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize) }} /></div>
       </header>
 
       <section className="admin-panel">
@@ -49,10 +61,12 @@ export default async function AdminAuditLogsPage({
           <form action="/admin/audit-logs">
             <input name="q" placeholder="搜索账号、动作、资源、IP" defaultValue={params.query} />
             <select name="pageSize" defaultValue={String(params.pageSize)}>
-              <option value="10">10 / 页</option>
               <option value="25">25 / 页</option>
               <option value="50">50 / 页</option>
+              <option value="100">100 / 页</option>
             </select>
+            <input type="hidden" name="range" value={range.preset} /><input type="hidden" name="days" value={String(range.days)} />
+            {range.startDate ? <input type="hidden" name="startDate" value={range.startDate} /> : null}{range.endDate ? <input type="hidden" name="endDate" value={range.endDate} /> : null}
             <button type="submit">筛选</button>
           </form>
           <Link className="admin-secondary-button" href="/api/admin/audit-logs">查看 API</Link>
@@ -86,9 +100,9 @@ export default async function AdminAuditLogsPage({
           </table>
         </div>
         <div className="admin-pagination">
-          {page.hasPrevious ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage - 1 })}>上一页</Link> : <span>上一页</span>}
+          {page.hasPrevious ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage - 1, range: range.preset, days: range.days, startDate: range.startDate, endDate: range.endDate })}>上一页</Link> : <span>上一页</span>}
           <span>{page.currentPage} / {page.totalPages}</span>
-          {page.hasNext ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage + 1 })}>下一页</Link> : <span>下一页</span>}
+          {page.hasNext ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage + 1, range: range.preset, days: range.days, startDate: range.startDate, endDate: range.endDate })}>下一页</Link> : <span>下一页</span>}
         </div>
       </section>
     </div>

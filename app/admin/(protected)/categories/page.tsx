@@ -47,7 +47,6 @@ export default async function AdminCategoriesPage({
           <form action="/admin/categories">
             <input name="q" placeholder="搜索分类、slug、SEO标题" defaultValue={params.query} />
             <select name="pageSize" defaultValue={String(params.pageSize)}>
-              <option value="10">10 / 页</option>
               <option value="25">25 / 页</option>
               <option value="50">50 / 页</option>
             </select>

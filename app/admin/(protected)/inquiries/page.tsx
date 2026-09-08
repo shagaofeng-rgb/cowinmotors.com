@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { filterByQuery, getAdminListParams, getInquiries, paginate } from "@/lib/adminData";
+import { customerIdForInquiry, filterByQuery, getAdminListParams, getInquiries, paginate } from "@/lib/adminData";
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
 import { resolveDateRange, getAdminDateRange } from "@/lib/adminDateRange";
 
@@ -64,7 +64,6 @@ export default async function AdminInquiriesPage({
           <form action="/admin/inquiries">
             <input name="q" placeholder="搜索客户、邮箱、电话、车型、产品" defaultValue={params.query} />
             <select name="pageSize" defaultValue={String(params.pageSize)}>
-              <option value="10">10 / 页</option>
               <option value="25">25 / 页</option>
               <option value="50">50 / 页</option>
               <option value="100">100 / 页</option>
@@ -90,7 +89,7 @@ export default async function AdminInquiriesPage({
                   <th>车型</th>
                   <th>数量</th>
                   <th>需求</th>
-                  <th>访问轨迹</th>
+                  <th>客户归属</th>
                   <th aria-label="查看详情" />
                 </tr>
               </thead>
@@ -107,11 +106,7 @@ export default async function AdminInquiriesPage({
                     <td>{inquiry.vehicleInfo || "-"}</td>
                     <td>{inquiry.quantity || "-"}</td>
                     <td>{inquiry.requirement || "-"}</td>
-                    <td>
-                      <span className={`admin-status ${inquiry.visitorId ? "good" : "warn"}`}>
-                        {inquiry.visitorId ? "已关联" : "历史记录"}
-                      </span>
-                    </td>
+                    <td>{customerIdForInquiry(inquiry) ? <Link className="admin-table-action" href={`/admin/customers/${encodeURIComponent(customerIdForInquiry(inquiry))}`}>客户档案</Link> : <span className={`admin-status ${inquiry.visitorId ? "good" : "warn"}`}>{inquiry.visitorId ? "仅访客关联" : "历史记录"}</span>}</td>
                     <td><Link className="admin-table-action" href={`/admin/inquiries/${inquiry.id}`}>查看详情</Link></td>
                   </tr>
                 ))}

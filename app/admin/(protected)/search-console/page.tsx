@@ -1,4 +1,6 @@
 import { BarList, MetricCard } from "@/components/admin/AdminWidgets";
+import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { getAdminDateRange } from "@/lib/adminDateRange";
 import { getSearchConsoleSnapshot } from "@/lib/analyticsStore";
 import Link from "next/link";
 
@@ -20,10 +22,11 @@ function shortPage(url: string) {
 export default async function AdminSearchConsolePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ gsc?: string; message?: string }>;
+  searchParams?: Promise<{ gsc?: string; message?: string; range?: string; days?: string; startDate?: string; endDate?: string }>;
 }) {
   const params = await searchParams;
-  const data = await getSearchConsoleSnapshot();
+  const range = getAdminDateRange(params);
+  const data = await getSearchConsoleSnapshot(range);
   const dateNote = data.dateRange ? `${data.dateRange.startDate} 至 ${data.dateRange.endDate}` : "GSC 指标";
   const statusMessage = params?.gsc === "connected"
     ? "Google Search Console 已授权，后台正在读取真实数据。"
@@ -39,7 +42,7 @@ export default async function AdminSearchConsolePage({
           <h1>Search Console 数据</h1>
           <p>用于查看点击量、曝光量、点击率、平均排名、页面和关键词搜索表现。</p>
         </div>
-        <div className={data.live ? "admin-status good" : "admin-status"}>{data.live ? "GSC 已连接" : "GSC 待连接"}</div>
+        <div className="admin-page-actions"><div className={data.live ? "admin-status good" : "admin-status"}>{data.live ? "GSC 已连接" : "GSC 待连接"}</div><AdminDateRangeFilter range={range} /></div>
       </header>
 
       {statusMessage ? <div className={params?.gsc === "connected" ? "admin-alert good" : "admin-alert"}>{statusMessage}</div> : null}
@@ -64,7 +67,7 @@ export default async function AdminSearchConsolePage({
             <div className="admin-stack">
               <div className="admin-status good">已读取真实 GSC 数据</div>
               <p className="admin-muted">站点资源：{data.siteUrl}</p>
-              <p className="admin-muted">当前展示最近 28 天可用搜索数据。Google Search Console 通常会有 2-3 天数据延迟。</p>
+              <p className="admin-muted">Google Search Console 通常会有 2-3 天数据延迟；日期筛选会显示 API 当前可用的真实结果。</p>
               <form action="/api/admin/search-console/oauth/disconnect" method="post">
                 <button className="admin-secondary-button" type="submit">断开 Google 授权</button>
               </form>

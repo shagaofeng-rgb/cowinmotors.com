@@ -2,6 +2,7 @@ export type AdminDateRange = {
   days: number;
   startDate?: string;
   endDate?: string;
+  preset: "today" | "week" | "month" | "custom" | "legacy";
 };
 
 export const ADMIN_REPORT_TIME_ZONE = "Asia/Shanghai";
@@ -20,14 +21,29 @@ export function getAdminDateRange(params?: URLSearchParams | Record<string, stri
     return Array.isArray(value) ? value[0] || "" : value || "";
   };
 
-  return {
-    days: safeDays(get("days")),
-    startDate: get("startDate") || undefined,
-    endDate: get("endDate") || undefined,
-  };
+  const startDate = get("startDate") || undefined;
+  const endDate = get("endDate") || undefined;
+  const requestedPreset = get("range");
+  const legacyDays = safeDays(get("days"));
+  const preset = startDate || endDate
+    ? "custom"
+    : requestedPreset === "today" || requestedPreset === "week" || requestedPreset === "month"
+      ? requestedPreset
+      : get("days")
+        ? legacyDays === 1
+          ? "today"
+          : legacyDays === 7
+            ? "week"
+            : legacyDays >= 28 && legacyDays <= 31
+              ? "month"
+              : "legacy"
+        : "today";
+  const days = preset === "today" ? 1 : preset === "week" ? 7 : preset === "month" ? 31 : legacyDays;
+
+  return { days, startDate, endDate, preset };
 }
 
-export function resolveDateRange(range: AdminDateRange = { days: 14 }) {
+export function resolveDateRange(range: AdminDateRange = { days: 1, preset: "today" }) {
   const parseCalendarDay = (value: string, endOfDay = false) => {
     const suffix = endOfDay ? "T23:59:59.999+08:00" : "T00:00:00.000+08:00";
     const parsed = new Date(`${value}${suffix}`);
@@ -44,7 +60,13 @@ export function resolveDateRange(range: AdminDateRange = { days: 14 }) {
       day: "2-digit",
     }).format(endDate);
     const start = parseCalendarDay(shanghaiToday);
-    start.setUTCDate(start.getUTCDate() - range.days + 1);
+    if (range.preset === "week") {
+      start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+    } else if (range.preset === "month") {
+      start.setUTCDate(1);
+    } else {
+      start.setUTCDate(start.getUTCDate() - range.days + 1);
+    }
     startDate.setTime(start.getTime());
   }
 

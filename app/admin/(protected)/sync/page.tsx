@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { getAdminDateRange, resolveDateRange } from "@/lib/adminDateRange";
 import { getAdminListParams, getSyncJobs, paginate } from "@/lib/adminData";
 
 export const dynamic = "force-dynamic";
@@ -7,8 +9,12 @@ export const metadata = {
   title: "数据同步 | Cowinmotors 后台",
 };
 
-function pageHref(params: { pageSize: number; page: number }) {
+function pageHref(params: { pageSize: number; page: number; range?: string; days?: number; startDate?: string; endDate?: string }) {
   const query = new URLSearchParams({ pageSize: String(params.pageSize), page: String(params.page) });
+  if (params.range) query.set("range", params.range);
+  if (params.days) query.set("days", String(params.days));
+  if (params.startDate) query.set("startDate", params.startDate);
+  if (params.endDate) query.set("endDate", params.endDate);
   return `/admin/sync?${query.toString()}`;
 }
 
@@ -17,8 +23,14 @@ export default async function AdminSyncPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = getAdminListParams(await searchParams);
-  const jobs = await getSyncJobs();
+  const rawParams = await searchParams;
+  const params = getAdminListParams(rawParams);
+  const range = getAdminDateRange(rawParams);
+  const { startDate, endDate } = resolveDateRange(range);
+  const jobs = (await getSyncJobs()).filter((job) => {
+    const timestamp = new Date(job.startedAt || job.scheduledAt || 0).getTime();
+    return timestamp >= startDate.getTime() && timestamp <= endDate.getTime();
+  });
   const latestByType = new Map<string, (typeof jobs)[number]>();
   for (const job of jobs) {
     if (!latestByType.has(job.jobType)) latestByType.set(job.jobType, job);
@@ -35,7 +47,7 @@ export default async function AdminSyncPage({
           <h1>Cron、SEO 与数据任务</h1>
           <p>查看签名 Blog 发布、站点地图维护、每月询盘测试邮件和 Search Console 数据读取状态。</p>
         </div>
-        <span className={hasWarning ? "admin-status warn" : "admin-status good"}>{!jobs.length ? "暂无运行日志" : hasWarning ? "需要检查" : "已配置"}</span>
+        <div className="admin-page-actions"><span className={hasWarning ? "admin-status warn" : "admin-status good"}>{!jobs.length ? "暂无运行日志" : hasWarning ? "需要检查" : "已配置"}</span><AdminDateRangeFilter range={range} preserve={{ pageSize: String(params.pageSize) }} /></div>
       </header>
 
       <section className="admin-panel">
@@ -48,11 +60,12 @@ export default async function AdminSyncPage({
           </div>
           <form action="/admin/sync">
             <select name="pageSize" defaultValue={String(params.pageSize)}>
-              <option value="10">10 / 页</option>
               <option value="25">25 / 页</option>
               <option value="50">50 / 页</option>
               <option value="100">100 / 页</option>
             </select>
+            <input type="hidden" name="range" value={range.preset} /><input type="hidden" name="days" value={String(range.days)} />
+            {range.startDate ? <input type="hidden" name="startDate" value={range.startDate} /> : null}{range.endDate ? <input type="hidden" name="endDate" value={range.endDate} /> : null}
             <button type="submit">应用</button>
           </form>
         </div>
@@ -83,9 +96,9 @@ export default async function AdminSyncPage({
           </table> : <div className="admin-empty">暂无可验证的任务运行记录。系统不会再用“已配置”的静态占位数据代替真实运行状态。</div>}
         </div>
         <div className="admin-pagination">
-          {page.hasPrevious ? <Link href={pageHref({ pageSize: params.pageSize, page: page.currentPage - 1 })}>上一页</Link> : <span>上一页</span>}
+          {page.hasPrevious ? <Link href={pageHref({ pageSize: params.pageSize, page: page.currentPage - 1, range: range.preset, days: range.days, startDate: range.startDate, endDate: range.endDate })}>上一页</Link> : <span>上一页</span>}
           <span>{page.currentPage} / {page.totalPages} · {page.total} 条</span>
-          {page.hasNext ? <Link href={pageHref({ pageSize: params.pageSize, page: page.currentPage + 1 })}>下一页</Link> : <span>下一页</span>}
+          {page.hasNext ? <Link href={pageHref({ pageSize: params.pageSize, page: page.currentPage + 1, range: range.preset, days: range.days, startDate: range.startDate, endDate: range.endDate })}>下一页</Link> : <span>下一页</span>}
         </div>
       </section>
     </div>

@@ -520,7 +520,7 @@ function pageStats(events: AnalyticsEvent[]) {
   })).sort((a, b) => b.views - a.views);
 }
 
-export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 14 }) {
+export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 1, preset: "today" }) {
   const { startDate, endDate, rangeDays } = resolveDateRange(range);
   const allEvents = await readAnalyticsEvents({ startDate, endDate });
   const events = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "real");
@@ -698,10 +698,14 @@ export async function getVisitorDirectory(range: AdminDateRange, filters: Visito
   };
 }
 
-export async function getVisitorProfile(visitorId: string) {
-  const endDate = new Date();
-  const startDate = new Date(endDate);
-  startDate.setUTCDate(startDate.getUTCDate() - 180);
+export async function getVisitorProfile(visitorId: string, range?: AdminDateRange) {
+  const resolved = range ? resolveDateRange(range) : (() => {
+    const endDate = new Date();
+    const startDate = new Date(endDate);
+    startDate.setUTCDate(startDate.getUTCDate() - 180);
+    return { startDate, endDate };
+  })();
+  const { startDate, endDate } = resolved;
   const events = (await readAnalyticsEvents({ startDate, endDate }))
     .filter((event) => event.visitorId === visitorId && event.trafficStatus === "real")
     .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
@@ -884,15 +888,17 @@ function dimensionRows(rows: SearchConsoleRow[], key: "query" | "page" | "countr
   }));
 }
 
-export async function getSearchConsoleSnapshot() {
+export async function getSearchConsoleSnapshot(range?: AdminDateRange) {
   const oauthStatus = await getGoogleSearchConsoleConnectionStatus();
   const configured = Boolean(
     (process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL && process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) ||
       (oauthStatus.oauthConfigured && oauthStatus.connected)
   );
   const siteUrl = getSearchConsoleSiteUrl();
-  const endDate = gscDate(3);
-  const startDate = gscDate(31);
+  const resolvedRange = range ? resolveDateRange(range) : null;
+  const toGscDate = (value: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: ADMIN_REPORT_TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(value);
+  const endDate = resolvedRange ? toGscDate(resolvedRange.endDate) : gscDate(3);
+  const startDate = resolvedRange ? toGscDate(resolvedRange.startDate) : gscDate(31);
 
   if (configured) {
     try {

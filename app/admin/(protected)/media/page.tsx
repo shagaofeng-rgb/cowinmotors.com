@@ -49,7 +49,6 @@ export default async function AdminMediaPage({
           <form action="/admin/media">
             <input name="q" placeholder="搜索图片路径、分类、来源" defaultValue={params.query} />
             <select name="pageSize" defaultValue={String(params.pageSize)}>
-              <option value="10">10 / 页</option>
               <option value="25">25 / 页</option>
               <option value="50">50 / 页</option>
               <option value="100">100 / 页</option>

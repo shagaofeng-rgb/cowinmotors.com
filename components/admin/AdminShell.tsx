@@ -10,6 +10,7 @@ const groups = [
     { href: "/admin", label: "数据总览" },
     { href: "/admin/analytics", label: "流量分析" },
     { href: "/admin/visitors", label: "访客记录" },
+    { href: "/admin/customers", label: "客户档案" },
     { href: "/admin/journeys", label: "访问路径" },
     { href: "/admin/pages", label: "页面表现" },
     { href: "/admin/inquiries", label: "客户表单" },
