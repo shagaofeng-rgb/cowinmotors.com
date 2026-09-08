@@ -73,6 +73,7 @@ export function hasUsableProductImage(product: Product) {
 
 export function hasProductIndexingEvidence(product: Product) {
   const hasReference = (product.partNumbers || []).some((reference) => !genericReferencePattern.test(String(reference).trim()));
+  const hasSpecificYear = /\b(?:19|20)\d{2}\b/.test(`${product.title || ""} ${product.yearRange || ""}`);
   const isWheel = product.category.includes("Wheel");
   const hasFirstPartyImage = !/^https?:\/\//i.test(String(product.localImage || ""));
   const hasWheelSpecs = Boolean(product.size && product.material && (product.color || product.finish) && hasReference);
@@ -87,7 +88,9 @@ export function hasProductIndexingEvidence(product: Product) {
   if (isWheel) {
     return Boolean(product.title?.trim() && product.brand?.trim() && product.model?.trim() && hasFirstPartyImage && hasWheelSpecs);
   }
-  return Boolean(product.title?.trim() && product.brand?.trim() && product.model?.trim() && hasSpecificAttribute);
+  // A model code alone is not enough evidence for a distinct product page. Require
+  // a catalog reference or a real four-digit year range before offering it for indexing.
+  return Boolean(product.title?.trim() && product.brand?.trim() && product.model?.trim() && hasSpecificAttribute && (hasReference || hasSpecificYear));
 }
 
 /**
