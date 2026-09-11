@@ -12,7 +12,7 @@ const categoryGroups = [
   { title: "Body Kits", href: "/body-kits", text: "Request quote" },
 ];
 
-export function SiteNav({ className = "" }: { className?: string }) {
+export function SiteNav({ className = "", catalogMode = false }: { className?: string; catalogMode?: boolean }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const [openMenu, setOpenMenu] = useState<"categories" | "company" | null>(null);
@@ -36,7 +36,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
       }}
       ref={navRef}
     >
-      <Link href="/">Home</Link>
+      {!catalogMode && <Link href="/">Home</Link>}
 
       <div
         className={"nav-drawer wide" + (openMenu === "categories" ? " open" : "")}
@@ -54,7 +54,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
           onClick={() => setOpenMenu((current) => current === "categories" ? null : "categories")}
           type="button"
         >
-          Categories
+          {catalogMode ? "Products" : "Categories"}
         </button>
         <div aria-label="Product categories" className="nav-panel category-panel" id="product-category-menu" role="menu">
           {categoryGroups.map((group) => (
@@ -66,10 +66,22 @@ export function SiteNav({ className = "" }: { className?: string }) {
         </div>
       </div>
 
-      <Link href="/products">Products</Link>
-      <Link href="/fitment-check">Fitment Check</Link>
-      <Link href="/news">News</Link>
-      <Link href="/blog">Blog</Link>
+      {catalogMode ? (
+        <>
+          <Link href="/products?sort=new">New Arrivals</Link>
+          <Link href="/products?sort=popular">Best Sellers</Link>
+          <Link href="/blog">Buyer Guides</Link>
+          <Link href="/news">News</Link>
+          <Link href="/blog">Blog</Link>
+        </>
+      ) : (
+        <>
+          <Link href="/products">Products</Link>
+          <Link href="/fitment-check">Fitment Check</Link>
+          <Link href="/news">News</Link>
+          <Link href="/blog">Blog</Link>
+        </>
+      )}
 
       <div
         className={"nav-drawer company" + (openMenu === "company" ? " open" : "")}

@@ -1,47 +1,49 @@
-# Homepage Catalog Redesign QA
+# Homepage Catalog Editorial Fidelity QA
 
 ## Comparison target
 
-- **Source visual truth:** `/Users/apple/.codex/generated_images/019e9b6c-df7f-7fb3-89a2-27fd6d2b6fd8/exec-7e1a252b-fc87-40ac-9bd7-6aa72283c238.png` (Catalog Editorial, 1024 x 1536).
-- **Implementation:** `http://127.0.0.1:3101/` in the Codex in-app browser.
-- **Desktop state:** 1440 x 960 CSS viewport, default header state. The in-app screenshot was captured during this run; DOM sizing confirmed the homepage, hero and finder each measured 1440px with no horizontal overflow.
-- **Mobile state:** 390 x 844 CSS viewport, default header state. DOM check confirmed `body.scrollWidth === 390`, `catalog-hero.scrollWidth === 390`, and no horizontal overflow.
-- **Density normalization:** source is an ImageGen board rather than a browser viewport. The comparison used the same desktop catalogue/hero state and the same mobile content hierarchy; no browser chrome or device frame was included in the judgement.
+- **Source visual truth:** `/Users/apple/.codex/generated_images/019e9b6c-df7f-7fb3-89a2-27fd6d2b6fd8/exec-7e1a252b-fc87-40ac-9bd7-6aa72283c238.png` (`1024 x 1536`).
+- **Implementation:** `http://127.0.0.1:3102/`, captured in the Codex in-app browser during this implementation run.
+- **Desktop capture:** `1280 x 720` CSS viewport, default page state.
+- **Mobile capture:** `390 x 844` CSS viewport, default page state.
+- **Density normalization:** the source is an ImageGen visual board rather than a browser capture. The comparison used the same catalogue route and default header state; browser chrome was not included in the judgement.
 
 ## Full-view comparison
 
-The implementation preserves the selected direction's defining sequence: dark operational header, light/dark hero with category index, immediate fitment bar, left category rail with product catalogue, service strip, sourcing process, RFQ panel, resources and footer. Product imagery and product details are intentionally supplied by the real Cowinmotors catalogue rather than invented images or product claims from the concept board.
+The implementation now follows the source board section-for-section: compact utility/header bands; a single full-width vehicle-photography hero with left copy and a five-row category rail; an immediate white vehicle finder; a left catalogue rail and four-card product row; four image category tiles; a dark four-column service bar; a compact horizontal quotation band; three editorial resource cards; and the existing production footer.
 
-Focused checks covered the header/hero, finder, catalogue cards, category drawer, request form, and the 390px mobile breakpoint.
+All product cards use the real Cowinmotors product catalogue. The hero vehicle image is a purpose-made neutral automotive visual without product, certification, inventory, or brand claims. It is only a visual background; no product data or CTA has been fabricated.
 
 ## Required fidelity surfaces
 
-- **Fonts and typography:** Strong display hierarchy is retained for the hero; catalogue labels and card metadata are compact but legible. Product titles clamp instead of extending card height.
-- **Spacing and layout rhythm:** The desktop catalogue uses a fixed five-track product grid when available and collapses to three then two tracks at smaller widths. The mobile layout converts the hero index, finder, category rail and support strip into touch-safe single or two-column stacks.
-- **Colors and visual tokens:** Scoped navy, steel, white and brand-blue tokens match the selected dark catalogue direction without altering other pages.
-- **Image quality and asset fidelity:** Every product image comes from the existing product catalogue or the existing approved site asset pack. Images use `object-fit: contain` in catalogue contexts and `cover` only for the existing packaging-service image.
-- **Copy and content:** Product title, brand/model/year, references, Blog and News cards are read from existing data. The homepage does not introduce price, inventory, certification, delivery-time or other unsupported claims.
+- **Fonts and typography:** The hero uses a compact high-contrast display hierarchy, while finder controls, product metadata and source cards use the smaller operational typography of the selected board. Headlines, white-background card titles and action labels have explicit contrast tokens.
+- **Spacing and layout rhythm:** The hero is one continuous `1fr / 290px` desktop layout instead of two disconnected cards. The finder, product grid, support bar and RFQ band use the source board's compact horizontal cadence. Mobile moves these regions into touch-safe stacks without horizontal overflow.
+- **Colors and visual tokens:** Dark navy header/hero/support regions, white catalogue surface, steel dividers and Cowin blue action states map to the source. No unrelated page styles were changed.
+- **Image quality and asset fidelity:** Catalogue cards use real product-library images. Category rail and tile images use those same real assets. The new hero background is a generated high-resolution editorial vehicle image without embedded text or logos.
+- **Copy and content:** Real product name, brand/model/year and available reference data remain visible. There are no price, inventory, certification, delivery, factory, dealer or authorization claims.
 
 ## Interaction evidence
 
-- Product category drawer: click opened the menu; five category menu items were visible.
-- Vehicle finder: `Year` selected `2024` successfully.
-- Finder submission: navigated to `/products?year=&make=&q=&category=` from the real form action.
-- Mobile overflow: no horizontal overflow at 390px.
-- Local database outage handling: the Blog/News preview uses a safe empty state when the local Neon connection is unavailable, while deployed environments continue to use published records. No fabricated resource cards are rendered.
+- The Products category drawer opened with five category menu items.
+- Vehicle finder controls preserve their existing `/products` search submission route.
+- Request Quote, product details, product inquiry, category, Buyer Guides and News links resolve to their existing routes.
+- Mobile measurement: `body.scrollWidth = 390`, `body.clientWidth = 390`, `catalog-hero.scrollWidth = 390`, `catalog-hero.clientWidth = 390`.
+- Mobile menu still includes `New Arrivals`, `Best Sellers`, `Buyer Guides`, `News` and `Blog` rather than removing those routes.
+- Browser console error check returned no page errors.
 
 ## Comparison history
 
-1. **P1 - local homepage could fail when the optional Blog/News query encountered a database connection error.**
-   - Fix: changed the two homepage resource queries to `Promise.allSettled` and render the existing resource entrance as a real empty state when neither query is available.
-   - Evidence after fix: homepage returned HTTP 200 in the local preview and all catalogue, finder and RFQ regions rendered.
-2. **P2 - CSS used two non-portable `end` alignment values.**
-   - Fix: replaced them with `flex-end`.
-   - Evidence after fix: the homepage CSS compiled without the new Autoprefixer alignment warnings.
+1. **P1 - previous homepage only used the selected design direction, not its actual layout.**
+   - Evidence: its hero was split into independent copy/product panels, its product section used five cards, and its long sourcing/RFQ blocks did not appear in the source board.
+   - Fix: rebuilt the homepage hierarchy around the source's full-width hero, five-row category rail, compact vehicle finder, left catalogue rail/four-card grid, category strip, service strip, compact quote band and editorial resources.
+2. **P2 - header navigation wrapped and exposed the old homepage menu order.**
+   - Fix: added a homepage-only `catalogMode` to `SiteNav`, keeping the existing category drawer but showing Products, New Arrivals, Best Sellers, Buyer Guides, News, Blog and Company as compact operational navigation.
+3. **P2 - white-surface headings inherited light text from the earlier dark-home theme.**
+   - Fix: scoped dark text tokens to finder, catalogue, RFQ and resources headings and rechecked the mobile finder and lower sections.
 
-## Residual P3 polish
+## Follow-up polish
 
-- The selected concept uses a full-width vehicle photograph in the hero. The production implementation uses the real catalogue headlight asset because the site must not substitute unverified imagery. This is an intentional content-accuracy deviation, not a layout mismatch.
+- The WhatsApp contact button remains intentionally visible because it is an existing live support function. It overlaps the visual board in narrow captures but remains a purposeful service control rather than decorative content.
 
 ## Final result
 
