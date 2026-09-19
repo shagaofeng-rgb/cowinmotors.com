@@ -25,6 +25,9 @@ export type InquiryRecord = {
   referrer: string;
   isTest: boolean;
   testReason: string;
+  deliveryStatus: "pending" | "sent" | "failed" | "skipped";
+  deliveryProvider: string;
+  deliveryError: string;
 };
 
 export type InquiryJourney = {
@@ -235,6 +238,9 @@ type InquiryRow = {
   referrer: string | null;
   is_test: boolean | null;
   test_reason: string | null;
+  delivery_status: string | null;
+  delivery_provider: string | null;
+  delivery_error: string | null;
 };
 
 function inquiryFromRow(row: InquiryRow): InquiryRecord {
@@ -257,6 +263,9 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
     referrer: row.referrer || "",
     isTest: Boolean(row.is_test),
     testReason: row.test_reason || "",
+    deliveryStatus: (row.delivery_status === "sent" || row.delivery_status === "failed" || row.delivery_status === "skipped" ? row.delivery_status : "pending"),
+    deliveryProvider: row.delivery_provider || "",
+    deliveryError: row.delivery_error || "",
   };
 }
 
@@ -270,14 +279,14 @@ export async function getInquiries({ includeTests = false, limit = 5000 }: { inc
       const rows = includeTests
         ? await sql`
             SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-              visitor_id, session_id, landing_page, referrer, is_test, test_reason
+              visitor_id, session_id, landing_page, referrer, is_test, test_reason, delivery_status, delivery_provider, delivery_error
             FROM cowin_inquiries
             ORDER BY created_at DESC
             LIMIT ${safeLimit}
           ` as InquiryRow[]
         : await sql`
             SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-              visitor_id, session_id, landing_page, referrer, is_test, test_reason
+              visitor_id, session_id, landing_page, referrer, is_test, test_reason, delivery_status, delivery_provider, delivery_error
             FROM cowin_inquiries
             WHERE is_test = FALSE
             ORDER BY created_at DESC
@@ -387,6 +396,13 @@ export async function getCustomerProfile(customerId: string, range?: { startDate
   return { ...customerFromRecords(customerId, inquiries, events), inquiryRecords: inquiries, events };
 }
 
+export class InquiryPersistenceError extends Error {
+  constructor(message = "Unable to save the inquiry.") {
+    super(message);
+    this.name = "InquiryPersistenceError";
+  }
+}
+
 async function persistInquiry(record: InquiryRecord) {
   const sql = getSql();
 
@@ -396,7 +412,7 @@ async function persistInquiry(record: InquiryRecord) {
       await sql`
         INSERT INTO cowin_inquiries (
           id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-          visitor_id, session_id, landing_page, referrer, is_test, test_reason
+          visitor_id, session_id, landing_page, referrer, is_test, test_reason, delivery_status, delivery_provider, delivery_error
         ) VALUES (
           ${record.id},
           ${record.createdAt},
@@ -415,24 +431,30 @@ async function persistInquiry(record: InquiryRecord) {
           ${record.landingPage},
           ${record.referrer},
           ${record.isTest},
-          ${record.testReason}
+          ${record.testReason},
+          ${record.deliveryStatus},
+          ${record.deliveryProvider},
+          ${record.deliveryError}
         )
         ON CONFLICT (id) DO NOTHING
       `;
       return;
     } catch (error) {
-      console.error("Inquiry database write failed; using file fallback.", error);
+      console.error("Inquiry database write failed.", error);
+      if (process.env.VERCEL) throw new InquiryPersistenceError();
     }
   }
+
+  if (process.env.VERCEL) throw new InquiryPersistenceError("Inquiry storage is not configured.");
 
   const records = [record, ...readJsonFile<InquiryRecord[]>(inquiryFile, [])].slice(0, 300);
   writeJsonFile(inquiryFile, records);
 }
 
-type InquiryInput = Omit<InquiryRecord, "id" | "createdAt" | "source" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason"> &
+type InquiryInput = Omit<InquiryRecord, "id" | "createdAt" | "source" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason" | "deliveryStatus" | "deliveryProvider" | "deliveryError"> &
   Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason">>;
 
-type InquiryInputWithSource = Omit<InquiryRecord, "id" | "createdAt" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason"> &
+type InquiryInputWithSource = Omit<InquiryRecord, "id" | "createdAt" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason" | "deliveryStatus" | "deliveryProvider" | "deliveryError"> &
   Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason">>;
 
 export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
@@ -447,6 +469,9 @@ export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
     referrer: input.referrer || "",
     isTest: Boolean(input.isTest),
     testReason: input.testReason || "",
+    deliveryStatus: "pending",
+    deliveryProvider: "",
+    deliveryError: "",
   };
   await persistInquiry(record);
   return record;
@@ -463,9 +488,29 @@ export async function saveInquiryWithSource(input: InquiryInputWithSource): Prom
     referrer: input.referrer || "",
     isTest: Boolean(input.isTest),
     testReason: input.testReason || "",
+    deliveryStatus: "pending",
+    deliveryProvider: "",
+    deliveryError: "",
   };
   await persistInquiry(record);
   return record;
+}
+
+export async function updateInquiryDelivery(id: string, input: Pick<InquiryRecord, "deliveryStatus" | "deliveryProvider" | "deliveryError">) {
+  const sql = getSql();
+  if (!sql) return false;
+  try {
+    await ensureCoreSchema();
+    await sql`
+      UPDATE cowin_inquiries
+      SET delivery_status = ${input.deliveryStatus}, delivery_provider = ${input.deliveryProvider}, delivery_error = ${input.deliveryError.slice(0, 500)}
+      WHERE id = ${id}
+    `;
+    return true;
+  } catch (error) {
+    console.error("Inquiry delivery status update failed.", error);
+    return false;
+  }
 }
 
 function hasJourneyIdentity(value: string) {

@@ -59,7 +59,7 @@ export default async function HomePage() {
 
       <header className="home-catalog-header">
         <Link className="home-catalog-logo" href="/" aria-label="Cowinmotors home"><img src={UI_ASSETS.logo} alt="Cowinmotors Automotive Parts" /><span>Cowin<span>motors</span><small>Automotive Parts</small></span></Link>
-        <SiteNav className="home-catalog-nav" catalogMode />
+        <SiteNav className="home-catalog-nav" />
         <div className="home-catalog-actions"><form action="/products" className="home-catalog-search"><input name="q" type="search" aria-label="Search by keyword, OE number or part name" placeholder="Search by keyword, OE number, or part name..." /><button type="submit" aria-label="Search catalog">Search</button></form><Link className="catalog-primary-action" href="/quote">Request a Quote</Link></div>
       </header>
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { saveInquiryWithSource } from "@/lib/adminData";
+import { saveInquiryWithSource, updateInquiryDelivery } from "@/lib/adminData";
 import { sendInquiryEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -34,6 +34,12 @@ export async function GET(request: Request) {
     provider: "error",
     reason: error.message || "Email delivery failed.",
   }));
+
+  await updateInquiryDelivery(inquiry.id, {
+    deliveryStatus: emailResult.sent ? "sent" : "failed",
+    deliveryProvider: emailResult.provider,
+    deliveryError: emailResult.sent ? "" : emailResult.reason || "Email delivery failed.",
+  });
 
   if (!emailResult.sent) {
     return NextResponse.json(

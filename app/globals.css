@@ -1110,6 +1110,10 @@ body:has(.home-exact) .site-footer small {
   color: #9eb2c8;
 }
 
+body:has(.home-exact) .site-footer .footer-address {
+  color: #9eb2c8;
+}
+
 .home-exact {
   --home-bg: #06111f;
   --home-bg-2: #081a31;
@@ -2452,8 +2456,6 @@ button.nav-drawer-trigger {
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.nav-drawer:hover .nav-panel,
-.nav-drawer:focus-within .nav-panel,
 .nav-drawer.open .nav-panel {
   opacity: 1;
   pointer-events: auto;
@@ -3859,6 +3861,13 @@ p {
 
 .site-footer span,
 .site-footer small {
+  margin-top: 6px;
+  color: #d7dde3;
+  line-height: 1.6;
+}
+
+.site-footer .footer-address {
+  display: block;
   margin-top: 6px;
   color: #d7dde3;
   line-height: 1.6;
@@ -5329,8 +5338,6 @@ body:has(.home-redesign) .header-cta {
     transform: translateY(8px);
   }
 
-  .nav-drawer:hover .nav-panel,
-  .nav-drawer:focus-within .nav-panel,
   .nav-drawer.open .nav-panel {
     transform: translateY(0);
   }
@@ -6201,7 +6208,7 @@ body:has(.quote-page) {
 .home-catalog-nav { display: flex; gap: clamp(12px, 1.8vw, 26px); align-items: center; justify-content: center; }
 .home-catalog-nav > a,
 .home-catalog-nav .nav-drawer-trigger { min-height: 36px; color: #eef5fc; font-size: 13px; font-weight: 760; }
-.home-catalog-nav > a:first-child { display: none; }
+.home-catalog-nav > a:first-child { display: inline-flex; }
 .home-catalog-nav a:hover,
 .home-catalog-nav .nav-drawer-trigger:hover,
 .home-catalog-nav .nav-drawer:focus-within .nav-drawer-trigger { color: #78b7ff; }
@@ -6665,7 +6672,17 @@ body:has(.quote-page) {
   .home-catalog-template .home-catalog-header { grid-template-columns: 1fr; gap: 10px; }
   .home-catalog-template .home-catalog-actions { align-items: stretch; }
   .home-catalog-template .home-catalog-search { width: 100%; }
-  .home-catalog-template .home-catalog-nav { gap: 14px; }
+  .home-catalog-template .home-catalog-nav {
+    justify-content: flex-start;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 4px 2px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .home-catalog-template .home-catalog-nav::-webkit-scrollbar { display: none; }
+  .home-catalog-template .home-catalog-nav > a,
+  .home-catalog-template .home-catalog-nav .nav-drawer { scroll-snap-align: start; }
   .home-catalog-template .catalog-hero { min-height: 552px; }
   .home-catalog-template .catalog-hero-backdrop { object-position: 61% center; }
   .home-catalog-template .catalog-hero h1 { font-size: 39px; }

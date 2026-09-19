@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { saveInquiryWithSource } from "@/lib/adminData";
+import { InquiryPersistenceError, saveInquiryWithSource, updateInquiryDelivery } from "@/lib/adminData";
 import { appendAnalyticsEvent, normalizeAnalyticsEvent } from "@/lib/analyticsStore";
 import { sendInquiryEmail } from "@/lib/email";
 
@@ -49,24 +49,30 @@ export async function POST(request: Request) {
   const source = clean(body.source) || "website-rfq-form";
   const requirement = clean(body.requirement);
   const testInquiry = isTestInquiry({ name, email, source, requirement });
-  const inquiry = await saveInquiryWithSource({
-    source,
-    name,
-    email,
-    phone,
-    country: clean(body.country),
-    productType: clean(body.productType),
-    product: clean(body.product),
-    vehicleInfo: clean(body.vehicleInfo),
-    quantity: clean(body.quantity),
-    requirement,
-    visitorId: clean(body.visitorId, 80),
-    sessionId: clean(body.sessionId, 80),
-    landingPage: clean(body.landingPage, 240),
-    referrer: clean(body.referrer, 240),
-    isTest: testInquiry,
-    testReason: testInquiry ? "Automated or explicitly marked test inquiry" : "",
-  });
+  let inquiry;
+  try {
+    inquiry = await saveInquiryWithSource({
+      source,
+      name,
+      email,
+      phone,
+      country: clean(body.country),
+      productType: clean(body.productType),
+      product: clean(body.product),
+      vehicleInfo: clean(body.vehicleInfo),
+      quantity: clean(body.quantity),
+      requirement,
+      visitorId: clean(body.visitorId, 80),
+      sessionId: clean(body.sessionId, 80),
+      landingPage: clean(body.landingPage, 240),
+      referrer: clean(body.referrer, 240),
+      isTest: testInquiry,
+      testReason: testInquiry ? "Automated or explicitly marked test inquiry" : "",
+    });
+  } catch (error) {
+    const message = error instanceof InquiryPersistenceError ? "We could not save your inquiry. Please try again shortly." : "Unable to submit your inquiry.";
+    return NextResponse.json({ ok: false, error: message }, { status: 503 });
+  }
 
   const analyticsEvent = normalizeAnalyticsEvent({
     eventId: `form-${inquiry.id}`,
@@ -90,12 +96,20 @@ export async function POST(request: Request) {
         reason: "Email delivery failed. Please check SMTP credentials and provider settings.",
       }));
 
+  const deliveryStatus = emailResult.sent ? "sent" : testInquiry ? "skipped" : "failed";
+  await updateInquiryDelivery(inquiry.id, {
+    deliveryStatus,
+    deliveryProvider: emailResult.provider,
+    deliveryError: emailResult.sent ? "" : emailResult.reason || "Email delivery failed.",
+  });
+
   return NextResponse.json({
     ok: true,
     id: inquiry.id,
     emailSent: emailResult.sent,
     emailProvider: emailResult.provider,
     emailWarning: emailResult.sent ? "" : emailResult.reason,
+    deliveryStatus,
     analyticsStored: analyticsResult.ok,
     testExcluded: testInquiry,
   });

@@ -107,12 +107,15 @@ export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initi
           body: JSON.stringify(payload),
         });
 
-        if (response.ok) {
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result.ok) {
           window.dispatchEvent(new CustomEvent("cowinmotors:form-submit", { detail: payload }));
           form.reset();
-          setNote("RFQ received. Our team will review fitment, MOQ, lead time, and shipping details.");
+          setNote(result.emailSent === false
+            ? "RFQ saved successfully. Email delivery is being checked; you can also contact us on WhatsApp for an immediate response."
+            : "RFQ received. Our team will review fitment, MOQ, lead time, and shipping details.");
         } else {
-          setNote("Submission failed. Please email racheljiang@cowinmotors.com or use WhatsApp.");
+          setNote(result.error || "Submission failed. Please email racheljiang@cowinmotors.com or use WhatsApp.");
         }
         setSubmitting(false);
       }}

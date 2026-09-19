@@ -12,16 +12,45 @@ const categoryGroups = [
   { title: "Body Kits", href: "/body-kits", text: "Request quote" },
 ];
 
-export function SiteNav({ className = "", catalogMode = false }: { className?: string; catalogMode?: boolean }) {
+type MenuName = "categories" | "company";
+
+export function SiteNav({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
-  const [openMenu, setOpenMenu] = useState<"categories" | "company" | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [openMenu, setOpenMenu] = useState<MenuName | null>(null);
 
-  useEffect(() => setOpenMenu(null), [pathname]);
+  const cancelScheduledClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const open = (menu: MenuName) => {
+    cancelScheduledClose();
+    setOpenMenu(menu);
+  };
+
+  const close = () => {
+    cancelScheduledClose();
+    setOpenMenu(null);
+  };
+
+  const scheduleClose = () => {
+    cancelScheduledClose();
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 160);
+  };
+
+  useEffect(() => {
+    close();
+  }, [pathname]);
+
+  useEffect(() => () => cancelScheduledClose(), []);
 
   useEffect(() => {
     const closeWhenOutside = (event: PointerEvent) => {
-      if (!navRef.current?.contains(event.target as Node)) setOpenMenu(null);
+      if (!navRef.current?.contains(event.target as Node)) close();
     };
     document.addEventListener("pointerdown", closeWhenOutside);
     return () => document.removeEventListener("pointerdown", closeWhenOutside);
@@ -32,18 +61,19 @@ export function SiteNav({ className = "", catalogMode = false }: { className?: s
       className={["site-nav", className].filter(Boolean).join(" ")}
       aria-label="Primary navigation"
       onKeyDown={(event) => {
-        if (event.key === "Escape") setOpenMenu(null);
+        if (event.key === "Escape") close();
       }}
       ref={navRef}
     >
-      {!catalogMode && <Link href="/">Home</Link>}
+      <Link href="/" onClick={close}>Home</Link>
 
       <div
         className={"nav-drawer wide" + (openMenu === "categories" ? " open" : "")}
-        onMouseEnter={() => setOpenMenu("categories")}
-        onMouseLeave={() => setOpenMenu(null)}
+        onPointerEnter={() => open("categories")}
+        onPointerLeave={scheduleClose}
+        onFocus={() => open("categories")}
         onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpenMenu(null);
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose();
         }}
       >
         <button
@@ -51,14 +81,14 @@ export function SiteNav({ className = "", catalogMode = false }: { className?: s
           aria-expanded={openMenu === "categories"}
           aria-haspopup="menu"
           className="nav-drawer-trigger"
-          onClick={() => setOpenMenu((current) => current === "categories" ? null : "categories")}
+          onClick={() => openMenu === "categories" ? close() : open("categories")}
           type="button"
         >
-          {catalogMode ? "Products" : "Categories"}
+          Categories
         </button>
         <div aria-label="Product categories" className="nav-panel category-panel" id="product-category-menu" role="menu">
           {categoryGroups.map((group) => (
-            <Link className="nav-category-group nav-category-card" href={group.href} key={group.title} onClick={() => setOpenMenu(null)} role="menuitem">
+            <Link className="nav-category-group nav-category-card" href={group.href} key={group.title} onClick={close} role="menuitem">
               <span className="nav-category-title">{group.title}</span>
               <p>{group.text}</p>
             </Link>
@@ -66,29 +96,18 @@ export function SiteNav({ className = "", catalogMode = false }: { className?: s
         </div>
       </div>
 
-      {catalogMode ? (
-        <>
-          <Link href="/products?sort=new">New Arrivals</Link>
-          <Link href="/products?sort=popular">Best Sellers</Link>
-          <Link href="/blog">Buyer Guides</Link>
-          <Link href="/news">News</Link>
-          <Link href="/blog">Blog</Link>
-        </>
-      ) : (
-        <>
-          <Link href="/products">Products</Link>
-          <Link href="/fitment-check">Fitment Check</Link>
-          <Link href="/news">News</Link>
-          <Link href="/blog">Blog</Link>
-        </>
-      )}
+      <Link href="/products" onClick={close}>Products</Link>
+      <Link href="/fitment-check" onClick={close}>Fitment Check</Link>
+      <Link href="/news" onClick={close}>News</Link>
+      <Link href="/blog" onClick={close}>Blog</Link>
 
       <div
         className={"nav-drawer company" + (openMenu === "company" ? " open" : "")}
-        onMouseEnter={() => setOpenMenu("company")}
-        onMouseLeave={() => setOpenMenu(null)}
+        onPointerEnter={() => open("company")}
+        onPointerLeave={scheduleClose}
+        onFocus={() => open("company")}
         onBlur={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOpenMenu(null);
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose();
         }}
       >
         <button
@@ -96,17 +115,17 @@ export function SiteNav({ className = "", catalogMode = false }: { className?: s
           aria-expanded={openMenu === "company"}
           aria-haspopup="menu"
           className="nav-drawer-trigger"
-          onClick={() => setOpenMenu((current) => current === "company" ? null : "company")}
+          onClick={() => openMenu === "company" ? close() : open("company")}
           type="button"
         >
           Company
         </button>
         <div aria-label="Company information" className="nav-panel company-panel" id="company-menu" role="menu">
-          <Link className="nav-company-card" href="/about" onClick={() => setOpenMenu(null)} role="menuitem">
+          <Link className="nav-company-card" href="/about" onClick={close} role="menuitem">
             <span>About Us</span>
             <small>Our company, sourcing approach, and buyer support.</small>
           </Link>
-          <Link className="nav-company-card" href="/contact" onClick={() => setOpenMenu(null)} role="menuitem">
+          <Link className="nav-company-card" href="/contact" onClick={close} role="menuitem">
             <span>Contact Us</span>
             <small>Talk with the Cowinmotors parts and sourcing team.</small>
           </Link>

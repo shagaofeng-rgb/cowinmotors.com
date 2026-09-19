@@ -12,7 +12,7 @@ export function Footer() {
       <div className="footer-company">
         <span>Company</span>
         <strong>Quzhou Qiying Import & Export Co., Ltd.</strong>
-        <small>Room 110, 1st Floor, Building 1, Qushidai Future Building, Kecheng District, Quzhou, Zhejiang Province, China</small>
+        <a className="footer-address" href="https://maps.app.goo.gl/P1YyVHoCdGBd9ef37" target="_blank" rel="noopener noreferrer">Room 110, 1st Floor, Building 1, Qushidai Future Building, Kecheng District, Quzhou, Zhejiang Province, China</a>
       </div>
       <nav aria-label="Footer product navigation">
         <span>Products</span>
@@ -26,7 +26,7 @@ export function Footer() {
       </nav>
       <nav aria-label="Footer contact navigation">
         <span>Contact</span>
-        <a href="tel:+8617601255205">+86 176 0125 5205</a>
+        <a href="https://wa.me/8617601255205" target="_blank" rel="noopener noreferrer">+86 176 0125 5205</a>
         <a href="mailto:davidsha@cowinmotors.com">davidsha@cowinmotors.com</a>
         <a href="mailto:racheljiang@cowinmotors.com">racheljiang@cowinmotors.com</a>
         <Link href="/quote">Request Quote</Link>

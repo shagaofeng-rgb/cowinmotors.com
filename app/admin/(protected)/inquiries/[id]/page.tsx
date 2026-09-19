@@ -117,6 +117,16 @@ export default async function AdminInquiryDetailPage({ params }: { params: Promi
             <div><dt>记录编号</dt><dd className="admin-code-value">{inquiry.id}</dd></div>
           </dl>
         </article>
+
+        <article className="admin-panel admin-detail-panel">
+          <p className="eyebrow">通知状态</p>
+          <h2>邮件投递记录</h2>
+          <dl className="admin-detail-fields">
+            <div><dt>状态</dt><dd>{inquiry.deliveryStatus}</dd></div>
+            <div><dt>通道</dt><dd>{displayValue(inquiry.deliveryProvider)}</dd></div>
+            <div className="admin-detail-field-full"><dt>说明</dt><dd>{displayValue(inquiry.deliveryError)}</dd></div>
+          </dl>
+        </article>
       </section>
 
       <section className="admin-panel admin-detail-panel">
