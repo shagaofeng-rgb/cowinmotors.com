@@ -6111,6 +6111,12 @@ body:has(.quote-page) {
 .company-page-cta p { color: #cbd8e7; line-height: 1.7; }
 .company-page-cta { margin-top: 18px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .company-page-cta p { flex: 1 1 360px; }
+.company-map { margin-top: 32px; min-width: 0; }
+.company-map-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+.company-map-heading h2 { margin: 0; font-size: 24px; }
+.company-map-heading a { white-space: normal; text-align: center; max-width: 100%; }
+.company-map iframe { display: block; width: 100%; height: 420px; border: 0; border-radius: 8px; background: #edf1f4; }
+@media (max-width: 600px) { .company-map iframe { height: 320px; } }
 
 @media (max-width: 900px) {
   .product-detail-page { width: min(100% - 28px, 760px); padding-top: 18px; }

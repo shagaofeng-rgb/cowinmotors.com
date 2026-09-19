@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { CompanyMap } from "@/components/CompanyMap";
 
 const company = "Quzhou Qiying Import & Export Co., Ltd.";
 const address = "Room 110, 1st Floor, Building 1, Qushidai Future Building, Kecheng District, Quzhou, Zhejiang Province, China";
@@ -31,5 +32,5 @@ export function companyPageMetadata(key: CompanyPageKey): Metadata {
 
 export function CompanyInfoPage({ pageKey }: { pageKey: CompanyPageKey }) {
   const page = pages[pageKey];
-  return <><Header cta="Request a Quote" /><main className="company-page section"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">Home</Link><span>/</span><span>{page.title}</span></nav><header><p className="eyebrow">Cowinmotors Automotive Parts</p><h1>{page.title}</h1><p>{page.description}</p></header><div className="company-page-grid">{page.sections.map(([heading, body]) => <section key={heading}><h2>{heading}</h2>{body.split("\n").map((line) => <p key={line}>{line}</p>)}</section>)}</div><section className="company-page-cta"><h2>Need a product or fitment review?</h2><p>Send the product reference and vehicle details for a quotation review.</p><Link className="button primary" href="/quote">Request a Quote</Link></section></main></>;
+  return <><Header cta="Request a Quote" /><main className="company-page section"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">Home</Link><span>/</span><span>{page.title}</span></nav><header><p className="eyebrow">Cowinmotors Automotive Parts</p><h1>{page.title}</h1><p>{page.description}</p></header><div className="company-page-grid">{page.sections.map(([heading, body]) => <section key={heading}><h2>{heading}</h2>{body.split("\n").map((line) => <p key={line}>{line}</p>)}</section>)}</div>{pageKey === "contact" && <CompanyMap />}<section className="company-page-cta"><h2>Need a product or fitment review?</h2><p>Send the product reference and vehicle details for a quotation review.</p><Link className="button primary" href="/quote">Request a Quote</Link></section></main></>;
 }
