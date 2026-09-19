@@ -34,7 +34,7 @@ export default function SupportPage() {
               Product, packaging, and destination requirements are reviewed before quotation.
             </p>
             <div className="support-actions">
-              <Link href="mailto:racheljiang@cowinmotors.com">Contact Support</Link>
+              <Link href="mailto:info@cowinmotors.com">Contact Support</Link>
               <Link href="https://api.whatsapp.com/send/?phone=%2B8617601255205&text&type=phone_number&app_absent=0" target="_blank">Chat on WhatsApp</Link>
               <Link href="/quote">Sourcing Request</Link>
             </div>
@@ -75,7 +75,7 @@ export default function SupportPage() {
         <section className="support-contact-row">
           <article>
             <strong>Email Us</strong>
-            <a href="mailto:racheljiang@cowinmotors.com">racheljiang@cowinmotors.com</a>
+            <a href="mailto:info@cowinmotors.com">info@cowinmotors.com</a>
             <span>Response timing is confirmed after review.</span>
           </article>
           <article>

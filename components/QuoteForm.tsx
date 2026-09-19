@@ -115,7 +115,7 @@ export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initi
             ? "RFQ saved successfully. Email delivery is being checked; you can also contact us on WhatsApp for an immediate response."
             : "RFQ received. Our team will review fitment, MOQ, lead time, and shipping details.");
         } else {
-          setNote(result.error || "Submission failed. Please email racheljiang@cowinmotors.com or use WhatsApp.");
+          setNote(result.error || "Submission failed. Please email info@cowinmotors.com or use WhatsApp.");
         }
         setSubmitting(false);
       }}

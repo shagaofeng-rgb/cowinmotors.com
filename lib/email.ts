@@ -2,8 +2,7 @@ import net from "node:net";
 import tls from "node:tls";
 import type { InquiryRecord } from "@/lib/adminData";
 
-const defaultTo = "davidsha@cowinmotors.com";
-const defaultCc = "racheljiang@cowinmotors.com";
+const defaultTo = "info@cowinmotors.com";
 
 export type InquiryAttachment = { name: string; type: string; contentBase64: string };
 
@@ -62,7 +61,7 @@ async function sendViaResend(record: InquiryRecord, attachment?: InquiryAttachme
     body: JSON.stringify({
       from: env("RESEND_FROM_EMAIL") || env("SMTP_FROM") || "Cowinmotors <onboarding@resend.dev>",
       to: [env("INQUIRY_TO_EMAIL") || defaultTo],
-      cc: [env("INQUIRY_CC_EMAIL") || defaultCc],
+      cc: env("INQUIRY_CC_EMAIL") ? [env("INQUIRY_CC_EMAIL")] : undefined,
       reply_to: record.email,
       subject: message.subject,
       text: message.text,
@@ -138,12 +137,12 @@ function mimeMessage(record: InquiryRecord, from: string, to: string, cc: string
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
-    `Cc: ${cc}`,
     `Reply-To: ${record.email}`,
     `Subject: ${message.subject}`,
     "MIME-Version: 1.0",
     `Content-Type: ${attachment ? "multipart/mixed" : "multipart/alternative"}; boundary="${attachment ? mixedBoundary : boundary}"`,
   ];
+  if (cc) headers.splice(2, 0, `Cc: ${cc}`);
   const alternative = [
     `--${boundary}`,
     'Content-Type: text/plain; charset="UTF-8"',
@@ -189,7 +188,7 @@ async function sendViaSmtp(record: InquiryRecord, attachment?: InquiryAttachment
   const secure = env("SMTP_SECURE") === "true" || port === 465;
   const from = env("SMTP_FROM") || env("INQUIRY_FROM_EMAIL") || user;
   const to = env("INQUIRY_TO_EMAIL") || defaultTo;
-  const cc = env("INQUIRY_CC_EMAIL") || defaultCc;
+  const cc = env("INQUIRY_CC_EMAIL");
   let socket = await connectSmtp(host, port, secure);
 
   await smtpRead(socket);
@@ -205,7 +204,7 @@ async function sendViaSmtp(record: InquiryRecord, attachment?: InquiryAttachment
   await smtpCommand(socket, Buffer.from(user).toString("base64"), [334]);
   await smtpCommand(socket, Buffer.from(password).toString("base64"), [235]);
   await smtpCommand(socket, `MAIL FROM:<${from.replace(/^.*<|>$/g, "")}>`, [250]);
-  for (const recipient of [to, cc]) {
+  for (const recipient of [to, cc].filter(Boolean)) {
     await smtpCommand(socket, `RCPT TO:<${recipient}>`, [250, 251]);
   }
   await smtpCommand(socket, "DATA", [354]);

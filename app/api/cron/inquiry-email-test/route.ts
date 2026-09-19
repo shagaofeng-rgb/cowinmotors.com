@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const inquiry = await saveInquiryWithSource({
     source: "monthly-email-delivery-check",
     name: "Cowinmotors Monthly Form Test",
-    email: process.env.INQUIRY_TO_EMAIL || "davidsha@cowinmotors.com",
+    email: process.env.INQUIRY_TO_EMAIL || "info@cowinmotors.com",
     phone: "+86 176 0125 5205",
     country: "Automated Monitoring",
     productType: "Website Form Delivery Test",

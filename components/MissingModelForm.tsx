@@ -60,7 +60,7 @@ export function MissingModelForm() {
           form.reset();
           setStatus(result.emailSent ? "Submitted. Our team will contact you with a solution." : "Submitted. Our team will review it soon.");
         } else {
-          setStatus("Submission failed. Please email davidsha@cowinmotors.com.");
+          setStatus("Submission failed. Please email info@cowinmotors.com.");
         }
 
         setSubmitting(false);

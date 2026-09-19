@@ -27,8 +27,7 @@ export function Footer() {
       <nav aria-label="Footer contact navigation">
         <span>Contact</span>
         <a href="https://wa.me/8617601255205" target="_blank" rel="noopener noreferrer">+86 176 0125 5205</a>
-        <a href="mailto:davidsha@cowinmotors.com">davidsha@cowinmotors.com</a>
-        <a href="mailto:racheljiang@cowinmotors.com">racheljiang@cowinmotors.com</a>
+        <a href="mailto:info@cowinmotors.com">info@cowinmotors.com</a>
         <Link href="/quote">Request Quote</Link>
         <Link href="/privacy-policy">Privacy Policy</Link>
         <Link href="/terms">Terms of Use</Link>
