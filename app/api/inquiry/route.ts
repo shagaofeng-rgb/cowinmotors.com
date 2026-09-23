@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { InquiryPersistenceError, saveInquiryWithSource, updateInquiryDelivery } from "@/lib/adminData";
+import { InquiryPersistenceError, isNonProductionInquiry, saveInquiryWithSource, updateInquiryDelivery } from "@/lib/adminData";
 import { appendAnalyticsEvent, normalizeAnalyticsEvent } from "@/lib/analyticsStore";
 import { sendInquiryEmail } from "@/lib/email";
 
@@ -24,11 +24,6 @@ function attachmentFrom(value: unknown) {
   return { name, type, contentBase64 };
 }
 
-function isTestInquiry(input: { name: string; email: string; source: string; requirement: string }) {
-  return /@example\.com$/i.test(input.email)
-    || /\b(test|smoke|health check|cron)\b/i.test(`${input.name} ${input.source} ${input.requirement}`);
-}
-
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const name = clean(body.name);
@@ -48,7 +43,17 @@ export async function POST(request: Request) {
 
   const source = clean(body.source) || "website-rfq-form";
   const requirement = clean(body.requirement);
-  const testInquiry = isTestInquiry({ name, email, source, requirement });
+  const testInquiry = isNonProductionInquiry({
+    name,
+    email,
+    source,
+    product: clean(body.product),
+    vehicleInfo: clean(body.vehicleInfo),
+    requirement,
+    visitorId: clean(body.visitorId, 80),
+    sessionId: clean(body.sessionId, 80),
+    isTest: false,
+  });
   let inquiry;
   try {
     inquiry = await saveInquiryWithSource({

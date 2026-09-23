@@ -188,14 +188,40 @@ function normalizedDedupeKey(payload: Record<string, any>) {
   return /^[a-zA-Z0-9_-]{12,160}$/.test(value) ? value : "";
 }
 
-export function classifyTraffic(event: Pick<AnalyticsEvent, "userAgent" | "utm" | "referrer" | "page" | "sourcePlatform" | "sourceDetail">, qualityHint = "") {
+type TrafficClassificationInput = Pick<AnalyticsEvent, "userAgent" | "utm" | "referrer" | "page" | "sourcePlatform" | "sourceDetail" | "visitorId" | "sessionId" | "ip"> & {
+  requestHost?: string;
+};
+
+function normalizedHost(value = "") {
+  return value.split(",")[0].trim().toLowerCase().replace(/^https?:\/\//, "").replace(/:\d+$/, "").replace(/^www\./, "");
+}
+
+function isProductionTrackingHost(value = "") {
+  const host = normalizedHost(value);
+  return !host || host === "cowinmotors.com";
+}
+
+function configuredInternalIps() {
+  return new Set((process.env.INTERNAL_TRAFFIC_IPS || "").split(",").map((value) => value.trim()).filter(Boolean));
+}
+
+export function classifyTraffic(event: TrafficClassificationInput, qualityHint = "") {
   const userAgent = event.userAgent.toLowerCase();
-  const source = `${event.utm?.source || ""} ${event.sourcePlatform || ""} ${event.sourceDetail || ""}`.toLowerCase();
+  const source = `${event.utm?.source || ""} ${event.sourcePlatform || ""} ${event.sourceDetail || ""} ${event.visitorId || ""} ${event.sessionId || ""}`.toLowerCase();
   const referrerHost = hostFromUrl(event.referrer);
   const hint = qualityHint.toLowerCase();
 
-  if (hint === "test-inquiry" || /(^|[\s_-])(test|collect(?:s|ion)?|codex|internal)([\s_-]|$)/.test(source)) {
+  if (!isProductionTrackingHost(event.requestHost)) {
+    return { status: "excluded" as const, reason: "Local or preview deployment traffic" };
+  }
+  if (event.ip && configuredInternalIps().has(event.ip)) {
+    return { status: "excluded" as const, reason: "Configured internal traffic" };
+  }
+  if (hint === "test-inquiry" || /(^|[\s_.-])(test|collect(?:s|ion)?|codex|internal|qa|automation|monitoring|verification)([\s_.-]|$)/.test(source)) {
     return { status: "excluded" as const, reason: hint === "test-inquiry" ? "Test inquiry" : "Internal or collection source" };
+  }
+  if (/^cowinmotors\.com$/i.test(String(event.sourcePlatform || "").trim())) {
+    return { status: "excluded" as const, reason: "First-party internal source" };
   }
   if (/meta-externalagent|facebookexternalhit|facebot/.test(userAgent)) {
     return { status: "excluded" as const, reason: "Facebook link preview" };
@@ -279,7 +305,10 @@ export function normalizeAnalyticsEvent(payload: Record<string, any>, request: R
   event.channel = detectChannel(event);
   event.sourcePlatform = detectSourcePlatform(event);
   event.sourceDetail = sourceDetail(event);
-  const quality = classifyTraffic(event, String(payload.qualityHint || ""));
+  const quality = classifyTraffic({
+    ...event,
+    requestHost: getHeader(request, "x-forwarded-host") || getHeader(request, "host"),
+  }, String(payload.qualityHint || ""));
   event.trafficStatus = quality.status;
   event.trafficReason = quality.reason;
   return event;
@@ -407,9 +436,12 @@ export async function readAnalyticsEvents(options: { startDate?: Date; endDate?:
         clientTimestamp: row.client_timestamp || "",
         } as AnalyticsEvent;
         const quality = classifyTraffic(base);
-        if (!row.traffic_status || (!row.traffic_reason && quality.status !== "real")) {
+        if (quality.status !== "real") {
           base.trafficStatus = quality.status;
           base.trafficReason = quality.reason;
+        } else if (!row.traffic_status) {
+          base.trafficStatus = "real";
+          base.trafficReason = "";
         }
         return base;
       });

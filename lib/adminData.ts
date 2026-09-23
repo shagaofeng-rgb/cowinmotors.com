@@ -269,6 +269,20 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
   };
 }
 
+export function isNonProductionInquiry(inquiry: Pick<InquiryRecord, "email" | "name" | "source" | "product" | "vehicleInfo" | "requirement" | "visitorId" | "sessionId" | "isTest">) {
+  if (inquiry.isTest || /@example\.com$/i.test(inquiry.email)) return true;
+  const details = [
+    inquiry.name,
+    inquiry.source,
+    inquiry.product,
+    inquiry.vehicleInfo,
+    inquiry.requirement,
+    inquiry.visitorId,
+    inquiry.sessionId,
+  ].join(" ").toLowerCase();
+  return /(^|[\s_.-])(test|smoke|health[\s_-]?check|cron|codex|collect(?:s|ion)?|automation|qa|verification|database[\s_-]?check)([\s_.-]|$)/.test(details);
+}
+
 export async function getInquiries({ includeTests = false, limit = 5000 }: { includeTests?: boolean; limit?: number } = {}): Promise<InquiryRecord[]> {
   const sql = getSql();
   const safeLimit = Math.min(5000, Math.max(1, Math.round(limit)));
@@ -292,14 +306,14 @@ export async function getInquiries({ includeTests = false, limit = 5000 }: { inc
             ORDER BY created_at DESC
             LIMIT ${safeLimit}
           ` as InquiryRow[];
-      return rows.map(inquiryFromRow);
+      return rows.map(inquiryFromRow).filter((record) => includeTests || !isNonProductionInquiry(record));
     } catch (error) {
       console.error("Inquiry database read failed; using file fallback.", error);
     }
   }
 
   return readJsonFile<InquiryRecord[]>(inquiryFile, [])
-    .filter((record) => includeTests || !record.isTest)
+    .filter((record) => includeTests || !isNonProductionInquiry(record))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
@@ -473,6 +487,10 @@ export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
     deliveryProvider: "",
     deliveryError: "",
   };
+  if (isNonProductionInquiry(record)) {
+    record.isTest = true;
+    record.testReason ||= "Automated or explicitly marked test inquiry";
+  }
   await persistInquiry(record);
   return record;
 }
@@ -492,6 +510,10 @@ export async function saveInquiryWithSource(input: InquiryInputWithSource): Prom
     deliveryProvider: "",
     deliveryError: "",
   };
+  if (isNonProductionInquiry(record)) {
+    record.isTest = true;
+    record.testReason ||= "Automated or explicitly marked test inquiry";
+  }
   await persistInquiry(record);
   return record;
 }

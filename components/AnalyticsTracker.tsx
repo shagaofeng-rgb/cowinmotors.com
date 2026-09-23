@@ -72,6 +72,13 @@ function send(payload: Record<string, unknown>) {
   }).catch(() => {});
 }
 
+function shouldTrackCurrentPage(pathname: string) {
+  const host = window.location.hostname.toLowerCase();
+  return !pathname.startsWith("/admin")
+    && !["localhost", "127.0.0.1", "0.0.0.0"].includes(host)
+    && !host.endsWith(".vercel.app");
+}
+
 export function AnalyticsTracker() {
   const pathname = usePathname();
   const startedAt = useRef(Date.now());
@@ -79,7 +86,7 @@ export function AnalyticsTracker() {
   const maxScroll = useRef(0);
 
   useEffect(() => {
-    if (pathname.startsWith("/admin")) return;
+    if (!shouldTrackCurrentPage(pathname)) return;
 
     const currentPage = `${window.location.pathname}${window.location.search}`;
     send({ type: "page_view", previousPage: previousPage.current });
