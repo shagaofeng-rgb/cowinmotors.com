@@ -119,7 +119,8 @@ const cowinmotors: NewsSiteConfig = {
     alertChannel: "news-automation-audit-events",
     // Production is on by default for this approved site. Set the variable to
     // "false" to activate the operational kill switch without a code change.
-    productionEnabled: process.env.NEWS_AUTOMATION_PRODUCTION_ENABLED !== "false",
+    // Explicit operational stop; stale deployment environment values cannot enable automation.
+    productionEnabled: false,
   },
   ownedNeutralImage: {
     url: "https://www.cowinmotors.com/assets/ui/photography/news/article-fitment-compliance.png",

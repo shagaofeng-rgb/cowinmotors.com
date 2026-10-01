@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { googleSubmissionWindow } from "@/lib/google-submission-schedule";
 import { ensureCoreSchema, getSql } from "@/lib/database";
 import { getPublishedNews } from "@/lib/news";
 import { getPublishedBlogPosts } from "@/lib/blog";
@@ -17,7 +18,6 @@ const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
 const CATALOG_UPDATED_AT = process.env.PRODUCT_CATALOG_UPDATED_AT || "2026-08-22T00:00:00+08:00";
 const PUBLIC_PAGES_UPDATED_AT = process.env.PUBLIC_PAGES_UPDATED_AT || "2026-08-08T15:30:00+08:00";
 const LOCK_TTL_SECONDS = 15 * 60;
-const GOOGLE_SUBMISSION_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000;
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_WEBMASTERS_SCOPE = "https://www.googleapis.com/auth/webmasters";
 
@@ -368,16 +368,15 @@ export async function runSitemapMaintenance(options: SitemapRunOptions = {}) {
     run.added = diff.added;
     run.modified = diff.modified;
     run.removed = diff.removed;
-    const previousSubmission = state.lastGoogleSubmissionAt ? Date.parse(state.lastGoogleSubmissionAt) : 0;
-    const eligibleForSubmission = !previousSubmission || Date.now() - previousSubmission >= GOOGLE_SUBMISSION_INTERVAL_MS;
-    if (changed && !options.dryRun && eligibleForSubmission) {
+    const submissionWindow = googleSubmissionWindow(new Date(), state.lastGoogleSubmissionAt);
+    if (!options.dryRun && submissionWindow.eligible) {
       run.submit = true;
       const google = await submitSitemapToGoogle();
       run.googleStatus = google.status;
       run.googleMessage = google.message;
-    } else if (changed && !options.dryRun) {
+    } else if (!options.dryRun) {
       run.googleStatus = "throttled";
-      run.googleMessage = `Google Sitemap submission is limited to once every 3 days. Next eligible at ${new Date(previousSubmission + GOOGLE_SUBMISSION_INTERVAL_MS).toISOString()}.`;
+      run.googleMessage = `Google Sitemap submission runs once each Monday (Asia/Shanghai). Next scheduled at ${submissionWindow.nextScheduledAt}.`;
     } else {
       run.googleStatus = "unchanged";
       run.googleMessage = "Sitemap content has not changed; no external submission was needed.";
