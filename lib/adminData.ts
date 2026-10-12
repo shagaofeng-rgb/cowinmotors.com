@@ -308,9 +308,12 @@ export async function getInquiries({ includeTests = false, limit = 5000 }: { inc
           ` as InquiryRow[];
       return rows.map(inquiryFromRow).filter((record) => includeTests || !isNonProductionInquiry(record));
     } catch (error) {
-      console.error("Inquiry database read failed; using file fallback.", error);
+      console.error("Inquiry database read failed.", error);
+      throw new Error("Inquiry database read failed.", { cause: error });
     }
   }
+
+  if (process.env.VERCEL) throw new Error("Inquiry database is not configured.");
 
   return readJsonFile<InquiryRecord[]>(inquiryFile, [])
     .filter((record) => includeTests || !isNonProductionInquiry(record))
@@ -365,9 +368,10 @@ function customerFromRecords(customerId: string, inquiries: InquiryRecord[], eve
   };
 }
 
-export async function getCustomerDirectory(range: { startDate: Date; endDate: Date }, filters: { query?: string; country?: string; label?: string; page?: number; pageSize?: number } = {}) {
-  const inquiries = await getInquiries();
-  const allEvents = await readAnalyticsEvents({ limit: 50_000 });
+export async function getCustomerDirectory(range: { startDate: Date; endDate: Date }, filters: { query?: string; country?: string; label?: string; page?: number; pageSize?: number } = {}, suppliedInquiries?: InquiryRecord[]) {
+  const inquiries = suppliedInquiries || await getInquiries();
+  const linkedVisitorIds = [...new Set(inquiries.map((item) => item.visitorId).filter(hasJourneyIdentity))];
+  const allEvents = linkedVisitorIds.length ? await readAnalyticsEvents({ visitorIds: linkedVisitorIds, limit: 50_000 }) : [];
   const groups = new Map<string, InquiryRecord[]>();
   for (const inquiry of inquiries) {
     const customerId = customerIdForInquiry(inquiry);
@@ -403,7 +407,7 @@ export async function getCustomerProfile(customerId: string, range?: { startDate
   const inquiries = (await getInquiries()).filter((item) => customerIdForInquiry(item) === customerId);
   if (!inquiries.length) return null;
   const visitorIds = new Set(inquiries.map((item) => item.visitorId).filter(hasJourneyIdentity));
-  const events = (await readAnalyticsEvents({ limit: 50_000 }))
+  const events = (visitorIds.size ? await readAnalyticsEvents({ visitorIds: [...visitorIds], limit: 50_000 }) : [])
     .filter((event) => event.trafficStatus === "real" && visitorIds.has(event.visitorId))
     .filter((event) => !range || (new Date(event.timestamp) >= range.startDate && new Date(event.timestamp) <= range.endDate))
     .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
@@ -932,9 +936,9 @@ export function getCategoryStats() {
   return [...stats.values()].sort((a, b) => b.count - a.count);
 }
 
-export async function getAdminOverview() {
+export async function getAdminOverview(suppliedInquiries?: InquiryRecord[]) {
   const adminProducts = getAdminProducts();
-  const inquiries = await getInquiries();
+  const inquiries = suppliedInquiries || await getInquiries();
   const missingImages = adminProducts.filter((product) => !product.imageExists);
   const directOrRfq = adminProducts.filter((product) => product.buyingPath === "Direct / RFQ").length;
   const rfqOnly = adminProducts.filter((product) => product.buyingPath === "RFQ").length;

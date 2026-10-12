@@ -9,14 +9,14 @@ export const metadata = {
   title: "询盘数据 | Cowinmotors 后台",
 };
 
-function pageHref(params: { q: string; pageSize: number; page: number; days?: number; startDate?: string; endDate?: string }) {
+function pageHref(params: { q: string; pageSize: number; page: number; range: string; startDate?: string; endDate?: string }) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   query.set("pageSize", String(params.pageSize));
   query.set("page", String(params.page));
   if (params.startDate) query.set("startDate", params.startDate);
   if (params.endDate) query.set("endDate", params.endDate);
-  if (!params.startDate && !params.endDate && params.days) query.set("days", String(params.days));
+  query.set("range", params.range);
   return `/admin/inquiries?${query.toString()}`;
 }
 
@@ -56,7 +56,7 @@ export default async function AdminInquiriesPage({
           <h1>RFQ 表单提交记录</h1>
           <p>查看每次询盘的完整提交信息，并打开详情核对提交前的真实访问轨迹。</p>
         </div>
-        <div className="admin-page-actions"><span className="admin-status">{filtered.length}/{inRange.length} records</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize) }} /></div>
+        <div className="admin-page-actions"><span className="admin-status">{filtered.length}/{inRange.length} 条记录</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize) }} /></div>
       </header>
 
       <section className="admin-panel">
@@ -68,12 +68,12 @@ export default async function AdminInquiriesPage({
               <option value="50">50 / 页</option>
               <option value="100">100 / 页</option>
             </select>
-            <input type="hidden" name="days" value={String(range.days)} />
+            <input type="hidden" name="range" value={range.preset} />
             {range.startDate ? <input type="hidden" name="startDate" value={range.startDate} /> : null}
             {range.endDate ? <input type="hidden" name="endDate" value={range.endDate} /> : null}
             <button type="submit">筛选</button>
           </form>
-          <Link className="admin-secondary-button" href={`/api/admin/inquiries/export?${new URLSearchParams({ q: params.query, days: String(range.days), ...(range.startDate ? { startDate: range.startDate } : {}), ...(range.endDate ? { endDate: range.endDate } : {}) }).toString()}`}>
+          <Link className="admin-secondary-button" href={`/api/admin/inquiries/export?${new URLSearchParams({ q: params.query, range: range.preset, ...(range.startDate ? { startDate: range.startDate } : {}), ...(range.endDate ? { endDate: range.endDate } : {}) }).toString()}`}>
             导出 CSV
           </Link>
         </div>
@@ -117,9 +117,9 @@ export default async function AdminInquiriesPage({
           <div className="admin-empty">暂无匹配的询盘记录。</div>
         )}
         <div className="admin-pagination">
-          {page.hasPrevious ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage - 1, days: range.days, startDate: range.startDate, endDate: range.endDate })}>上一页</Link> : <span>上一页</span>}
+          {page.hasPrevious ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage - 1, range: range.preset, startDate: range.startDate, endDate: range.endDate })}>上一页</Link> : <span>上一页</span>}
           <span>{page.currentPage} / {page.totalPages}</span>
-          {page.hasNext ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage + 1, days: range.days, startDate: range.startDate, endDate: range.endDate })}>下一页</Link> : <span>下一页</span>}
+          {page.hasNext ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage + 1, range: range.preset, startDate: range.startDate, endDate: range.endDate })}>下一页</Link> : <span>下一页</span>}
         </div>
       </section>
     </div>

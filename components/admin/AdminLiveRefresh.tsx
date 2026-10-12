@@ -1,25 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { RefreshCw } from "lucide-react";
 
 export function AdminLiveRefresh({ intervalMs = 30_000 }: { intervalMs?: number }) {
   const router = useRouter();
-  const [updatedAt, setUpdatedAt] = useState(() => new Date());
-
   useEffect(() => {
     const timer = window.setInterval(() => {
       router.refresh();
-      setUpdatedAt(new Date());
     }, intervalMs);
     return () => window.clearInterval(timer);
   }, [intervalMs, router]);
 
   return (
     <div className="admin-live-status" aria-live="polite">
-      <span>实时数据</span>
-      <small>每 30 秒刷新 · {updatedAt.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</small>
-      <button type="button" onClick={() => { router.refresh(); setUpdatedAt(new Date()); }}>刷新</button>
+      <small>每 {Math.round(intervalMs / 1000)} 秒更新</small>
+      <button type="button" aria-label="刷新数据" title="刷新数据" onClick={() => router.refresh()}><RefreshCw size={17} aria-hidden="true" /></button>
     </div>
   );
 }

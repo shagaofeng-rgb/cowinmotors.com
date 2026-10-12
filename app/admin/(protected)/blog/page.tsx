@@ -20,7 +20,7 @@ export default async function AdminBlogPage({ searchParams }: { searchParams: Pr
   const list = getAdminListParams(rawParams);
   const { startDate, endDate } = resolveDateRange(range);
   const data = await getBlogAdminSnapshot();
-  const published = data.articles.filter((article) => article.status === "published").length;
+  const published = data.articles.filter((article) => article.status === "published" && new Date(article.publishedAt || article.updatedAt || article.createdAt || 0).getTime() >= startDate.getTime() && new Date(article.publishedAt || article.updatedAt || article.createdAt || 0).getTime() <= endDate.getTime()).length;
   const articles = paginate(filterByQuery(data.articles.filter((article) => {
     const timestamp = new Date(article.publishedAt || article.updatedAt || article.createdAt || 0).getTime();
     return timestamp >= startDate.getTime() && timestamp <= endDate.getTime();

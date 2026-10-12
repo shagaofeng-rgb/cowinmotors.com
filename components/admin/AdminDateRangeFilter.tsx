@@ -5,6 +5,7 @@ const ranges = [
   { preset: "today", label: "今天" },
   { preset: "week", label: "本周" },
   { preset: "month", label: "本月" },
+  { preset: "ninety", label: "90天" },
 ];
 
 function dayValue(date: Date) {
@@ -30,18 +31,20 @@ export function AdminDateRangeFilter({ range, preserve = {} }: { range: AdminDat
 
   return (
     <div className="admin-date-filter">
-      <div className="admin-date-presets" aria-label="日期范围">
+      <div className="admin-date-presets" role="group" aria-label="日期范围">
         {ranges.map((item) => <Link className={!customRange && range.preset === item.preset ? "is-active" : ""} href={hrefFor({ range: item.preset, days: "", startDate: "", endDate: "", page: "1" }, preserve)} key={item.preset}>{item.label}</Link>)}
-        <span className={customRange ? "is-active" : ""}>自定义</span>
       </div>
-      <form className="admin-date-custom" method="get">
+      <details className={`admin-date-details${customRange ? " is-active" : ""}`} open={customRange}>
+        <summary>自定义</summary>
+        <form className="admin-date-custom" method="get">
         {Object.entries(preserve).filter(([key]) => !["range", "days", "startDate", "endDate", "page"].includes(key)).map(([key, value]) => value ? <input key={key} type="hidden" name={key} value={value} /> : null)}
         <input type="hidden" name="range" value="custom" />
-        <label>起<input aria-label="开始日期" name="startDate" type="date" defaultValue={dayValue(resolved.startDate)} /></label>
-        <label>止<input aria-label="结束日期" name="endDate" type="date" defaultValue={dayValue(resolved.endDate)} /></label>
+        <label>开始<input aria-label="开始日期" name="startDate" type="date" defaultValue={dayValue(resolved.startDate)} required /></label>
+        <label>结束<input aria-label="结束日期" name="endDate" type="date" defaultValue={dayValue(resolved.endDate)} required /></label>
         <input type="hidden" name="page" value="1" />
         <button type="submit">应用</button>
-      </form>
+        </form>
+      </details>
     </div>
   );
 }

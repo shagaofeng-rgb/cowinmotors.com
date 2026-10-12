@@ -48,7 +48,7 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
           <select name="device" defaultValue={filters.device}><option value="">全部设备</option>{data.options.devices.map((value) => <option key={value} value={value}>{value}</option>)}</select>
           <select name="label" defaultValue={filters.label}><option value="">全部客户类型</option><option>新访客</option><option>回访客户</option><option>高意向</option><option>已询盘</option></select>
           <select name="pageSize" defaultValue={String(data.pageSize)}><option value="25">25 / 页</option><option value="50">50 / 页</option><option value="100">100 / 页</option></select>
-          <input type="hidden" name="days" value={String(range.days)} />
+          <input type="hidden" name="range" value={range.preset} />
           {range.startDate ? <input type="hidden" name="startDate" value={range.startDate} /> : null}
           {range.endDate ? <input type="hidden" name="endDate" value={range.endDate} /> : null}
           <button type="submit">筛选</button><Link className="admin-secondary-button" href="/admin/visitors">重置</Link>
@@ -65,9 +65,9 @@ export default async function AdminVisitorsPage({ searchParams }: { searchParams
         </tr>)}</tbody></table></div> : <EmptyState>此日期与筛选条件下暂无真实访客记录。</EmptyState>}
 
         <div className="admin-pagination">
-          {data.currentPage > 1 ? <Link href={hrefFor({ ...preserve, days: range.days, startDate: range.startDate, endDate: range.endDate, page: data.currentPage - 1 })}>上一页</Link> : <span>上一页</span>}
+          {data.currentPage > 1 ? <Link href={hrefFor({ ...preserve, range: range.preset, startDate: range.startDate, endDate: range.endDate, page: data.currentPage - 1 })}>上一页</Link> : <span>上一页</span>}
           <span>{data.currentPage} / {data.totalPages} · {data.total} 位访客</span>
-          {data.currentPage < data.totalPages ? <Link href={hrefFor({ ...preserve, days: range.days, startDate: range.startDate, endDate: range.endDate, page: data.currentPage + 1 })}>下一页</Link> : <span>下一页</span>}
+          {data.currentPage < data.totalPages ? <Link href={hrefFor({ ...preserve, range: range.preset, startDate: range.startDate, endDate: range.endDate, page: data.currentPage + 1 })}>下一页</Link> : <span>下一页</span>}
         </div>
       </section>
     </div>

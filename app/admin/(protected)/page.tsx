@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { ClipboardList, FileText, Globe2, MessageSquareText, UserRound, Users } from "lucide-react";
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
 import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { MetricCard, BarList } from "@/components/admin/AdminWidgets";
 import { getAdminDateRange, resolveDateRange } from "@/lib/adminDateRange";
-import { getAdminOverview, getCustomerDirectory } from "@/lib/adminData";
+import { getAdminOverview, getCustomerDirectory, getInquiries, paginate } from "@/lib/adminData";
 import { getAnalyticsHealth, getAnalyticsSnapshot } from "@/lib/analyticsStore";
 
 export const dynamic = "force-dynamic";
@@ -18,33 +19,58 @@ export default async function AdminOverviewPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const range = getAdminDateRange(await searchParams);
-  const analytics = await getAnalyticsSnapshot(range);
-  const analyticsHealth = await getAnalyticsHealth();
-  const data = await getAdminOverview();
-  const customers = await getCustomerDirectory(resolveDateRange(range), { pageSize: 10 });
+  const [analyticsHealth, analytics, allInquiries] = await Promise.all([
+    getAnalyticsHealth(), getAnalyticsSnapshot(range), getInquiries(),
+  ]);
+  const [data, customers] = await Promise.all([
+    getAdminOverview(allInquiries),
+    getCustomerDirectory(resolveDateRange(range), { pageSize: 10 }, allInquiries),
+  ]);
+  const { startDate, endDate } = resolveDateRange(range);
+  const inquiryPage = paginate(allInquiries.filter((inquiry) => {
+    const createdAt = new Date(inquiry.createdAt).getTime();
+    return createdAt >= startDate.getTime() && createdAt <= endDate.getTime();
+  }), 1, 5);
   const metrics = [
-    { label: "真实 PV", value: analytics.overview.pageViews, note: `${analytics.rangeDays} 天已过滤自动化流量` },
-    { label: "真实 UV", value: analytics.overview.uniqueVisitors, note: "匿名访客" },
-    { label: "RFQ 提交", value: analytics.overview.inquiries, note: "同一事件仅统计一次" },
-    { label: "已识别客户", value: customers.total, note: "已留邮箱或电话的真实客户" },
-    { label: "已排除", value: analytics.overview.excludedEvents, note: "预览、爬虫、测试与自动化" },
+    { label: "页面浏览 PV", value: analytics?.overview.pageViews ?? "—", note: "已过滤非真实访问", icon: FileText, tone: "blue" as const },
+    { label: "匿名访客 UV", value: analytics?.overview.uniqueVisitors ?? "—", note: "按访客 ID 去重", icon: Users, tone: "green" as const },
+    { label: "询盘记录", value: inquiryPage.total, note: "当前日期范围内的表单", icon: MessageSquareText, tone: "blue" as const },
+    { label: "已识别客户", value: customers?.total ?? "—", note: "已留联系方式的客户", icon: UserRound, tone: "green" as const },
   ];
 
   return (
     <div className="admin-page">
       <header className="admin-page-head">
         <div>
-          <p className="eyebrow">数据总览</p>
-          <h1>网站后台数据总览</h1>
-          <p>集中查看 Cowinmotors 当前流量、访客、询盘、产品、页面和基础健康状态。</p>
+          <p className="eyebrow">运营数据 / 数据总览</p>
+          <h1>数据总览</h1>
+          <p>所选时段：{startDate.toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })} 至 {endDate.toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })} · Asia/Shanghai</p>
         </div>
         <div className="admin-page-actions"><AdminLiveRefresh /><AdminDateRangeFilter range={range} /></div>
       </header>
 
-      <section className="admin-metric-grid">
+      {!analyticsHealth.connected ? <div className="admin-alert" role="alert">分析数据库暂不可用，流量与客户指标暂不显示。请检查数据连接后刷新。</div> : null}
+
+      <section className="admin-metric-grid admin-overview-metrics">
         {metrics.map((metric) => (
-          <MetricCard label={metric.label} value={metric.value} note={metric.note} key={metric.label} />
+          <MetricCard {...metric} key={metric.label} />
         ))}
+      </section>
+
+      <section className="admin-grid-2 admin-overview-breakdown">
+        <div className="admin-panel">
+          <div className="admin-panel-headline"><div><h2>来源渠道</h2><p>按真实页面浏览次数统计</p></div><Link href="/admin/analytics">查看分析</Link></div>
+          {analytics ? <BarList rows={analytics.traffic.channels} /> : <div className="admin-empty"><ClipboardList size={26} aria-hidden="true" />数据连接不可用</div>}
+        </div>
+        <div className="admin-panel">
+          <div className="admin-panel-headline"><div><h2>访问国家</h2><p>按已识别访问地域统计</p></div><Link href="/admin/visitors">查看访客</Link></div>
+          {analytics ? <BarList rows={analytics.traffic.countries} /> : <div className="admin-empty"><Globe2 size={26} aria-hidden="true" />数据连接不可用</div>}
+        </div>
+      </section>
+
+      <section className="admin-panel admin-overview-inquiries">
+        <div className="admin-panel-headline"><div><h2>最近询盘</h2><p>当前日期范围内收到的真实表单</p></div><Link href="/admin/inquiries">查看全部</Link></div>
+        {inquiryPage.items.length ? <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>提交时间</th><th>客户</th><th>产品</th><th>通知状态</th><th>操作</th></tr></thead><tbody>{inquiryPage.items.map((inquiry) => <tr key={inquiry.id}><td>{new Date(inquiry.createdAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false })}</td><td><strong>{inquiry.name}</strong><br /><span className="admin-muted">{inquiry.email}</span></td><td>{inquiry.product || inquiry.productType || "未填写"}</td><td><span className={`admin-status ${inquiry.deliveryStatus === "sent" ? "good" : inquiry.deliveryStatus === "failed" ? "danger" : "warn"}`}>{inquiry.deliveryStatus === "sent" ? "已通知" : inquiry.deliveryStatus === "failed" ? "通知失败" : inquiry.deliveryStatus === "pending" ? "待通知" : "未发送"}</span></td><td><Link href={`/admin/inquiries/${inquiry.id}`}>查看详情</Link></td></tr>)}</tbody></table></div> : <div className="admin-empty"><ClipboardList size={28} aria-hidden="true" /><span>此时间范围内暂无真实询盘</span></div>}
       </section>
 
       <section className="admin-grid-2">
@@ -87,7 +113,7 @@ export default async function AdminOverviewPage({
               <h2>流量来源</h2>
             </div>
           </div>
-          <BarList rows={analytics.traffic.channels} />
+          <BarList rows={analytics?.traffic.sourcePlatforms || []} />
         </div>
       </section>
 
@@ -100,7 +126,7 @@ export default async function AdminOverviewPage({
             </div>
             <Link href="/admin/pages">查看页面</Link>
           </div>
-          <BarList rows={analytics.pages.slice(0, 8).map((page) => ({ label: page.page, value: page.views }))} />
+          <BarList rows={analytics?.pages.slice(0, 8).map((page) => ({ label: page.page, value: page.views })) || []} />
         </div>
 
         <div className="admin-panel">
@@ -111,18 +137,18 @@ export default async function AdminOverviewPage({
             </div>
             <Link href="/admin/visitors">查看访客</Link>
           </div>
-          <BarList rows={[...analytics.traffic.countries.slice(0, 5), ...analytics.traffic.devices]} />
+          <BarList rows={analytics?.traffic.devices || []} />
         </div>
       </section>
 
       <section className="admin-grid-2">
         <div className="admin-panel">
           <div className="admin-panel-headline"><div><p className="eyebrow">最近真实访问</p><h2>实时客户活动</h2></div><Link href="/admin/visitors">查看访客</Link></div>
-          {analytics.visitors.length ? <div className="admin-stack">{analytics.visitors.slice(0, 10).map((visitor) => <Link className="admin-mini-record" href={`/admin/visitors/${encodeURIComponent(visitor.visitorId)}`} key={visitor.id}><strong>{visitor.page}</strong><span>{visitor.country || "Unknown"} · {visitor.sourcePlatform} · {new Date(visitor.timestamp).toLocaleString("zh-CN", { hour12: false })}</span></Link>)}</div> : <div className="admin-empty">当前范围内暂无真实访问。</div>}
+          {analytics?.visitors.length ? <div className="admin-stack">{analytics.visitors.slice(0, 10).map((visitor) => <Link className="admin-mini-record" href={`/admin/visitors/${encodeURIComponent(visitor.visitorId)}`} key={visitor.id}><strong>{visitor.page}</strong><span>{visitor.country || "未知地域"} · {visitor.sourcePlatform} · {new Date(visitor.timestamp).toLocaleString("zh-CN", { hour12: false, timeZone: "Asia/Shanghai" })}</span></Link>)}</div> : <div className="admin-empty">当前范围内暂无真实访问。</div>}
         </div>
         <div className="admin-panel">
           <div className="admin-panel-headline"><div><p className="eyebrow">客户归属</p><h2>最新已识别客户</h2></div><Link href="/admin/customers">查看客户</Link></div>
-          {customers.items.length ? <div className="admin-stack">{customers.items.map((customer) => <Link className="admin-mini-record" href={`/admin/customers/${encodeURIComponent(customer.customerId)}`} key={customer.customerId}><strong>{customer.displayName}</strong><span>{customer.country || "Unknown"} · {customer.inquiries} 条询盘 · {customer.pageViews} PV</span></Link>)}</div> : <div className="admin-empty">当前范围内暂无已识别客户。</div>}
+          {customers?.items.length ? <div className="admin-stack">{customers.items.map((customer) => <Link className="admin-mini-record" href={`/admin/customers/${encodeURIComponent(customer.customerId)}`} key={customer.customerId}><strong>{customer.displayName}</strong><span>{customer.country || "未知地域"} · {customer.inquiries} 条询盘 · {customer.pageViews} PV</span></Link>)}</div> : <div className="admin-empty">当前范围内暂无已识别客户。</div>}
         </div>
       </section>
 
@@ -159,7 +185,7 @@ export default async function AdminOverviewPage({
           </div>
         ) : (
           <div className="admin-empty">
-            数据库连接：{analyticsHealth.connected ? "正常" : "异常"} · 最后事件：{analyticsHealth.lastEventAt ? new Date(analyticsHealth.lastEventAt).toLocaleString("zh-CN") : "暂无"} · 产品图片路径检查通过。
+            数据库连接：{analyticsHealth.connected ? "正常" : "异常"} · 最后事件：{analyticsHealth.lastEventAt ? new Date(analyticsHealth.lastEventAt).toLocaleString("zh-CN") : "暂无"} · 非真实事件：{analytics?.overview.excludedEvents ?? "—"} · 产品图片路径检查通过。
           </div>
         )}
       </section>

@@ -371,35 +371,55 @@ export async function appendAnalyticsEvent(event: AnalyticsEvent) {
   return { ok: true, storageMode: getAnalyticsStorageMode() };
 }
 
-export async function readAnalyticsEvents(options: { startDate?: Date; endDate?: Date; limit?: number } = {}) {
+export async function readAnalyticsEvents(options: { startDate?: Date; endDate?: Date; limit?: number; visitorIds?: string[] } = {}) {
   const sql = getSql();
-  const limit = Math.min(50_000, Math.max(1, options.limit || 20_000));
+  const limit = Math.min(50_000, Math.max(1, options.limit || 50_000));
 
   if (sql) {
     try {
       await ensureCoreSchema();
-      let rows: AnalyticsEventRow[];
-      if (options.startDate && options.endDate) {
-        rows = await sql`
+      const rows: AnalyticsEventRow[] = [];
+      const batchSize = 400;
+      if (options.visitorIds?.length === 0) return [];
+      while (rows.length < limit) {
+        const offset = rows.length;
+        const pageSize = Math.min(batchSize, limit - offset);
+        let batch: AnalyticsEventRow[];
+        if (options.visitorIds) {
+          batch = await sql`
+          SELECT
+            id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+            scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+            channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
+          FROM cowin_analytics_events
+          WHERE visitor_id = ANY(${options.visitorIds}::text[])
+          ORDER BY timestamp DESC, id DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+          ` as AnalyticsEventRow[];
+        } else if (options.startDate && options.endDate) {
+          batch = await sql`
           SELECT
             id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
             scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
             channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
           FROM cowin_analytics_events
           WHERE timestamp >= ${options.startDate.toISOString()} AND timestamp <= ${options.endDate.toISOString()}
-          ORDER BY timestamp DESC
-          LIMIT ${limit}
-        ` as AnalyticsEventRow[];
-      } else {
-        rows = await sql`
+          ORDER BY timestamp DESC, id DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+          ` as AnalyticsEventRow[];
+        } else {
+          batch = await sql`
           SELECT
             id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
             scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
             channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
           FROM cowin_analytics_events
-          ORDER BY timestamp DESC
-          LIMIT ${limit}
-        ` as AnalyticsEventRow[];
+          ORDER BY timestamp DESC, id DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+          ` as AnalyticsEventRow[];
+        }
+        rows.push(...batch);
+        if (batch.length < pageSize) break;
       }
 
       return rows.map((row) => {
@@ -447,9 +467,11 @@ export async function readAnalyticsEvents(options: { startDate?: Date; endDate?:
       });
     } catch (error) {
       console.error("Analytics database read failed.", error);
-      if (process.env.VERCEL) return [];
+      throw new Error("Analytics database read failed.", { cause: error });
     }
   }
+
+  if (process.env.VERCEL) throw new Error("Analytics database is not configured.");
 
   try {
     const text = await fs.readFile(eventFile, "utf8");
@@ -555,6 +577,7 @@ function pageStats(events: AnalyticsEvent[]) {
 export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 1, preset: "today" }) {
   const { startDate, endDate, rangeDays } = resolveDateRange(range);
   const allEvents = await readAnalyticsEvents({ startDate, endDate });
+  if (allEvents.length >= 50_000) throw new Error("Analytics report exceeds the verified event limit; showing a partial count is not allowed.");
   const events = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "real");
   const excludedEvents = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "excluded");
   const reviewEvents = allEvents.filter((event) => inRange(event, startDate, endDate) && event.trafficStatus === "review");

@@ -25,15 +25,50 @@ export function getSql() {
   return sqlClient;
 }
 
+async function isCoreSchemaCurrent(sql: SqlClient) {
+  const rows = await sql`
+    SELECT
+      (SELECT COUNT(*) FROM pg_class JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+        WHERE pg_namespace.nspname = 'public' AND pg_class.relname IN (
+        'cowin_inquiries', 'cowin_analytics_events', 'cowin_admin_audit_logs',
+        'cowin_system_settings', 'cowin_admin_users', 'cowin_product_categories',
+        'cowin_media_assets', 'cowin_sync_jobs'
+      )) AS relation_count,
+      (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND (
+        (table_name = 'cowin_inquiries' AND column_name IN (
+          'phone', 'visitor_id', 'session_id', 'landing_page', 'referrer',
+          'is_test', 'test_reason', 'delivery_status', 'delivery_provider', 'delivery_error'
+        )) OR
+        (table_name = 'cowin_analytics_events' AND column_name IN (
+          'traffic_status', 'traffic_reason', 'ip_hash', 'dedupe_key'
+        )))
+      ) AS column_count,
+      (SELECT COUNT(*) FROM pg_indexes WHERE schemaname = 'public' AND indexname IN (
+        'cowin_analytics_events_timestamp_idx', 'cowin_analytics_events_type_idx',
+        'cowin_analytics_events_visitor_session_timestamp_idx',
+        'cowin_analytics_events_status_timestamp_idx',
+        'cowin_analytics_events_country_timestamp_idx',
+        'cowin_analytics_events_channel_timestamp_idx',
+        'cowin_analytics_events_dedupe_key_idx',
+        'cowin_inquiries_created_at_idx', 'cowin_inquiries_visitor_created_at_idx',
+        'cowin_inquiries_test_created_at_idx', 'cowin_inquiries_delivery_status_created_at_idx',
+        'cowin_admin_audit_logs_created_at_idx', 'cowin_admin_audit_logs_resource_idx',
+        'cowin_media_assets_category_idx', 'cowin_sync_jobs_started_at_idx'
+      )) AS index_count
+  ` as unknown as Array<{ relation_count: string; column_count: string; index_count: string }>;
+  const result = rows[0];
+
+  return Number(result.relation_count) === 8 && Number(result.column_count) === 14 && Number(result.index_count) === 15;
+}
+
 export async function ensureCoreSchema() {
   const sql = getSql();
   if (!sql) return false;
 
   if (!schemaReady) {
     schemaReady = (async () => {
-      await sql`SELECT pg_advisory_lock(76652025)`;
+      if (await isCoreSchemaCurrent(sql)) return;
 
-      try {
         await sql`
           CREATE TABLE IF NOT EXISTS cowin_inquiries (
             id TEXT PRIMARY KEY,
@@ -249,12 +284,14 @@ export async function ensureCoreSchema() {
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_admin_audit_logs_resource_idx ON cowin_admin_audit_logs (resource_type, resource_id)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_media_assets_category_idx ON cowin_media_assets (category)`);
         await ignoreExistingRelation(sql`CREATE INDEX IF NOT EXISTS cowin_sync_jobs_started_at_idx ON cowin_sync_jobs (started_at DESC NULLS LAST)`);
-      } finally {
-        await sql`SELECT pg_advisory_unlock(76652025)`;
-      }
     })();
   }
 
-  await schemaReady;
+  try {
+    await schemaReady;
+  } catch (error) {
+    schemaReady = null;
+    throw error;
+  }
   return true;
 }

@@ -1,6 +1,9 @@
-export function MetricCard({ label, value, note }: { label: string; value: string | number; note?: string }) {
+import type { LucideIcon } from "lucide-react";
+
+export function MetricCard({ label, value, note, icon: Icon, tone = "blue" }: { label: string; value: string | number; note?: string; icon?: LucideIcon; tone?: "blue" | "green" }) {
   return (
     <article className="admin-metric">
+      {Icon ? <span className={`admin-metric-icon ${tone}`}><Icon size={24} strokeWidth={2} aria-hidden="true" /></span> : null}
       <span>{label}</span>
       <strong>{value}</strong>
       {note ? <small>{note}</small> : null}

@@ -2,7 +2,7 @@ export type AdminDateRange = {
   days: number;
   startDate?: string;
   endDate?: string;
-  preset: "today" | "week" | "month" | "custom" | "legacy";
+  preset: "today" | "week" | "month" | "ninety" | "custom" | "legacy";
 };
 
 export const ADMIN_REPORT_TIME_ZONE = "Asia/Shanghai";
@@ -27,18 +27,20 @@ export function getAdminDateRange(params?: URLSearchParams | Record<string, stri
   const legacyDays = safeDays(get("days"));
   const preset = startDate || endDate
     ? "custom"
-    : requestedPreset === "today" || requestedPreset === "week" || requestedPreset === "month"
+    : requestedPreset === "today" || requestedPreset === "week" || requestedPreset === "month" || requestedPreset === "ninety"
       ? requestedPreset
       : get("days")
         ? legacyDays === 1
           ? "today"
           : legacyDays === 7
             ? "week"
-            : legacyDays >= 28 && legacyDays <= 31
+            : legacyDays === 90
+              ? "ninety"
+              : legacyDays >= 28 && legacyDays <= 31
               ? "month"
               : "legacy"
         : "today";
-  const days = preset === "today" ? 1 : preset === "week" ? 7 : preset === "month" ? 31 : legacyDays;
+  const days = preset === "today" ? 1 : preset === "week" ? 7 : preset === "month" ? 31 : preset === "ninety" ? 90 : legacyDays;
 
   return { days, startDate, endDate, preset };
 }
@@ -61,9 +63,10 @@ export function resolveDateRange(range: AdminDateRange = { days: 1, preset: "tod
     }).format(endDate);
     const start = parseCalendarDay(shanghaiToday);
     if (range.preset === "week") {
-      start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() + 6) % 7));
+      const weekday = new Date(`${shanghaiToday}T12:00:00.000Z`).getUTCDay();
+      start.setUTCDate(start.getUTCDate() - ((weekday + 6) % 7));
     } else if (range.preset === "month") {
-      start.setUTCDate(1);
+      start.setTime(parseCalendarDay(`${shanghaiToday.slice(0, 7)}-01`).getTime());
     } else {
       start.setUTCDate(start.getUTCDate() - range.days + 1);
     }

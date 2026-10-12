@@ -48,10 +48,10 @@ export default async function AdminSearchConsolePage({
       {statusMessage ? <div className={params?.gsc === "connected" ? "admin-alert good" : "admin-alert"}>{statusMessage}</div> : null}
 
       <section className="admin-metric-grid">
-        <MetricCard label="点击量" value={data.overview.clicks} note={dateNote} />
-        <MetricCard label="曝光量" value={data.overview.impressions} note={dateNote} />
-        <MetricCard label="点击率" value={`${data.overview.ctr}%`} note="平均值" />
-        <MetricCard label="排名位置" value={data.overview.position} note="平均值" />
+        <MetricCard label="点击量" value={data.live ? data.overview.clicks : "—"} note={dateNote} />
+        <MetricCard label="曝光量" value={data.live ? data.overview.impressions : "—"} note={dateNote} />
+        <MetricCard label="点击率" value={data.live ? `${data.overview.ctr}%` : "—"} note="平均值" />
+        <MetricCard label="排名位置" value={data.live ? data.overview.position : "—"} note="平均值" />
       </section>
 
       <section className="admin-grid-2">

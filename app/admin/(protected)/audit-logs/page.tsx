@@ -53,7 +53,7 @@ export default async function AdminAuditLogsPage({
           <h1>后台审计记录</h1>
           <p>记录后台导出、数据读取、同步任务和客户表单等关键事件。</p>
         </div>
-        <div className="admin-page-actions"><span className="admin-status">{filtered.length} logs</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize) }} /></div>
+        <div className="admin-page-actions"><span className="admin-status">{filtered.length} 条日志</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize) }} /></div>
       </header>
 
       <section className="admin-panel">
