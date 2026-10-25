@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sessionAttribution } from "@/lib/visitorAttribution";
 
 function trackingContext() {
   try {
@@ -10,11 +11,13 @@ function trackingContext() {
     const sessionId = window.sessionStorage.getItem(sessionKey) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     window.localStorage.setItem(visitorKey, visitorId);
     window.sessionStorage.setItem(sessionKey, sessionId);
+    const attribution = sessionAttribution(sessionId);
     return {
       visitorId,
       sessionId,
       landingPage: `${window.location.pathname}${window.location.search}`,
-      referrer: document.referrer,
+      referrer: attribution.referrer,
+      utm: attribution.utm,
     };
   } catch {
     return { visitorId: "", sessionId: "", landingPage: "", referrer: "" };

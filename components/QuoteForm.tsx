@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sessionAttribution } from "@/lib/visitorAttribution";
 
 async function encodeAttachment(file: File) {
   return await new Promise<string>((resolve, reject) => {
@@ -24,19 +25,13 @@ function trackingContext() {
     window.localStorage.setItem(visitorKey, visitorId);
     window.sessionStorage.setItem(sessionKey, sessionId);
     window.sessionStorage.setItem(sessionTimeKey, String(Date.now()));
-    const params = new URLSearchParams(window.location.search);
+    const attribution = sessionAttribution(sessionId);
     return {
       visitorId,
       sessionId,
       landingPage: `${window.location.pathname}${window.location.search}`,
-      referrer: document.referrer,
-      utm: {
-        source: params.get("utm_source") || "",
-        medium: params.get("utm_medium") || "",
-        campaign: params.get("utm_campaign") || "",
-        term: params.get("utm_term") || "",
-        content: params.get("utm_content") || "",
-      },
+      referrer: attribution.referrer,
+      utm: attribution.utm,
     };
   } catch {
     return { visitorId: "", sessionId: "", landingPage: "", referrer: "", utm: {} };

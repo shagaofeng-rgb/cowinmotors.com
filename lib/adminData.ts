@@ -574,10 +574,10 @@ export async function getInquiryDetail(id: string): Promise<{ inquiry: InquiryRe
   const submittedAt = new Date(inquiry.createdAt).getTime();
   const startAt = submittedAt - 30 * 24 * 60 * 60 * 1000;
   const endAt = submittedAt + 10 * 60 * 1000;
-  const events = (await readAnalyticsEvents())
+  const events = (await readAnalyticsEvents({ visitorIds: [inquiry.visitorId], startDate: new Date(startAt), endDate: new Date(endAt) }))
     .filter((event) => {
       const timestamp = new Date(event.timestamp).getTime();
-      return event.visitorId === inquiry.visitorId && timestamp >= startAt && timestamp <= endAt;
+      return timestamp >= startAt && timestamp <= endAt;
     })
     .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
   const first = events[0];

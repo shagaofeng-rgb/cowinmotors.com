@@ -379,13 +379,25 @@ export async function readAnalyticsEvents(options: { startDate?: Date; endDate?:
     try {
       await ensureCoreSchema();
       const rows: AnalyticsEventRow[] = [];
-      const batchSize = 400;
+      const batchSize = 1_200;
       if (options.visitorIds?.length === 0) return [];
       while (rows.length < limit) {
         const offset = rows.length;
         const pageSize = Math.min(batchSize, limit - offset);
         let batch: AnalyticsEventRow[];
-        if (options.visitorIds) {
+        if (options.visitorIds && options.startDate && options.endDate) {
+          batch = await sql`
+          SELECT
+            id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
+            scroll_depth, duration, utm, browser, os, device, user_agent, ip, country, region, city,
+            channel, source_platform, source_detail, traffic_status, traffic_reason, ip_hash, dedupe_key, timestamp, client_timestamp
+          FROM cowin_analytics_events
+          WHERE visitor_id = ANY(${options.visitorIds}::text[])
+            AND timestamp >= ${options.startDate.toISOString()} AND timestamp <= ${options.endDate.toISOString()}
+          ORDER BY timestamp DESC, id DESC
+          LIMIT ${pageSize} OFFSET ${offset}
+          ` as AnalyticsEventRow[];
+        } else if (options.visitorIds) {
           batch = await sql`
           SELECT
             id, type, visitor_id, session_id, page, previous_page, page_title, referrer, outbound_url, target_text,
@@ -551,7 +563,6 @@ function pageStats(events: AnalyticsEvent[]) {
     };
     item.views += 1;
     item.visitors.add(event.visitorId);
-    item.durationTotal += Number(event.duration || 0);
     map.set(event.page, item);
   }
 
@@ -560,6 +571,7 @@ function pageStats(events: AnalyticsEvent[]) {
     if (!item) continue;
     if (event.type === "form_submit") item.inquiries += 1;
     if (event.type === "click") item.clicks += 1;
+    if (event.type === "engagement") item.durationTotal += Number(event.duration || 0);
   }
 
   return [...map.values()].map((item) => ({
@@ -584,6 +596,7 @@ export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 1, pr
   const pageViews = events.filter((event) => event.type === "page_view");
   const forms = events.filter((event) => event.type === "form_submit");
   const clicks = events.filter((event) => event.type === "click");
+  const engagements = events.filter((event) => event.type === "engagement");
   const sessionPageViews = new Map<string, number>();
   for (const event of pageViews) {
     sessionPageViews.set(event.sessionId, (sessionPageViews.get(event.sessionId) || 0) + 1);
@@ -609,7 +622,7 @@ export async function getAnalyticsSnapshot(range: AdminDateRange = { days: 1, pr
       sessions: unique(pageViews, "sessionId"),
       inquiries: forms.length,
       clicks: clicks.length,
-      avgDuration: pageViews.length ? Math.round(pageViews.reduce((sum, event) => sum + Number(event.duration || 0), 0) / pageViews.length) : 0,
+      avgDuration: pageViews.length ? Math.round(engagements.reduce((sum, event) => sum + Number(event.duration || 0), 0) / pageViews.length) : 0,
       bounceRate: sessionPageViews.size
         ? Math.round(([...sessionPageViews.values()].filter((views) => views <= 1).length / sessionPageViews.size) * 100)
         : 0,
@@ -761,8 +774,8 @@ export async function getVisitorProfile(visitorId: string, range?: AdminDateRang
     return { startDate, endDate };
   })();
   const { startDate, endDate } = resolved;
-  const events = (await readAnalyticsEvents({ startDate, endDate }))
-    .filter((event) => event.visitorId === visitorId && event.trafficStatus === "real")
+  const events = (await readAnalyticsEvents({ startDate, endDate, visitorIds: [visitorId] }))
+    .filter((event) => event.trafficStatus === "real")
     .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
   if (!events.length) return null;
   return { profile: profileFromEvents(visitorId, events), events };

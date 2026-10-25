@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { sessionAttribution } from "@/lib/visitorAttribution";
 
 function getOrCreateId(key: string) {
   try {
@@ -35,27 +36,18 @@ function sessionId() {
   }
 }
 
-function utm() {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    source: params.get("utm_source") || "",
-    medium: params.get("utm_medium") || "",
-    campaign: params.get("utm_campaign") || "",
-    term: params.get("utm_term") || "",
-    content: params.get("utm_content") || "",
-  };
-}
-
 function send(payload: Record<string, unknown>) {
+  const currentSessionId = sessionId();
+  const attribution = sessionAttribution(currentSessionId);
   const body = JSON.stringify({
     eventId: `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`,
     visitorId: getOrCreateId("cowinmotors_visitor_id"),
-    sessionId: sessionId(),
+    sessionId: currentSessionId,
     page: `${window.location.pathname}${window.location.search}`,
     pageTitle: document.title,
-    referrer: document.referrer,
+    referrer: attribution.referrer,
     timestamp: new Date().toISOString(),
-    utm: utm(),
+    utm: attribution.utm,
     ...payload,
   });
 
@@ -93,6 +85,7 @@ export function AnalyticsTracker() {
     previousPage.current = currentPage;
     startedAt.current = Date.now();
     maxScroll.current = 0;
+    let finished = false;
 
     const onScroll = () => {
       const height = document.documentElement.scrollHeight - window.innerHeight;
@@ -118,21 +111,27 @@ export function AnalyticsTracker() {
       });
     };
 
-    const onPageHide = () => {
+    const finishPage = () => {
+      if (finished) return;
+      finished = true;
+      const duration = Math.round((Date.now() - startedAt.current) / 1000);
+      if (duration === 0 && maxScroll.current === 0) return;
       send({
         type: "engagement",
-        duration: Math.round((Date.now() - startedAt.current) / 1000),
+        page: currentPage,
+        duration,
         scrollDepth: maxScroll.current,
       });
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     document.addEventListener("click", onClick);
-    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("pagehide", finishPage);
     return () => {
       window.removeEventListener("scroll", onScroll);
       document.removeEventListener("click", onClick);
-      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pagehide", finishPage);
+      finishPage();
     };
   }, [pathname]);
 

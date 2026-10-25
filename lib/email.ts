@@ -60,8 +60,7 @@ async function sendViaResend(record: InquiryRecord, attachment?: InquiryAttachme
     },
     body: JSON.stringify({
       from: env("RESEND_FROM_EMAIL") || env("SMTP_FROM") || "Cowinmotors <onboarding@resend.dev>",
-      to: [env("INQUIRY_TO_EMAIL") || defaultTo],
-      cc: env("INQUIRY_CC_EMAIL") ? [env("INQUIRY_CC_EMAIL")] : undefined,
+      to: [defaultTo],
       reply_to: record.email,
       subject: message.subject,
       text: message.text,
@@ -107,7 +106,9 @@ async function smtpCommand(socket: net.Socket | tls.TLSSocket, command: string, 
   const response = await smtpRead(socket);
   const code = Number(response.slice(0, 3));
   if (!expected.includes(code)) {
-    throw new Error(`SMTP command failed: ${command} -> ${response}`);
+    // Never place AUTH credentials or the MIME body in application logs.
+    const step = /^(EHLO|STARTTLS|AUTH LOGIN|MAIL FROM|RCPT TO|DATA|QUIT)\b/i.exec(command)?.[1] || "SMTP exchange";
+    throw new Error(`SMTP ${step} failed with status ${code}: ${response.trim().slice(0, 180)}`);
   }
   return response;
 }
@@ -186,32 +187,38 @@ async function sendViaSmtp(record: InquiryRecord, attachment?: InquiryAttachment
 
   const port = Number(env("SMTP_PORT") || 587);
   const secure = env("SMTP_SECURE") === "true" || port === 465;
-  const from = env("SMTP_FROM") || env("INQUIRY_FROM_EMAIL") || user;
-  const to = env("INQUIRY_TO_EMAIL") || defaultTo;
-  const cc = env("INQUIRY_CC_EMAIL");
+  // This provider requires the authenticated mailbox for the SMTP envelope.
+  const from = user;
+  const to = defaultTo;
+  const cc = "";
   let socket = await connectSmtp(host, port, secure);
-
-  await smtpRead(socket);
-  await smtpCommand(socket, `EHLO ${env("SMTP_HELO") || "cowinmotors.com"}`, [250]);
-
-  if (!secure && env("SMTP_STARTTLS") !== "false") {
-    await smtpCommand(socket, "STARTTLS", [220]);
-    socket = await upgradeToTls(socket as net.Socket, host);
+  const setTimeoutOnSocket = (target: net.Socket | tls.TLSSocket) => {
+    target.setTimeout(15_000, () => target.destroy(new Error("SMTP connection timed out.")));
+  };
+  setTimeoutOnSocket(socket);
+  try {
+    await smtpRead(socket);
     await smtpCommand(socket, `EHLO ${env("SMTP_HELO") || "cowinmotors.com"}`, [250]);
-  }
 
-  await smtpCommand(socket, "AUTH LOGIN", [334]);
-  await smtpCommand(socket, Buffer.from(user).toString("base64"), [334]);
-  await smtpCommand(socket, Buffer.from(password).toString("base64"), [235]);
-  await smtpCommand(socket, `MAIL FROM:<${from.replace(/^.*<|>$/g, "")}>`, [250]);
-  for (const recipient of [to, cc].filter(Boolean)) {
-    await smtpCommand(socket, `RCPT TO:<${recipient}>`, [250, 251]);
-  }
-  await smtpCommand(socket, "DATA", [354]);
-  await smtpCommand(socket, `${mimeMessage(record, from, to, cc, attachment)}\r\n.`, [250]);
-  await smtpCommand(socket, "QUIT", [221, 250]);
+    if (!secure && env("SMTP_STARTTLS") !== "false") {
+      await smtpCommand(socket, "STARTTLS", [220]);
+      socket = await upgradeToTls(socket as net.Socket, host);
+      setTimeoutOnSocket(socket);
+      await smtpCommand(socket, `EHLO ${env("SMTP_HELO") || "cowinmotors.com"}`, [250]);
+    }
 
-  return { provider: "smtp" };
+    await smtpCommand(socket, "AUTH LOGIN", [334]);
+    await smtpCommand(socket, Buffer.from(user).toString("base64"), [334]);
+    await smtpCommand(socket, Buffer.from(password).toString("base64"), [235]);
+    await smtpCommand(socket, `MAIL FROM:<${from}>`, [250]);
+    await smtpCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
+    await smtpCommand(socket, "DATA", [354]);
+    await smtpCommand(socket, `${mimeMessage(record, from, to, cc, attachment)}\r\n.`, [250]);
+    await smtpCommand(socket, "QUIT", [221, 250]);
+    return { provider: "smtp" };
+  } finally {
+    socket.destroy();
+  }
 }
 
 export async function sendInquiryEmail(record: InquiryRecord, attachment?: InquiryAttachment) {

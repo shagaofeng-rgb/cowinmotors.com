@@ -117,8 +117,9 @@ export function inferBuyingPath(product: Product) {
 }
 
 export function categorySlug(product: Product) {
-  if (product.category.includes("Lighting")) return "headlights";
-  if (product.category.includes("Tail")) return "tail-lights";
+  const type = String(product.productType || "");
+  if (product.category.includes("Tail") || /tail\s*light|rear\s*lamp/i.test(type)) return "tail-lights";
+  if (product.category.includes("Lighting")) return /head\s*light|head\s*lamp/i.test(type) ? "headlights" : "products";
   if (product.category.includes("Exhaust")) return "exhaust";
   if (product.category.includes("Body")) return "body-kits";
   if (product.category.includes("Wheel")) return "wheels";

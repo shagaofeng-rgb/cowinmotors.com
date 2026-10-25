@@ -81,7 +81,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
           aria-expanded={openMenu === "categories"}
           aria-haspopup="menu"
           className="nav-drawer-trigger"
-          onClick={() => openMenu === "categories" ? close() : open("categories")}
+          onClick={() => open("categories")}
           type="button"
         >
           Categories
@@ -115,7 +115,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
           aria-expanded={openMenu === "company"}
           aria-haspopup="menu"
           className="nav-drawer-trigger"
-          onClick={() => openMenu === "company" ? close() : open("company")}
+          onClick={() => open("company")}
           type="button"
         >
           Company
