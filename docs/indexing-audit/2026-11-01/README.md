@@ -28,7 +28,8 @@ Google recommends self-canonical pagination and excluding unwanted filter variat
 - TypeScript typecheck passed.
 - Production build passed (1,461 generated static pages).
 - 36 HTTP regression checks passed against the built local production server. The test determines whether page two actually exists; single-page catalogs correctly return 404.
-- Public full-sitemap audit and deployment verification: see release results when completed.
+- Full pre-release sitemap audit passed for 895 URLs (one transient TLS failure retried; homepage slash equivalence normalized).
+- Production deployment is READY; 36 public HTTP checks passed and sitemap membership remains unchanged at 895 URLs. See `release-results.md` for the exact deployment/commit and remaining GSC blocker.
 - Regression includes canonical/indexability for normal pagination, intentional filter noindex, invalid-page redirects, and out-of-range 404 responses.
 
 ## GSC Validation

@@ -1,0 +1,247 @@
+[
+  {
+    "url": "https://www.cowinmotors.com/products?page=2",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/products?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/products?page=9999",
+    "status": 404,
+    "canonical": "https://www.cowinmotors.com",
+    "robots": "noindex",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/products?page=2abc",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/products",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/products?page=1",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/products",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/products?page=02",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/products?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/products?make=BMW",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/products",
+    "robots": "noindex, follow",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/products?utm_source=audit",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/products",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?page=2",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/headlights?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?page=9999",
+    "status": 404,
+    "canonical": "https://www.cowinmotors.com",
+    "robots": "noindex",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?page=2abc",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/headlights",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?page=1",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/headlights",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?page=02",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/headlights?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?make=BMW",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/headlights",
+    "robots": "noindex, follow",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/headlights?utm_source=audit",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/headlights",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?page=2",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/tail-lights?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?page=9999",
+    "status": 404,
+    "canonical": "https://www.cowinmotors.com",
+    "robots": "noindex",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?page=2abc",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/tail-lights",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?page=1",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/tail-lights",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?page=02",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/tail-lights?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?make=BMW",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/tail-lights",
+    "robots": "noindex, follow",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/tail-lights?utm_source=audit",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/tail-lights",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?page=2",
+    "status": 404,
+    "canonical": "https://www.cowinmotors.com",
+    "robots": "noindex",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?page=9999",
+    "status": 404,
+    "canonical": "https://www.cowinmotors.com",
+    "robots": "noindex",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?page=2abc",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/exhaust",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?page=1",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/exhaust",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?page=02",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/exhaust?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?make=BMW",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/exhaust",
+    "robots": "noindex, follow",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/exhaust?utm_source=audit",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/exhaust",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?page=2",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/wheels?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?page=9999",
+    "status": 404,
+    "canonical": "https://www.cowinmotors.com",
+    "robots": "noindex",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?page=2abc",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/wheels",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?page=1",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/wheels",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?page=02",
+    "status": 308,
+    "canonical": "https://www.cowinmotors.com/wheels?page=2",
+    "robots": "",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?make=BMW",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/wheels",
+    "robots": "noindex, follow",
+    "passed": true
+  },
+  {
+    "url": "https://www.cowinmotors.com/wheels?utm_source=audit",
+    "status": 200,
+    "canonical": "https://www.cowinmotors.com/wheels",
+    "robots": "",
+    "passed": true
+  }
+]

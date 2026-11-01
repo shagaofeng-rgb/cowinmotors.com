@@ -1,0 +1,67 @@
+{
+  "gsc_samples_only": 10,
+  "full_duplicate_export": false,
+  "full_noindex_export": false,
+  "groups": [
+    {
+      "source": "variant",
+      "template": "other",
+      "disposition": "证据不足",
+      "count": 1
+    },
+    {
+      "source": "variant",
+      "template": "category",
+      "disposition": "证据不足",
+      "count": 13
+    },
+    {
+      "source": "variant",
+      "template": "category",
+      "disposition": "有意排除",
+      "count": 2
+    },
+    {
+      "source": "variant",
+      "template": "other",
+      "disposition": "有意排除",
+      "count": 1
+    },
+    {
+      "source": "variant",
+      "template": "other",
+      "disposition": "等待重抓",
+      "count": 2
+    },
+    {
+      "source": "variant",
+      "template": "news",
+      "disposition": "证据不足",
+      "count": 1
+    },
+    {
+      "source": "variant",
+      "template": "category",
+      "disposition": "等待重抓",
+      "count": 4
+    },
+    {
+      "source": "gsc-example",
+      "template": "category",
+      "disposition": "有意排除",
+      "count": 6
+    },
+    {
+      "source": "gsc-example",
+      "template": "category",
+      "disposition": "等待重抓",
+      "count": 1
+    },
+    {
+      "source": "gsc-example",
+      "template": "product",
+      "disposition": "证据不足",
+      "count": 3
+    }
+  ]
+}
