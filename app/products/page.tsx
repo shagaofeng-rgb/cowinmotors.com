@@ -1,5 +1,7 @@
 import { FinderForm } from "@/components/FinderForm";
 import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
+import { categoryPageMetadata, categorySearchPath, normalizedPage, shouldNormalizeCategorySearch } from "@/lib/category-url";
 import { Header } from "@/components/Header";
 import { ProductBrowser } from "@/components/ProductBrowser";
 import { filterProducts, paginateProducts, productCardData, productCategoryOptions, products as allProducts } from "@/lib/products";
@@ -13,8 +15,7 @@ const baseMetadata = {
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }): Promise<Metadata> {
   const params = await searchParams;
-  const filtered = Object.values(params).some(Boolean);
-  return { ...baseMetadata, robots: filtered ? { index: false, follow: true } : undefined };
+  return categoryPageMetadata({ ...baseMetadata, basePath: "/products", params });
 }
 
 export default async function ProductsPage({
@@ -23,14 +24,16 @@ export default async function ProductsPage({
   searchParams: Promise<{ category?: string; make?: string; q?: string; year?: string; page?: string }>;
 }) {
   const params = await searchParams;
+  if (shouldNormalizeCategorySearch(params, false)) permanentRedirect(categorySearchPath("/products", params));
   const searchTerms = [params.year, params.q].filter(Boolean).join(" ");
   const filtered = filterProducts({
     category: params.category || "",
     brand: params.make || "",
     query: searchTerms,
   });
-  const page = Number(params.page || 1);
+  const page = normalizedPage(params.page);
   const paged = paginateProducts(filtered, page, 25);
+  if (page > paged.totalPages) notFound();
   const heroProducts = productCardData((filtered.length ? filtered : allProducts).slice(0, 4));
 
   return (
@@ -101,7 +104,8 @@ export default async function ProductsPage({
             products={productCardData(paged.items)}
             initialBrand={params.make || "all"}
             initialCategory={params.category || ""}
-            initialSearch={searchTerms}
+            initialSearch={params.q || ""}
+            initialYear={params.year || ""}
             totalCount={paged.total}
             currentPage={paged.currentPage}
             totalPages={paged.totalPages}

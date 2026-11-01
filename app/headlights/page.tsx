@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { CategoryShowcase } from "@/components/CategoryShowcase";
-import { categoryPageMetadata, categorySearchPath, shouldNormalizeCategorySearch, type CategorySearchParams } from "@/lib/category-url";
+import { categoryPageMetadata, categorySearchPath, normalizedPage, shouldNormalizeCategorySearch, type CategorySearchParams } from "@/lib/category-url";
 import { categoryHeroImage, filterProducts, paginateProducts } from "@/lib/products";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
@@ -23,7 +23,9 @@ export default async function HeadlightsPage({
   const params = await searchParams;
   if (shouldNormalizeCategorySearch(params)) permanentRedirect(categorySearchPath("/headlights", params));
   const query = [params.year, params.q].filter(Boolean).join(" ");
-  const paged = paginateProducts(filterProducts({ category: "headlights", brand: params.make || "", query }), Number(params.page || 1), 25);
+  const page = normalizedPage(params.page);
+  const paged = paginateProducts(filterProducts({ category: "headlights", brand: params.make || "", query }), page, 25);
+  if (page > paged.totalPages) notFound();
 
   return (
     <CategoryShowcase

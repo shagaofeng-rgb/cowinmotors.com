@@ -12,9 +12,10 @@ function cleanValue(value?: string) {
   return value?.trim() || "";
 }
 
-function normalizedPage(value?: string) {
-  const parsed = Number.parseInt(cleanValue(value), 10);
-  return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
+export function normalizedPage(value?: string) {
+  const raw = cleanValue(value);
+  const parsed = /^\d+$/.test(raw) ? Number(raw) : 1;
+  return Number.isSafeInteger(parsed) && parsed > 1 ? parsed : 1;
 }
 
 /** Builds the only query form emitted by a category page. */
@@ -25,6 +26,7 @@ export function categorySearchPath(basePath: string, params: CategorySearchParam
   const year = cleanValue(params.year);
   const page = normalizedPage(params.page);
 
+  if (basePath === "/products" && cleanValue(params.category)) query.set("category", cleanValue(params.category));
   if (make) query.set("make", make);
   if (search) query.set("q", search);
   if (year) query.set("year", year);
@@ -34,9 +36,9 @@ export function categorySearchPath(basePath: string, params: CategorySearchParam
   return `${basePath}${value ? `?${value}` : ""}`;
 }
 
-export function shouldNormalizeCategorySearch(params: CategorySearchParams) {
+export function shouldNormalizeCategorySearch(params: CategorySearchParams, categoryInPath = true) {
   const rawPage = cleanValue(params.page);
-  return Boolean(cleanValue(params.category)) || rawPage === "1" || (rawPage !== "" && normalizedPage(rawPage) === 1);
+  return (categoryInPath && Boolean(cleanValue(params.category))) || (rawPage !== "" && (normalizedPage(rawPage) === 1 || rawPage !== String(normalizedPage(rawPage))));
 }
 
 export function categoryPageMetadata({
@@ -50,7 +52,7 @@ export function categoryPageMetadata({
   basePath: string;
   params: CategorySearchParams;
 }): Metadata {
-  const hasFilter = Boolean(cleanValue(params.make) || cleanValue(params.q) || cleanValue(params.year));
+  const hasFilter = Boolean(cleanValue(params.make) || cleanValue(params.q) || cleanValue(params.year) || (basePath === "/products" && cleanValue(params.category)));
   const page = normalizedPage(params.page);
 
   return {
