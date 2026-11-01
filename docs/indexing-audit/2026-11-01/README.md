@@ -26,12 +26,18 @@ Google recommends self-canonical pagination and excluding unwanted filter variat
 
 - 36 unit tests passed, including 13 new catalog URL tests.
 - TypeScript typecheck passed.
-- Production build, public full-sitemap audit, and deployment verification: see release results when completed.
+- Production build passed (1,461 generated static pages).
+- 36 HTTP regression checks passed against the built local production server. The test determines whether page two actually exists; single-page catalogs correctly return 404.
+- Public full-sitemap audit and deployment verification: see release results when completed.
 - Regression includes canonical/indexability for normal pagination, intentional filter noindex, invalid-page redirects, and out-of-range 404 responses.
 
 ## GSC Validation
 
 No category restart submitted. Without the full affected lists and complete class-specific checks, a restart would imply an unsupported class-wide fix. Existing robots/discovered validations remain unchanged; correct intentional exclusions are not treated as defects.
+
+The 10 visible duplicate examples were last crawled in August/early September, before the repository's documented 2026-09-08 remediation. They cannot establish that every historical duplicate is still a current canonical defect. All three visible product details currently self-canonicalize and retain a quality-policy noindex. Their eligibility still needs content review, not blanket noindex removal.
+
+`template-dispositions.csv` separates verified code repairs, intentional filter exclusions, existing repairs awaiting recrawl, and evidence gaps. Its rows are templates, not invented affected-URL totals.
 
 To finish: obtain the four exports (plus redirect/alternate examples), preserve last-crawl dates, group actual affected URLs by product/category/news/pagination/parameter/language, inspect representative product content/Google-selected canonicals and all 18 reported 404s, then restart only categories whose targeted fixes have passed regression.
 

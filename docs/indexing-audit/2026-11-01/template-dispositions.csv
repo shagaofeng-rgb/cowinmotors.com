@@ -1,0 +1,13 @@
+template,status,evidence,action,scope_limit
+/products?page=N,已修复,Production page 2 had noindex and page-one canonical; unit and HTTP regressions pass,Unfiltered valid pages self-canonical and not noindex,Local repair verified; release results recorded separately
+/products?utm_*=X,已修复,Tracking-only queries incorrectly triggered noindex,Keep clean canonical without excluding public landing page,Not a GSC affected-URL count
+Catalog page=invalid or page=01,已修复,Metadata parseInt disagreed with rendering Number,Normalize to strict positive integer URLs with 308,Applies to five catalog routes
+Catalog page beyond last page,已修复,Old paginator silently served final-page content,Return real 404 instead of duplicate content,No inferred mapping of the 18 historical GSC 404s
+Catalog make/q/year/category filters,有意排除,Existing filter policy and sample responses,Retain noindex follow and clean base canonical,Do not remove all 371 noindex flags
+Historical redundant category query,等待重抓,Visible duplicate examples have old Aug/Sept crawl dates and existing 308 normalization,Preserve existing normalization; wait for updated Google evidence,Only 7 visible category samples reviewed
+Three visible duplicate product details,证据不足,Self-canonical 200 pages currently carry quality-policy noindex,Keep policy pending source-content and Google-selected-canonical review,Not proof that every duplicate product is intentional
+News / Blog / language aliases,证据不足,No complete affected URL export available,No speculative template or content changes,Requires actual GSC examples
+18 GSC reported 404 URLs,证据不足,Specific URLs not exported,Do not blanket redirect or resurrect deleted pages,All 18 require individual disposition
+11 redirects / 11 canonical alternatives,证据不足,Specific URLs not exported,Preserve working host redirects and correct canonical alternatives,These classes are not automatically defects
+8 robots / 19 discovered,等待重抓,GSC baseline already shows Started,No duplicate validation submission,Existing validation state unchanged
+353 crawled currently not indexed,证据不足,Specific URLs not exported,No invented content remediation or indexing promises,Content uniqueness and soft-404 review still required

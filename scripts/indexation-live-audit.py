@@ -13,6 +13,17 @@ from html.parser import HTMLParser
 
 ORIGIN = 'https://www.cowinmotors.com'
 
+def same_url(left, right):
+    def normalized(value):
+        parsed=urllib.parse.urlsplit(value)
+        return parsed._replace(path=parsed.path or '/').geturl()
+    return normalized(left)==normalized(right)
+
+class Redirects(urllib.request.HTTPRedirectHandler):
+    # macOS Python 3.9 does not follow HTTP 308 by default.
+    def http_error_308(self, req, fp, code, msg, headers):
+        return self.http_error_302(req, fp, 307, msg, headers)
+
 class Head(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -41,7 +52,7 @@ class Head(HTMLParser):
 def fetch(url):
     req = urllib.request.Request(url, headers={'User-Agent':'Cowinmotors-Indexation-Audit/1.0'})
     try:
-        response = urllib.request.urlopen(req, timeout=25)
+        response = urllib.request.build_opener(Redirects()).open(req, timeout=25)
     except urllib.error.HTTPError as error:
         response = error
     with response:
@@ -67,9 +78,9 @@ def audit(item):
         head = Head()
         head.feed(body)
         row.update(status=status, final_url=final, canonical=head.canonical, robots=head.robots + ('; '+headers.get('X-Robots-Tag','') if headers.get('X-Robots-Tag') else ''), title=head.title, html_sha256=hashlib.sha256(body.encode()).hexdigest(), internal_links=len([x for x in head.links if x.startswith('/') or x.startswith(ORIGIN)]))
-        if source == 'sitemap' and status == 200 and head.canonical == url and 'noindex' not in row['robots'].lower() and final == url:
+        if source == 'sitemap' and status == 200 and same_url(head.canonical,url) and 'noindex' not in row['robots'].lower() and same_url(final,url):
             row.update(disposition='等待重抓',note='Live indexability passes; not proof of Google indexing or unique content')
-        elif 'noindex' in row['robots'].lower() and source != 'sitemap':
+        elif 'noindex' in row['robots'].lower() and source != 'sitemap' and (urllib.parse.urlsplit(url).path == '/quote' or set(urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)) & {'make','q','year','category'}):
             row.update(disposition='有意排除',note='Confirm search/filter/utility intent; not a Google validation result')
         elif status == 200 and final != url:
             row.update(disposition='等待重抓',note='Redirect reaches 200; preserve if destination is semantically equivalent')
