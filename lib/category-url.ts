@@ -8,6 +8,11 @@ export type CategorySearchParams = {
   page?: string;
 };
 
+export function readCategorySearchParams(raw: Record<string, string | string[] | undefined>): CategorySearchParams {
+  const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value)?.trim();
+  return { category: first(raw.category), make: first(raw.make), q: first(raw.q), year: first(raw.year), page: first(raw.page) };
+}
+
 function cleanValue(value?: string) {
   return value?.trim() || "";
 }

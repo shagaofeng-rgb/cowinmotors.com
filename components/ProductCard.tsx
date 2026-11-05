@@ -1,31 +1,29 @@
 import Link from "next/link";
-import { hasUsableProductImage, type Product } from "@/lib/products";
-import { ResilientImage } from "@/components/ResilientImage";
-import { productDisplayTitle } from "@/lib/product-detail";
+import { ArrowUpRight } from "lucide-react";
+import { categorySlug, productPath, type Product } from "@/lib/products";
+import { ProductPhoto } from "@/components/ProductPhoto";
+import { productFitment, productReferences, productSpecs } from "@/lib/product-detail";
+import { catalogProductPhotos } from "@/lib/product-media";
 
-function productPath(product: Product) {
-  return `/product/${product.slug || product.__id}`;
-}
-
-export function ProductCard({ product, showLive = false }: { product: Product; showLive?: boolean }) {
+export function ProductCard({ product }: { product: Product }) {
+  const path = productPath(product);
+  const category = categorySlug(product);
+  const fitment = productFitment(product);
+  const reference = productReferences(product)[0];
+  const highlight = productSpecs(product).find((spec) => ["Side", "Material", "Exhaust section", "Lighting features"].includes(spec.label));
+  const photo = catalogProductPhotos(product)[0];
   return (
-    <article className="product-card">
-      <Link className="image-wrap" href={productPath(product)}>
-        {hasUsableProductImage(product) ? <ResilientImage src={product.localImage} alt={product.title} fallback={product.localImage} /> : <span className="product-card-image-unavailable">Image verification pending</span>}
+    <article className="cm-part-card">
+      <Link className="cm-part-photo" href={path} aria-label={`View ${product.title}`} prefetch={false}>
+        <ProductPhoto key={photo} src={photo} category={category} alt={product.title} />
       </Link>
-      <div className="product-info">
-        <h3>{productDisplayTitle(product)}</h3>
-        <span className="fitment-line">
-          {[product.brand, product.model, product.yearRange].filter(Boolean).join(" / ") || product.category || "Automotive Parts"}
-        </span>
-        {product.partNumbers?.length ? <span className="fitment-line">Part No. {product.partNumbers.slice(0, 2).join(" / ")}</span> : null}
-        <div className="product-actions">
-          <Link className="product-link" href={productPath(product)}>
-            View details
-          </Link>
-          <Link className="quote-link" href={`${productPath(product)}#product-inquiry`}>
-            Request a Quote
-          </Link>
+      <div className="cm-part-info">
+        <div className="cm-part-meta">{category === "wheels" ? product.brand : [fitment.vehicle, fitment.years].filter(Boolean).join(" / ") || product.category}</div>
+        <h3><Link href={path} prefetch={false}>{product.title}</Link></h3>
+        {reference || highlight ? <p>{reference ? `Ref. ${reference}` : highlight?.value}</p> : null}
+        <div className="cm-part-actions">
+          <Link className="cm-text-link" href={path} prefetch={false}>View details <ArrowUpRight size={15} aria-hidden="true" /></Link>
+          <Link className="cm-part-quote" href={`${path}#product-inquiry`} prefetch={false}>Get a quote</Link>
         </div>
       </div>
     </article>

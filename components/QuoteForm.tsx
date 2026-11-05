@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowUpRight, ChevronDown } from "lucide-react";
 import { sessionAttribution } from "@/lib/visitorAttribution";
 
 async function encodeAttachment(file: File) {
@@ -38,36 +39,46 @@ function trackingContext() {
   }
 }
 
-export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initialProduct?: string; initialCategory?: string }) {
+export function QuoteForm({ initialProduct = "", initialCategory = "", productUrl, lighting = true }: {
+  initialProduct?: string;
+  initialCategory?: string;
+  productUrl?: string;
+  lighting?: boolean;
+}) {
   const [note, setNote] = useState("");
+  const [failed, setFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   return (
     <form
-      className="rfq-form"
+      className="cm-rfq"
       id="rfqForm"
       onSubmit={async (event) => {
         event.preventDefault();
         setSubmitting(true);
         setNote("");
+        setFailed(false);
 
         const form = event.currentTarget;
         const formData = new FormData(form);
         const file = formData.get("productPhoto");
-        if (file instanceof File && file.size > 5 * 1024 * 1024) {
-          setNote("Please upload an image or PDF smaller than 5 MB.");
+        if (file instanceof File && file.size > 3 * 1024 * 1024) {
+          setFailed(true);
+          setNote("Please upload an image or PDF up to 3 MB, or send a larger file over WhatsApp.");
           setSubmitting(false);
           return;
         }
         if (file instanceof File && file.size && !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) {
+          setFailed(true);
           setNote("Please upload a JPG, PNG, WebP, or PDF reference file.");
           setSubmitting(false);
           return;
         }
-        const attachment = file instanceof File && file.size
-          ? { name: file.name, type: file.type, contentBase64: await encodeAttachment(file) }
-          : undefined;
-        const payload = {
+        try {
+          const attachment = file instanceof File && file.size
+            ? { name: file.name, type: file.type, contentBase64: await encodeAttachment(file) }
+            : undefined;
+          const payload = {
           name: String(formData.get("name") || ""),
           email: String(formData.get("email") || ""),
           phone: String(formData.get("phone") || ""),
@@ -94,49 +105,81 @@ export function QuoteForm({ initialProduct = "", initialCategory = "" }: { initi
           ].filter((item) => !item.endsWith(": ")).join(" | "),
           attachment,
           ...trackingContext(),
-        };
+          };
 
-        const response = await fetch("/api/inquiry", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+          const response = await fetch("/api/inquiry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
 
-        const result = await response.json().catch(() => ({}));
-        if (response.ok && result.ok) {
-          window.dispatchEvent(new CustomEvent("cowinmotors:form-submit", { detail: payload }));
-          form.reset();
-          setNote(result.emailSent === false
-            ? "RFQ saved successfully. Email delivery is being checked; you can also contact us on WhatsApp for an immediate response."
-            : "RFQ received. Our team will review fitment, MOQ, lead time, and shipping details.");
-        } else {
-          setNote(result.error || "Submission failed. Please email info@cowinmotors.com or use WhatsApp.");
+          const result = await response.json().catch(() => ({}));
+          if (response.ok && result.ok) {
+            window.dispatchEvent(new CustomEvent("cowinmotors:form-submit", { detail: payload }));
+            form.reset();
+            setNote(result.emailSent === false && !result.testExcluded
+              ? "Your request was saved, but email notification could not be sent. You can also reach us on WhatsApp."
+              : "Quote request received. We'll review fitment, quantity and shipping details.");
+          } else {
+            setFailed(true);
+            setNote(result.error || "We couldn't send your request. Try again or email info@cowinmotors.com.");
+          }
+        } catch {
+          setFailed(true);
+          setNote("We couldn't send your request. Check your connection and try again, or email info@cowinmotors.com.");
+        } finally {
+          setSubmitting(false);
         }
-        setSubmitting(false);
       }}
     >
-      <label>Name<input name="name" type="text" placeholder="Your name" required /></label>
-      <label>Company Name<input name="companyName" type="text" placeholder="Your company" /></label>
-      <label>Email<input name="email" type="email" placeholder="name@company.com" required /></label>
-      <label>WhatsApp / Phone<input name="phone" type="tel" placeholder="+1 555 000 0000" required /></label>
-      <label>Country<input name="country" type="text" placeholder="United States" /></label>
-      <label>Buyer Type<select name="buyerType"><option value="">Select buyer type</option><option>Importer / Distributor</option><option>Retailer / E-commerce Seller</option><option>Repair or Modification Shop</option><option>Vehicle Owner</option><option>Other</option></select></label>
-      <label>Product Category<select name="productType" defaultValue={initialCategory}><option value="">Select category</option><option>Headlights</option><option>Tail Lights</option><option>Exhaust Systems</option><option>Forged Wheels</option><option>Body Kits</option><option>Other Automotive Parts</option></select></label>
-      <label>Product URL / SKU<input name="productUrl" type="text" placeholder="URL, SKU, or part number" /></label>
-      <label className="wide">Product Name<input id="quoteProduct" name="product" type="text" placeholder="Product title or SKU" defaultValue={initialProduct} /></label>
-      <label>Vehicle Make<input name="vehicleMake" type="text" placeholder="Audi, BMW, Mercedes-Benz..." /></label>
-      <label>Vehicle Model<input name="vehicleModel" type="text" placeholder="A3 8V, G20, W205..." /></label>
-      <label>Year<input name="vehicleYear" type="text" placeholder="2019-2022" /></label>
-      <label>Trim / Engine<input name="trimEngine" type="text" placeholder="Trim, engine, market version" /></label>
-      <label>LHD / RHD<select name="driveSide"><option value="">Select if applicable</option><option>LHD</option><option>RHD</option><option>Not applicable / unsure</option></select></label>
-      <label>Left / Right / Pair<select name="sideSet"><option value="">Select if applicable</option><option>Left</option><option>Right</option><option>Pair / full set</option><option>Not applicable / unsure</option></select></label>
-      <label>OE Number<input name="oeNumber" type="text" placeholder="If available" /></label>
-      <label>Quantity<input name="quantity" type="text" placeholder="1 sample, 5 pcs, 20 sets..." /></label>
-      <label>Destination Port / Country<input name="destination" type="text" placeholder="Port and country" /></label>
-      <label>Product Photo / File<input name="productPhoto" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" /></label>
-      <label className="wide">Requirement<textarea name="requirement" rows={5} placeholder="Product reference, packaging, shipping, or other requirements" /></label>
-      <button className="wide" type="submit" disabled={submitting}>{submitting ? "Submitting..." : "Request a Quote"}</button>
-      <p className="form-note wide" id="rfqNote" role="status">{note}</p>
+      <fieldset>
+        <legend>Contact details</legend>
+        <div className="cm-form-grid">
+          <label>Name <span aria-hidden="true">*</span><input name="name" autoComplete="name" required /></label>
+          <label>Email <span aria-hidden="true">*</span><input name="email" type="email" autoComplete="email" required /></label>
+          <label>WhatsApp / phone <span aria-hidden="true">*</span><input name="phone" type="tel" autoComplete="tel" required /></label>
+          <label>Country<input name="country" autoComplete="country-name" /></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>{productUrl ? "Vehicle & order" : "Product & vehicle"}</legend>
+        {productUrl ? (
+          <><input name="productType" type="hidden" value={initialCategory} /><input name="productUrl" type="hidden" value={productUrl} /><input name="product" type="hidden" value={initialProduct} /></>
+        ) : (
+          <div className="cm-form-grid cm-rfq-product">
+            <label>Product category<select name="productType" defaultValue={initialCategory}><option value="">Select category</option><option>Headlights</option><option>Tail Lights</option><option>Exhaust Systems</option><option>Forged Wheels</option><option>Body Kits</option><option>Other Automotive Parts</option></select></label>
+            <label>Product name or SKU<input id="quoteProduct" name="product" defaultValue={initialProduct} /></label>
+          </div>
+        )}
+        <div className="cm-form-grid">
+          <label>Vehicle make<input name="vehicleMake" placeholder="e.g. Audi" /></label>
+          <label>Vehicle model<input name="vehicleModel" placeholder="e.g. A3 8V" /></label>
+          <label>Model year<input name="vehicleYear" inputMode="numeric" placeholder="e.g. 2018" /></label>
+          <label>Trim / engine<input name="trimEngine" /></label>
+          <label>Quantity<input name="quantity" placeholder="e.g. 2 sets" /></label>
+          <label>Destination port / country<input name="destination" /></label>
+          <label className="cm-wide">Requirements<textarea name="requirement" rows={3} placeholder="Fitment questions, finish or packaging requirements" /></label>
+        </div>
+      </fieldset>
+      <details className="cm-rfq-extra">
+        <summary>Company details &amp; reference files <ChevronDown size={18} aria-hidden="true" /></summary>
+        <div className="cm-form-grid">
+          <label>Company<input name="companyName" autoComplete="organization" /></label>
+          <label>Buyer type<select name="buyerType"><option value="">Select buyer type</option><option>Importer / Distributor</option><option>Retailer / E-commerce Seller</option><option>Repair or Modification Shop</option><option>Vehicle Owner</option><option>Other</option></select></label>
+          {!productUrl && <label>Product URL<input name="productUrl" placeholder="Catalog link or reference" /></label>}
+          <label>OE number<input name="oeNumber" /></label>
+          {lighting && <>
+            <label>Left- or right-hand drive<select name="driveSide"><option value="">Select if applicable</option><option>LHD</option><option>RHD</option><option>Not applicable / unsure</option></select></label>
+            <label>Left / right / pair<select name="sideSet"><option value="">Select if applicable</option><option>Left</option><option>Right</option><option>Pair / full set</option><option>Not applicable / unsure</option></select></label>
+          </>}
+          <label className="cm-wide">Reference file <span className="cm-field-note">JPG, PNG, WebP or PDF, up to 3 MB</span><input name="productPhoto" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" /></label>
+        </div>
+      </details>
+      <div className="cm-rfq-submit">
+        <button className="cm-btn cm-btn-primary" type="submit" disabled={submitting}>{submitting ? "Sending..." : "Send quote request"} <ArrowUpRight size={18} aria-hidden="true" /></button>
+        <a className="cm-text-link" href="/privacy-policy">Privacy policy</a>
+      </div>
+      <p className={note ? `cm-form-status ${failed ? "cm-status-error" : "cm-status-success"}` : "cm-form-status"} id="rfqNote" role={failed ? "alert" : "status"}>{note}</p>
     </form>
   );
 }

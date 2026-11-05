@@ -1,4 +1,4 @@
-import { categorySlug, hasUsableProductImage, productPath, type Product } from "@/lib/products";
+import { categorySlug, productPath, type Product } from "@/lib/products";
 
 const SITE_URL = "https://www.cowinmotors.com";
 
@@ -26,87 +26,109 @@ export function productDisplayTitle(product: Product) {
 }
 
 export function productSeoDescription(product: Product) {
-  const fitment = fitmentLabel(product);
+  const fitment = categorySlug(product) === "wheels" ? "" : fitmentLabel(product);
   const reference = (product.partNumbers || []).find((value) => value && !/^sjc$/i.test(value.trim()));
   const attributes = [reference ? `reference ${reference}` : "", product.side ? `${product.side} side` : "", product.material || ""].filter(Boolean).join(", ");
   return `${productDisplayTitle(product)}${fitment ? `, compatible with ${fitment}` : ""}${attributes ? `; listed ${attributes}` : ""}. Request a fitment-led sourcing quote before ordering.`.slice(0, 158);
 }
 
-export function productListingFacts(product: Product) {
-  const facts = [
-    product.productType ? `Catalog type: ${product.productType}.` : "",
-    product.side ? `Listed side: ${product.side}.` : "",
-    product.material ? `Listed material: ${product.material}.` : "",
-    product.features?.length ? `Listed features: ${product.features.join(", ")}.` : "",
-    product.partNumbers?.length ? `Catalog reference: ${product.partNumbers.join(" / ")}.` : "",
-    product.rawSourceName ? `Catalog source reference: ${product.rawSourceName}.` : "",
-  ].filter(Boolean);
-  return facts.join(" ");
+export function productReferences(product: Product) {
+  return [...new Set((product.partNumbers || []).map((value) => value.trim()).filter((value) =>
+    /[a-z0-9]/i.test(value) && !/^(?:sjc|n\/a|na|none|unknown)$/i.test(value),
+  ))];
+}
+
+export function productFitment(product: Product) {
+  const category = categorySlug(product);
+  if (category === "wheels") return { vehicle: "Vehicle-specific fitment", years: "" };
+  const yearFromTitle = product.title.match(/\b(?:19|20)\d{2}(?:\s*[-–]\s*(?:19|20)\d{2})?\b/)?.[0];
+  return {
+    vehicle: [product.brand, product.model].filter(Boolean).join(" "),
+    years: product.yearRange || yearFromTitle || "",
+  };
 }
 
 export function productSpecs(product: Product): DetailSpec[] {
-  const common: DetailSpec[] = [
-    { label: "Product category", value: productKind(product) },
-    { label: "Compatible vehicle", value: [product.brand, product.model].filter(Boolean).join(" ") || "Confirm with sales before ordering" },
-    { label: "Year range", value: product.yearRange || "Available upon confirmation" },
-  ];
-  const known = (label: string, value?: string | string[]) => {
-    const text = Array.isArray(value) ? value.filter(Boolean).join(" / ") : value || "";
-    if (text) common.push({ label, value: text });
+  const rows: DetailSpec[] = [];
+  const known = (label: string, value: unknown) => {
+    const text = Array.isArray(value) ? value.filter(Boolean).join(" / ") : typeof value === "string" ? value.trim() : "";
+    if (/[a-z0-9]/i.test(text) && !/^(?:n\/a|na|none|unknown)$/i.test(text)) rows.push({ label, value: text });
   };
   const category = categorySlug(product);
+  const references = productReferences(product);
   if (category === "headlights" || category === "tail-lights") {
-    known("Part number / reference", product.partNumbers);
+    known("Side", product.side);
+    known("Lighting features", product.features);
+    const connector = typeof product.size === "string" && /\b\d+\s*pins?\b/i.test(product.size) ? product.size : "";
+    known("Connector options", connector);
+    const originalLamp = [product.size, product.color, product.fitment].find((value) => typeof value === "string" && /fit for (?:original )?(?:halogen|xenon|LED)/i.test(value));
+    known("Original lamp version", typeof originalLamp === "string" ? originalLamp.replace(/[ /]+$/, "") : "");
+    known("Material", product.material);
+  } else if (category === "exhaust") {
+    const title = product.title;
+    const material = /\btitanium\b.*\bstainless steel\b|\bstainless steel\b.*\btitanium\b/i.test(title) ? "Titanium / stainless steel"
+      : /\bSS\s*304\b|\b304 stainless steel\b/i.test(title) ? "304 stainless steel"
+      : title.match(/\b(?:titanium|stainless steel)\b/i)?.[0];
+    known("Material", product.material || material);
+    const sections = [
+      /\bcat[\s-]?back\b/i.test(title) && "Cat-back",
+      /\baxle[\s-]?back\b/i.test(title) && "Axle-back",
+      /\bdown[\s-]?pipe\b/i.test(title) && "Downpipe",
+      /\bheaders?\b/i.test(title) && "Header",
+    ].filter(Boolean);
+    known("Exhaust section", sections);
+    known("Valve configuration", /\bnon[\s-]?valved\b/i.test(title) ? "Non-valved" : /\bvalved\b/i.test(title) ? "Valved" : "");
+    const diameter = title.match(/\b(\d{2,3}(?:\.\d+)?)\s*mm\s+(?:cat[\s-]?back|pipe|exhaust)\b/i)?.[1];
+    known("Listed pipe diameter", diameter && `${diameter} mm`);
+    known("Engine reference", [...new Set(title.match(/\b\d\.\d\s*[TL]\b/gi) || [])]);
+  } else if (category === "wheels") {
+    known("Wheel maker", product.brand);
+    known("Wheel model", product.model);
+    const series = typeof product.wheelSeries === "string" && !/^(?:product|products|wheels?|wheel-designs)$/i.test(product.wheelSeries) ? product.wheelSeries : "";
+    known("Wheel series", series);
+    known("Material", product.material);
+    known("Listed size", product.size);
+    known("Listed finish", product.finish || product.color);
+    known("PCD / bolt pattern", product.pcd);
+    known("Offset", product.offset);
+    known("Center bore", product.centerBore);
+  } else if (category === "body-kits") {
+    known("Material", product.material);
+    known("Listed finish", product.finish);
+    known("Included parts", product.contents);
+  } else {
+    known("Material", product.material);
     known("Side", product.side);
     known("Listed features", product.features);
-    common.push(
-      { label: "Market version", value: "Confirm LHD / RHD and market version before ordering" },
-      { label: "Connector and coding", value: "Depends on vehicle configuration; confirm before ordering" },
-      { label: "Package contents", value: "Confirm with sales before ordering" },
-      { label: "Certification status", value: "Available upon confirmation" },
-    );
-  } else if (category === "exhaust") {
-    known("Listed material", product.material);
-    known("Listed features", product.features);
-    known("Fitment reference", product.fitment as string);
-    common.push(
-      { label: "Vehicle / engine", value: fitmentLabel(product) || "Confirm with sales before ordering" },
-      { label: "Installation position", value: "Confirm with sales before ordering" },
-      { label: "Road-use notice", value: "Confirm destination-country requirements before ordering" },
-      { label: "Package contents", value: "Confirm with sales before ordering" },
-    );
-  } else if (category === "wheels") {
-    known("Wheel series", product.wheelSeries as string);
-    known("Listed size", product.size as string);
-    known("Listed finish", product.color as string);
-    known("Part number / reference", product.partNumbers);
-    common.push(
-      { label: "PCD / bolt pattern", value: "Available upon confirmation" },
-      { label: "Offset", value: "Available upon confirmation" },
-      { label: "Center bore", value: "Available upon confirmation" },
-      { label: "Load rating", value: "Available upon confirmation" },
-      { label: "Packaging", value: "Confirm with sales before ordering" },
-    );
-  } else if (category === "body-kits") {
-    known("Listed material", product.material);
-    known("Parts reference", product.partNumbers);
-    known("Listed features", product.features);
-    common.push(
-      { label: "Surface finish", value: "Confirm with sales before ordering" },
-      { label: "Paint requirement", value: "Confirm with sales before ordering" },
-      { label: "Installation type", value: "Confirm with sales before ordering" },
-      { label: "Package contents", value: "Confirm with sales before ordering" },
-    );
   }
-  return common;
+  known("Part number / reference", references);
+  known("Catalog type", product.productType);
+  return rows;
+}
+
+export function productFitmentChecks(product: Product) {
+  const common = "Vehicle year, make, model and trim";
+  switch (categorySlug(product)) {
+    case "headlights":
+    case "tail-lights":
+      return [common, "Original lamp type, market version and LHD / RHD", "Left, right or pair; plug photo or OE number"];
+    case "exhaust":
+      return [common, "Engine code, drivetrain and current exhaust layout", "System section, valve needs and destination requirements"];
+    case "wheels":
+      return [common, "Diameter, width, PCD, offset and center bore", "Brake clearance, load requirement and finish"];
+    case "body-kits":
+      return [common, "Body style, facelift version and photos of the mounting area", "Components, finish and delivery destination"];
+    default:
+      return [common, "OE number, required side and a reference photo"];
+  }
 }
 
 export function productFaqs(product: Product) {
-  const vehicle = fitmentLabel(product) || "my vehicle";
+  const vehicle = categorySlug(product) === "wheels" ? "my vehicle" : fitmentLabel(product) || "my vehicle";
   const kind = productKind(product).toLowerCase();
   return [
     { question: `How do I confirm this ${kind} fits ${vehicle}?`, answer: "Send the vehicle year, make, model, trim, engine, market version, and OE number or product photo where available. Fitment must be confirmed before ordering." },
-    { question: "What vehicle details should I provide before quotation?", answer: "Please include the year, make, model, trim, engine, LHD or RHD, required side or set, destination country, quantity, and any OE number or reference photo." },
+    { question: "What details should I provide before quotation?", answer: `${productFitmentChecks(product).join("; ")}. Please include your quantity and destination country.` },
     { question: "Can I order a sample or wholesale quantity?", answer: "Both retail-friendly and wholesale inquiries can be reviewed. Quantity, packaging requirements, and destination are confirmed before quotation." },
     { question: "Are product specifications fixed?", answer: "Only the details shown from the product record are confirmed. Connector, configuration, package contents, compliance requirements, and other unlisted specifications must be checked before ordering." },
     { question: "Can Cowinmotors help with packaging and export coordination?", answer: "Product photo confirmation, packaging review, pre-shipment QC coordination, and shipping or export-document support can be arranged subject to the product and destination requirements." },
@@ -122,14 +144,13 @@ export function productFaqSchema(product: Product) {
   };
 }
 
-export function productSchema(product: Product) {
+export function productSchema(product: Product, photos: string[]) {
   const title = productDisplayTitle(product);
-  const image = product.localImage.startsWith("http") ? product.localImage : `${SITE_URL}${product.localImage.startsWith("/") ? product.localImage : `/${product.localImage}`}`;
   return {
     "@context": "https://schema.org",
     "@type": "Product",
     name: title,
-    ...(hasUsableProductImage(product) ? { image: [image] } : {}),
+    ...(photos.length ? { image: photos.map((photo) => new URL(photo, SITE_URL).href) } : {}),
     description: productSeoDescription(product),
     category: product.category,
     sku: product.partNumbers?.[0] || product.id || product.slug,

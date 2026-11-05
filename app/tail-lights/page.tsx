@@ -1,70 +1,19 @@
 import type { Metadata } from "next";
-import { notFound, permanentRedirect } from "next/navigation";
 import { CategoryShowcase } from "@/components/CategoryShowcase";
-import { categoryPageMetadata, categorySearchPath, normalizedPage, shouldNormalizeCategorySearch, type CategorySearchParams } from "@/lib/category-url";
-import { categoryHeroImage, filterProducts, paginateProducts } from "@/lib/products";
-import { UI_ASSETS } from "@/lib/ui-assets";
+import { categoryPageMetadata, readCategorySearchParams } from "@/lib/category-url";
 
+const basePath = "/tail-lights";
 const baseMetadata = {
   title: "LED Tail Lights and Rear Lamp Assemblies by Fitment",
-  description:
-    "Browse catalog-listed tail light assemblies with side, connector, and vehicle-fitment confirmation before ordering.",
+  description: "Browse catalog-listed tail light assemblies with side, connector, and vehicle-fitment confirmation before ordering.",
 };
 
-export async function generateMetadata({ searchParams }: { searchParams: Promise<CategorySearchParams> }): Promise<Metadata> {
-  return categoryPageMetadata({ ...baseMetadata, basePath: "/tail-lights", params: await searchParams });
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  return categoryPageMetadata({ ...baseMetadata, basePath, params: readCategorySearchParams(await searchParams) });
 }
 
-export default async function TailLightsPage({
-  searchParams,
-}: {
-  searchParams: Promise<CategorySearchParams>;
-}) {
-  const params = await searchParams;
-  if (shouldNormalizeCategorySearch(params)) permanentRedirect(categorySearchPath("/tail-lights", params));
-  const query = [params.year, params.q].filter(Boolean).join(" ");
-  const page = normalizedPage(params.page);
-  const paged = paginateProducts(filterProducts({ category: "tail-lights", brand: params.make || "", query }), page, 25);
-  if (page > paged.totalPages) notFound();
-
-  return (
-    <CategoryShowcase
-      eyebrow="Tail Lights"
-      title="LED tail lights and rear lamp assemblies"
-      highlight="by vehicle fitment."
-      description="Explore catalog-listed tail light assemblies. Confirm vehicle year, body style, side, lens style, connector, and signal configuration before ordering."
-      heroImage={categoryHeroImage("tail-lights", UI_ASSETS.tailLightHero)}
-      heroAlt="LED tail light assembly"
-      basePath="/tail-lights"
-      products={paged.items}
-      pageType="tail-lights"
-      initialBrand={params.make || "all"}
-      initialSearch={params.q || ""}
-      initialYear={params.year || ""}
-      totalCount={paged.total}
-      currentPage={paged.currentPage}
-      totalPages={paged.totalPages}
-      categorySlug="tail-lights"
-      finderTitle="Find tail lights for your vehicle"
-      ctaLabel="Request Sourcing"
-      ctaHref="/quote"
-      quickStats={["Fitment Confirmation", "Side and Set Review", "Connector Check", "Inquiry Support"]}
-      benefits={[
-        ["Wholesale Inquiry", "Retail and wholesale requests are reviewed by product and quantity."],
-        ["Source Unlisted Parts", "Send the product reference and vehicle details for review."],
-        ["Packaging Review", "Packaging requirements can be confirmed before quotation."],
-        ["QC Support", "Pre-shipment QC coordination can be discussed for the order."],
-      ]}
-      checklistTitle="Tail light order checklist"
-      checklist={[
-        ["Confirm Trim", "Check year, make, model, sedan, coupe, wagon or other body style."],
-        ["Check Side", "Confirm left, right, inner, outer, pair or full set requirements."],
-        ["Verify Connector", "Confirm plug, pin count and wiring compatibility."],
-        ["Confirm Lens Style", "Confirm the listed lens and signal configuration before ordering."],
-      ]}
-      tabs={["All", "BMW", "Mercedes-Benz", "Audi", "Porsche", "Volkswagen", "Toyota", "Ford"]}
-      supportTitle="Need a tail light not listed online?"
-      supportText="We source, customize, and deliver what you need with fitment confirmation and export-ready packaging."
-    />
-  );
+export default async function TailLightsPage({ searchParams }: Props) {
+  return <CategoryShowcase category="tail-lights" params={readCategorySearchParams(await searchParams)} />;
 }

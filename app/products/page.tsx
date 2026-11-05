@@ -1,117 +1,41 @@
-import { FinderForm } from "@/components/FinderForm";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { categoryPageMetadata, categorySearchPath, normalizedPage, shouldNormalizeCategorySearch } from "@/lib/category-url";
-import { Header } from "@/components/Header";
+import { CatalogCategoryNav } from "@/components/CategoryShowcase";
+import { InnerBreadcrumb, InnerPage } from "@/components/InnerPage";
 import { ProductBrowser } from "@/components/ProductBrowser";
-import { filterProducts, paginateProducts, productCardData, productCategoryOptions, products as allProducts } from "@/lib/products";
+import { categoryPageMetadata, categorySearchPath, normalizedPage, readCategorySearchParams, shouldNormalizeCategorySearch } from "@/lib/category-url";
+import { filterProducts, paginateProducts } from "@/lib/products";
 
+const basePath = "/products";
 const baseMetadata = {
   title: "Automotive Headlights, Tail Lights, Exhaust and Wheels Catalog",
-  description:
-    "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, exhaust systems, wheels, and body kit RFQ items.",
-  alternates: { canonical: "/products" },
+  description: "Browse Cowinmotors English automotive parts catalog by brand, model, year, category, part number, headlights, tail lights, exhaust systems, wheels, and body kit RFQ items.",
 };
 
-export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }): Promise<Metadata> {
-  const params = await searchParams;
-  return categoryPageMetadata({ ...baseMetadata, basePath: "/products", params });
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  return categoryPageMetadata({ ...baseMetadata, basePath, params: readCategorySearchParams(await searchParams) });
 }
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ category?: string; make?: string; q?: string; year?: string; page?: string }>;
-}) {
-  const params = await searchParams;
-  if (shouldNormalizeCategorySearch(params, false)) permanentRedirect(categorySearchPath("/products", params));
-  const searchTerms = [params.year, params.q].filter(Boolean).join(" ");
-  const filtered = filterProducts({
-    category: params.category || "",
-    brand: params.make || "",
-    query: searchTerms,
-  });
+export default async function ProductsPage({ searchParams }: Props) {
+  const params = readCategorySearchParams(await searchParams);
+  if (shouldNormalizeCategorySearch(params, false)) permanentRedirect(categorySearchPath(basePath, params));
   const page = normalizedPage(params.page);
-  const paged = paginateProducts(filtered, page, 25);
+  const paged = paginateProducts(filterProducts({ category: params.category, brand: params.make, query: params.q, year: params.year }), page, 25);
   if (page > paged.totalPages) notFound();
-  const heroProducts = productCardData((filtered.length ? filtered : allProducts).slice(0, 4));
 
   return (
-    <>
-      <Header />
-      <main className="category-design products-design">
-        <section className="category-visual-hero products-hero">
-          <div className="category-copy">
-            <div className="category-breadcrumb">Home / Products</div>
-            <p className="category-kicker">All Products</p>
-            <h1>
-              Search real automotive parts by category, brand, fitment, and product keyword.
-            </h1>
-            <p>
-              Browse Cowinmotors catalog listings for headlights, tail lights, exhaust systems, wheels, and quote-only exterior sourcing requests.
-              Open a product page to review fitment notes, images, and quotation details.
-            </p>
-            <div className="category-quick-stats">
-              <span>Real Product Images</span>
-              <span>Fitment-Led Search</span>
-              <span>Quote Support</span>
-            </div>
-          </div>
-          <div className="products-hero-grid" aria-label="Featured catalog products">
-            {heroProducts.map((product) => (
-              <img src={product.localImage} alt={product.title} key={product.__id} />
-            ))}
-          </div>
-        </section>
-
-        <section className="category-fitment-panel">
-          <div>
-            <p className="category-kicker">Catalog Search</p>
-            <strong>Start with year, make, model, product category, or part keyword.</strong>
-          </div>
-          <FinderForm />
-        </section>
-
-        <section className="category-benefit-row" aria-label="Catalog support">
-          {[
-            ["Fitment Check", "Confirm year, market, side, connector, engine, and trim."],
-            ["Real Listings", "Products use real catalog data and available product images."],
-            ["Wholesale Quote", "Send quantity, target market, and shipping destination."],
-            ["Sourcing Support", "Request unlisted models through the RFQ flow."],
-          ].map(([title, text]) => (
-            <article key={title}>
-              <i aria-hidden="true" />
-              <strong>{title}</strong>
-              <span>{text}</span>
-            </article>
-          ))}
-        </section>
-
-        <section className="category-products-section products-section">
-          <div className="category-section-head">
-            <div>
-              <p className="category-kicker">Catalog Results</p>
-              <h2>All available listings.</h2>
-              <p>Showing real catalog products that match the selected search and filters.</p>
-            </div>
-            <div className="category-tabs">
-              {productCategoryOptions.map((category) => (
-                <span key={category.slug}>{category.label}</span>
-              ))}
-            </div>
-          </div>
-          <ProductBrowser
-            products={productCardData(paged.items)}
-            initialBrand={params.make || "all"}
-            initialCategory={params.category || ""}
-            initialSearch={params.q || ""}
-            initialYear={params.year || ""}
-            totalCount={paged.total}
-            currentPage={paged.currentPage}
-            totalPages={paged.totalPages}
-          />
-        </section>
-      </main>
-    </>
+    <InnerPage className="cm-catalog-page">
+      <div className="cm-catalog-intro">
+        <div className="cm-wrap">
+          <InnerBreadcrumb items={[{ label: "Catalog" }]} />
+          <h1>Automotive parts catalog</h1>
+          <p>Find lighting, exhaust systems and forged wheels by model or part reference.</p>
+        </div>
+      </div>
+      <CatalogCategoryNav />
+      <div className="cm-wrap"><ProductBrowser paged={paged} params={params} basePath={basePath} /></div>
+    </InnerPage>
   );
 }

@@ -156,10 +156,12 @@ export function filterProducts({
   category = "",
   brand = "",
   query = "",
+  year = "",
 }: {
   category?: string;
   brand?: string;
   query?: string;
+  year?: string;
 }) {
   const q = query.trim().toLowerCase();
   const terms = q.split(/\s+/).filter(Boolean);
@@ -168,6 +170,12 @@ export function filterProducts({
   return products.filter((product) => {
     if (category && categorySlug(product) !== category) return false;
     if (b && b !== "all" && String(product.brand || "").toLowerCase() !== b) return false;
+    if (year) {
+      const listedYears = [product.yearRange, product.title].filter(Boolean).join(" ");
+      const matches = [...listedYears.matchAll(/\b((?:19|20)\d{2})(?:\s*[-–]\s*((?:19|20)\d{2}))?\b/g)];
+      const modelYear = Number(year);
+      if (!/^\d{4}$/.test(year) || !matches.some(([, start, end]) => modelYear >= Number(start) && modelYear <= Number(end || start))) return false;
+    }
     if (!terms.length) return true;
     const haystack = [
       product.title,

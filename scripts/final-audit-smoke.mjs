@@ -47,7 +47,7 @@ for (const path of paths) {
 const quote = (await fetchText("/quote")).text;
 ok(/name="phone"/.test(quote), "Quote form is missing phone input.");
 ok(/type="tel"/.test(quote), "Quote phone input should use tel type.");
-ok(/WhatsApp \/ Phone/.test(quote), "Quote form is missing phone label.");
+ok(/WhatsApp \/ phone/i.test(quote), "Quote form is missing phone label.");
 
 const missingPhone = await fetch(`${siteUrl}/api/inquiry`, {
   method: "POST",
@@ -60,7 +60,7 @@ const protectedApi = await fetch(`${siteUrl}/api/admin/search-console/overview`)
 ok(protectedApi.status === 401, "Admin API should require authentication.");
 
 const news = (await fetchText("/news")).text;
-ok(/News & Insights|Latest Articles|news-card/.test(news), "News page did not render expected content.");
+ok(/News &amp; insights|Latest articles|cm-story/i.test(news), "News page did not render expected content.");
 const newsApi = JSON.parse((await fetchText("/api/news")).text);
 ok(Array.isArray(newsApi.articles), "News API should return articles array.");
 if (newsApi.articles.length) {

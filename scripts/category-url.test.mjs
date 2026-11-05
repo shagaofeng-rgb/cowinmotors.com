@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { categoryPageMetadata, categorySearchPath, normalizedPage, shouldNormalizeCategorySearch } from '../lib/category-url.ts';
+import { categoryPageMetadata, categorySearchPath, normalizedPage, readCategorySearchParams, shouldNormalizeCategorySearch } from '../lib/category-url.ts';
 
 for (const basePath of ['/products', '/headlights', '/tail-lights', '/exhaust', '/wheels']) {
   test(`${basePath}: unfiltered pagination is self-canonical and not noindex`, () => {
@@ -39,4 +39,9 @@ test('malformed pages normalize consistently instead of partial parse or fractio
   assert.equal(normalizedPage('02'),2);
   assert.equal(shouldNormalizeCategorySearch({page:'02'},false),true);
   assert.equal(shouldNormalizeCategorySearch({},false),false);
+});
+test('repeated catalog parameters cannot crash search or metadata', () => {
+  const params = readCategorySearchParams({ make: [' BMW ', 'Audi'], q: ['A3', 'A4'], year: '2015', page: ['02', '9'], utm_source: 'ads' });
+  assert.equal(categorySearchPath('/products', params), '/products?make=BMW&q=A3&year=2015&page=2');
+  assert.equal(shouldNormalizeCategorySearch(params, false), true);
 });

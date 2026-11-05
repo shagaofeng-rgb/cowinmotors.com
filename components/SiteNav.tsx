@@ -14,7 +14,7 @@ const categoryGroups = [
 
 type MenuName = "categories" | "company";
 
-export function SiteNav({ className = "" }: { className?: string }) {
+export function SiteNav({ className = "", includeSupport = false }: { className?: string; includeSupport?: boolean }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,6 +129,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
             <span>Contact Us</span>
             <small>Talk with the Cowinmotors parts and sourcing team.</small>
           </Link>
+          {includeSupport && <Link className="nav-company-card" href="/support" onClick={close} role="menuitem"><span>Buyer Support</span><small>Fitment, shipping and order help.</small></Link>}
         </div>
       </div>
     </nav>

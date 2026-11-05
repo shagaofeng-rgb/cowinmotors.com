@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Header } from "@/components/Header";
+import { ArrowRight, ArrowUpRight, ClipboardList, Mail, MessageCircle } from "lucide-react";
 import { CompanyMap } from "@/components/CompanyMap";
+import { InnerBreadcrumb, InnerPage } from "@/components/InnerPage";
+import { OrderStatusForm } from "@/components/OrderStatusForm";
+import "@/app/guides.css";
 
 const company = "Quzhou Qiying Import & Export Co., Ltd.";
 const address = "Room 110, 1st Floor, Building 1, Qushidai Future Building, Kecheng District, Quzhou, Zhejiang Province, China";
@@ -25,6 +28,25 @@ const pages = {
 
 export type CompanyPageKey = keyof typeof pages;
 
+const views: Record<CompanyPageKey, { title: string; action?: [string, string]; image?: string; imageCaption?: string }> = {
+  about: { title: "About Cowinmotors", action: ["/contact", "Talk to the team"], image: "/assets/ui/interior/sourcing.webp", imageCaption: "Sourcing workflow illustration" },
+  contact: { title: "Contact Cowinmotors", action: ["/quote", "Request a quote"] },
+  "quality-control": { title: "Quality control", action: ["/quote", "Discuss inspection requirements"] },
+  "packaging-shipping": { title: "Packaging & shipping", action: ["/quote", "Discuss packaging and freight"] },
+  "fitment-check": { title: "Vehicle fitment check", action: ["/quote", "Request a fitment review"] },
+  "wholesale-auto-parts-sourcing": { title: "Wholesale parts sourcing", action: ["/quote", "Request a wholesale quote"], image: "/assets/ui/interior/sourcing.webp", imageCaption: "Sourcing workflow illustration" },
+  "returns-warranty": { title: "Returns & warranty", action: ["/contact-support", "Contact order support"] },
+  payment: { title: "Payment methods", action: ["/contact", "Verify payment instructions"] },
+  "track-your-order": { title: "Track your order", action: ["/contact-support", "Contact order support"] },
+  "installation-guidance": { title: "Installation guidance", action: ["/contact-support", "Request installation documents"] },
+  "sourcing-bulk-orders": { title: "Sourcing & bulk orders", action: ["/quote", "Request a bulk quote"] },
+  "contact-support": { title: "Contact order support", action: ["/track-your-order", "Request shipment status"] },
+  "privacy-policy": { title: "Privacy policy" },
+  terms: { title: "Terms of use" },
+};
+
+function sectionId(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, ""); }
+
 export function companyPageMetadata(key: CompanyPageKey): Metadata {
   const page = pages[key];
   return { title: page.title, description: page.description, alternates: { canonical: `/${key}` } };
@@ -32,5 +54,52 @@ export function companyPageMetadata(key: CompanyPageKey): Metadata {
 
 export function CompanyInfoPage({ pageKey }: { pageKey: CompanyPageKey }) {
   const page = pages[pageKey];
-  return <><Header cta="Request a Quote" /><main className="company-page section"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href="/">Home</Link><span>/</span><span>{page.title}</span></nav><header><p className="eyebrow">Cowinmotors Automotive Parts</p><h1>{page.title}</h1><p>{page.description}</p></header><div className="company-page-grid">{page.sections.map(([heading, body]) => <section key={heading}><h2>{heading}</h2>{body.split("\n").map((line) => <p key={line}>{line}</p>)}</section>)}</div>{pageKey === "contact" && <CompanyMap />}<section className="company-page-cta"><h2>Need a product or fitment review?</h2><p>Send the product reference and vehicle details for a quotation review.</p><Link className="button primary" href="/quote">Request a Quote</Link></section></main></>;
+  const view = views[pageKey];
+  const isContact = pageKey === "contact" || pageKey === "contact-support";
+  const isPolicy = pageKey === "privacy-policy" || pageKey === "terms";
+  const hasParent = !isPolicy && pageKey !== "about" && pageKey !== "contact";
+
+  return (
+    <InnerPage className="cm-guide-page">
+      <div className="cm-guide-intro">
+        <div className="cm-wrap">
+          <InnerBreadcrumb items={[...(hasParent ? [{ label: "Support", href: "/support" }] : []), { label: view.title }]} />
+          <h1>{view.title}</h1>
+          <p>{page.description}</p>
+          {!isContact && view.action && pageKey !== "track-your-order" && (
+            <Link className="cm-btn cm-btn-primary" href={view.action[0]}>{view.action[1]} <ArrowUpRight size={18} aria-hidden="true" /></Link>
+          )}
+        </div>
+      </div>
+      {isContact && (
+        <section className="cm-wrap cm-contact-channels" aria-label="Official contact channels">
+          <a href="mailto:info@cowinmotors.com"><Mail aria-hidden="true" /><span><strong>Email</strong><small>info@cowinmotors.com</small></span><ArrowUpRight size={19} aria-hidden="true" /></a>
+          <a href="https://wa.me/8617601255205" target="_blank" rel="noreferrer"><MessageCircle aria-hidden="true" /><span><strong>WhatsApp</strong><small>+86 176 0125 5205</small></span><ArrowUpRight size={19} aria-hidden="true" /></a>
+          {view.action && <Link href={view.action[0]}><ClipboardList aria-hidden="true" /><span><strong>{view.action[1]}</strong><small>{pageKey === "contact" ? "Vehicle and part inquiries" : "Use an order reference"}</small></span><ArrowRight size={19} aria-hidden="true" /></Link>}
+        </section>
+      )}
+      <div className="cm-wrap cm-guide-layout">
+        <aside className="cm-guide-index">
+          <nav aria-label="On this page">
+            <strong>On this page</strong>
+            {pageKey === "track-your-order" && <a href="#order-status">Shipment status request</a>}
+            {page.sections.map(([heading]) => <a key={heading} href={`#${sectionId(heading)}`}>{heading}</a>)}
+            {pageKey === "contact" && <a href="#company-location">Company location</a>}
+          </nav>
+          {hasParent && <Link className="cm-text-link" href="/support">Buyer support <ArrowRight size={16} aria-hidden="true" /></Link>}
+        </aside>
+        <article className="cm-guide-content">
+          {pageKey === "track-your-order" && <section id="order-status"><h2>Request shipment status</h2><p>Use the confirmed order or quotation reference. Our team will review the available carrier or forwarding information.</p><OrderStatusForm /></section>}
+          {view.image && <figure className="cm-guide-visual"><img src={view.image} alt="" loading="lazy" decoding="async" /><figcaption>{view.imageCaption}</figcaption></figure>}
+          {page.sections.map(([heading, body]) => (
+            <section id={sectionId(heading)} key={heading}>
+              <h2>{heading}</h2>
+              {body.split("\n").map((line) => <p key={line}>{line.includes("info@cowinmotors.com") ? <>{line.split("info@cowinmotors.com")[0]}<a href="mailto:info@cowinmotors.com">info@cowinmotors.com</a>{line.split("info@cowinmotors.com")[1]}</> : line}</p>)}
+            </section>
+          ))}
+          {pageKey === "contact" && <div id="company-location"><CompanyMap /></div>}
+        </article>
+      </div>
+    </InnerPage>
+  );
 }
