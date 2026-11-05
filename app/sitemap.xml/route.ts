@@ -1,10 +1,10 @@
-import { getSitemapBundle } from "@/lib/sitemap";
+import { getPublicSitemapBundle } from "@/lib/sitemap";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const bundle = await getSitemapBundle();
+  const bundle = await getPublicSitemapBundle();
   return new Response(bundle.indexXml, {
     headers: {
       "content-type": "application/xml; charset=utf-8",

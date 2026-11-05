@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { googleSubmissionWindow } from "@/lib/google-submission-schedule";
 import { ensureCoreSchema, getSql } from "@/lib/database";
 import { getPublishedNews } from "@/lib/news";
@@ -15,6 +16,7 @@ import {
 
 const SITE_URL = "https://www.cowinmotors.com";
 const SITEMAP_URL = `${SITE_URL}/sitemap.xml`;
+const PUBLIC_SITEMAP_TAG = "public-sitemap-entries";
 const CATALOG_UPDATED_AT = process.env.PRODUCT_CATALOG_UPDATED_AT || "2026-08-22T00:00:00+08:00";
 const PUBLIC_PAGES_UPDATED_AT = process.env.PUBLIC_PAGES_UPDATED_AT || "2026-08-08T15:30:00+08:00";
 const LOCK_TTL_SECONDS = 15 * 60;
@@ -102,9 +104,20 @@ export async function getSitemapBundle() {
   return buildSitemapBundle(await collectSitemapEntries(), SITE_URL, { maxUrls: 300 });
 }
 
+// Share the same public snapshot across the index and all sitemap shards.
+// Maintenance and Search Console submission still use the uncached bundle.
+const getPublicSitemapEntries = unstable_cache(collectSitemapEntries, [PUBLIC_SITEMAP_TAG], {
+  revalidate: 900,
+  tags: [PUBLIC_SITEMAP_TAG],
+});
+
+export async function getPublicSitemapBundle() {
+  return buildSitemapBundle(await getPublicSitemapEntries(), SITE_URL, { maxUrls: 300 });
+}
+
 export async function getSitemapDocument(file: string) {
   if (!/^(pages|categories|products|posts)-[1-9]\d*\.xml$/.test(file)) return null;
-  const bundle = await getSitemapBundle();
+  const bundle = await getPublicSitemapBundle();
   return bundle.documents.get(file) || null;
 }
 
@@ -253,6 +266,7 @@ export async function markSitemapDirty(reason = "content changed") {
   const sql = getSql();
   if (!sql) {
     fallbackState = { ...fallbackState, dirty: true, dirtyReason: reason };
+    revalidateTag(PUBLIC_SITEMAP_TAG);
     return;
   }
   await ensureSitemapSchema();
@@ -261,6 +275,7 @@ export async function markSitemapDirty(reason = "content changed") {
     SET dirty = TRUE, dirty_reason = ${reason}, updated_at = NOW()
     WHERE id = 'primary'
   `;
+  revalidateTag(PUBLIC_SITEMAP_TAG);
 }
 
 async function acquireLock(owner: string) {
