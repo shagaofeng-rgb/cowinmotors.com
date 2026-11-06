@@ -297,17 +297,16 @@ export async function ensureBlogSchema() {
   return schemaReady;
 }
 
-export async function getPublishedBlogPosts({ limit = 12, page = 1 } = {}) {
+export async function getPublishedBlogPosts({ limit = 12, page = 1, offset }: { limit?: number; page?: number; offset?: number } = {}) {
   const sql = getSql();
   if (!sql) return [] as BlogArticle[];
   await ensureBlogSchema();
-  const offset = Math.max(0, page - 1) * limit;
   const rows = await sql`
     SELECT * FROM blog_articles
     WHERE status = 'published'
     ORDER BY published_at DESC
     LIMIT ${Math.min(100, Math.max(1, limit))}
-    OFFSET ${offset}
+    OFFSET ${offset ?? Math.max(0, page - 1) * limit}
   ` as BlogRow[];
   return rows.map(rowToBlogArticle);
 }

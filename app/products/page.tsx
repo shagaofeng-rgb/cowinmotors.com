@@ -19,8 +19,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-  const params = readCategorySearchParams(await searchParams);
-  if (shouldNormalizeCategorySearch(params, false)) permanentRedirect(categorySearchPath(basePath, params));
+  const raw = await searchParams;
+  const params = readCategorySearchParams(raw);
+  if (raw.sort !== undefined || shouldNormalizeCategorySearch(params, false)) permanentRedirect(categorySearchPath(basePath, params));
   const page = normalizedPage(params.page);
   const paged = paginateProducts(filterProducts({ category: params.category, brand: params.make, query: params.q, year: params.year }), page, 25);
   if (page > paged.totalPages) notFound();

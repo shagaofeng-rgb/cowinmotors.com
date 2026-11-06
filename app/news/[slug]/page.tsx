@@ -4,13 +4,14 @@ import { EditorialArticle, EditorialDate } from "@/components/Editorial";
 import { ProductCard } from "@/components/ProductCard";
 import { findProduct } from "@/lib/products";
 import { notFound } from "next/navigation";
-import { breadcrumbJsonLd, getNewsArticle, getPublishedNews, newsJsonLd } from "@/lib/news";
+import { breadcrumbJsonLd, newsJsonLd } from "@/lib/news";
+import { readPublicNewsArticle, readPublicNewsPage } from "@/lib/public-editorial";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getNewsArticle(slug);
+  const article = await readPublicNewsArticle(slug);
   if (!article) return {};
   return {
     title: article.seoTitle || article.title,
@@ -37,9 +38,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function NewsDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const article = await getNewsArticle(slug);
+  const article = await readPublicNewsArticle(slug);
   if (!article) notFound();
-  const related = (await getPublishedNews({ limit: 4 })).filter((item) => item.slug !== article.slug).slice(0, 3);
+  const related = (await readPublicNewsPage({ limit: 4 })).filter((item) => item.slug !== article.slug).slice(0, 3);
   const paragraphs = article.content.split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
   const relation = article.products[0];
   const relatedPart = relation && findProduct(relation.productId);
@@ -65,8 +66,8 @@ export default async function NewsDetailPage({ params }: { params: Promise<{ slu
         {article.editorialNote && <p>{article.editorialNote}</p>}
       </section>
       {relatedPart && <section className="cm-article-product"><h2>Related catalog part</h2>{relation.relationshipReason && <p>{relation.relationshipReason}</p>}<ProductCard product={relatedPart} /></section>}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(newsJsonLd(article)) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(article)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(newsJsonLd(article)).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(article)).replace(/</g, "\\u003c") }} />
     </EditorialArticle>
   );
 }

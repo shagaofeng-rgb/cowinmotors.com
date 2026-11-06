@@ -33,7 +33,7 @@
 .cm-quick-specs { margin: 12px 0 0; }
 .cm-quick-specs > div, .cm-spec-table > div { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); align-items: baseline; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--cm-line); }
 .cm-quick-specs dt, .cm-spec-table dt { color: var(--cm-muted); font-size: 14px; }
-.cm-quick-specs dd, .cm-spec-table dd { margin: 0; font-size: 14px; font-weight: 650; }
+.cm-quick-specs dd, .cm-spec-table dd { margin: 0; font-size: 14px; font-weight: 650; overflow-wrap: anywhere; }
 .cm-pd-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .cm-pd-actions .cm-btn-primary { justify-content: space-between; flex: 1 0 178px; }
 .cm-pd-buying { display: flex; align-items: flex-start; gap: 7px; margin: 12px 0 0; color: var(--cm-muted); font-size: 13px; }

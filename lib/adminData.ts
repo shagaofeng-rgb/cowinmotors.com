@@ -4,6 +4,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { ensureCoreSchema, getSql, isDatabaseConfigured } from "@/lib/database";
 import { readAnalyticsEvents, type AnalyticsEvent } from "@/lib/analyticsStore";
+import { isNonProductionInquiry } from "@/lib/inquiry-input";
 import { categorySlug, inferBuyingPath, productCategoryOptions, productPath, products } from "@/lib/products";
 
 export type InquiryRecord = {
@@ -124,19 +125,6 @@ export type AdminUserRecord = {
   permissions: string[];
   lastLoginAt: string;
   createdAt: string;
-};
-
-export type SyncJobRecord = {
-  id: string;
-  jobType: string;
-  status: string;
-  scheduledAt: string;
-  startedAt: string;
-  completedAt: string;
-  retryCount: number;
-  errorMessage: string;
-  metadata: Record<string, unknown>;
-  healthy: boolean;
 };
 
 const inquiryFile = path.join(os.tmpdir(), "cowinmotors-inquiries.json");
@@ -269,43 +257,20 @@ function inquiryFromRow(row: InquiryRow): InquiryRecord {
   };
 }
 
-export function isNonProductionInquiry(inquiry: Pick<InquiryRecord, "email" | "name" | "source" | "product" | "vehicleInfo" | "requirement" | "visitorId" | "sessionId" | "isTest">) {
-  if (inquiry.isTest || /@example\.com$/i.test(inquiry.email)) return true;
-  const details = [
-    inquiry.name,
-    inquiry.source,
-    inquiry.product,
-    inquiry.vehicleInfo,
-    inquiry.requirement,
-    inquiry.visitorId,
-    inquiry.sessionId,
-  ].join(" ").toLowerCase();
-  return /(^|[\s_.-])(test|smoke|health[\s_-]?check|cron|codex|collect(?:s|ion)?|automation|qa|verification|database[\s_-]?check)([\s_.-]|$)/.test(details);
-}
-
-export async function getInquiries({ includeTests = false, limit = 5000 }: { includeTests?: boolean; limit?: number } = {}): Promise<InquiryRecord[]> {
+export async function getInquiries({ includeTests = false, limit = 5000, startDate, endDate }: { includeTests?: boolean; limit?: number; startDate?: Date; endDate?: Date } = {}): Promise<InquiryRecord[]> {
   const sql = getSql();
   const safeLimit = Math.min(5000, Math.max(1, Math.round(limit)));
 
   if (sql) {
     try {
       await ensureCoreSchema();
-      const rows = includeTests
-        ? await sql`
-            SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-              visitor_id, session_id, landing_page, referrer, is_test, test_reason, delivery_status, delivery_provider, delivery_error
-            FROM cowin_inquiries
-            ORDER BY created_at DESC
-            LIMIT ${safeLimit}
-          ` as InquiryRow[]
-        : await sql`
-            SELECT id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
-              visitor_id, session_id, landing_page, referrer, is_test, test_reason, delivery_status, delivery_provider, delivery_error
-            FROM cowin_inquiries
-            WHERE is_test = FALSE
-            ORDER BY created_at DESC
-            LIMIT ${safeLimit}
-          ` as InquiryRow[];
+      const rows = await sql`
+        SELECT * FROM cowin_inquiries
+        WHERE (${includeTests}::boolean OR is_test = FALSE)
+          AND created_at BETWEEN COALESCE(${startDate?.toISOString() || null}::timestamptz, '-infinity')
+            AND COALESCE(${endDate?.toISOString() || null}::timestamptz, 'infinity')
+        ORDER BY created_at DESC LIMIT ${safeLimit}
+      ` as InquiryRow[];
       return rows.map(inquiryFromRow).filter((record) => includeTests || !isNonProductionInquiry(record));
     } catch (error) {
       console.error("Inquiry database read failed.", error);
@@ -317,7 +282,8 @@ export async function getInquiries({ includeTests = false, limit = 5000 }: { inc
 
   return readJsonFile<InquiryRecord[]>(inquiryFile, [])
     .filter((record) => includeTests || !isNonProductionInquiry(record))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .filter((record) => (!startDate || Date.parse(record.createdAt) >= startDate.getTime()) && (!endDate || Date.parse(record.createdAt) <= endDate.getTime()))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, safeLimit);
 }
 
 function normalizedEmail(value = "") {
@@ -427,7 +393,7 @@ async function persistInquiry(record: InquiryRecord) {
   if (sql) {
     try {
       await ensureCoreSchema();
-      await sql`
+      const rows = await sql`
         INSERT INTO cowin_inquiries (
           id, created_at, source, name, email, phone, country, product_type, product, vehicle_info, quantity, requirement,
           visitor_id, session_id, landing_page, referrer, is_test, test_reason, delivery_status, delivery_provider, delivery_error
@@ -455,18 +421,21 @@ async function persistInquiry(record: InquiryRecord) {
           ${record.deliveryError}
         )
         ON CONFLICT (id) DO NOTHING
-      `;
-      return;
+        RETURNING id
+      ` as { id: string }[];
+      return rows.length > 0;
     } catch (error) {
       console.error("Inquiry database write failed.", error);
-      if (process.env.VERCEL) throw new InquiryPersistenceError();
+      throw new InquiryPersistenceError();
     }
   }
 
   if (process.env.VERCEL) throw new InquiryPersistenceError("Inquiry storage is not configured.");
 
-  const records = [record, ...readJsonFile<InquiryRecord[]>(inquiryFile, [])].slice(0, 300);
-  writeJsonFile(inquiryFile, records);
+  const records = readJsonFile<InquiryRecord[]>(inquiryFile, []);
+  if (records.some(({ id }) => id === record.id)) return false;
+  writeJsonFile(inquiryFile, [record, ...records].slice(0, 300));
+  return true;
 }
 
 type InquiryInput = Omit<InquiryRecord, "id" | "createdAt" | "source" | "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason" | "deliveryStatus" | "deliveryProvider" | "deliveryError"> &
@@ -476,32 +445,16 @@ type InquiryInputWithSource = Omit<InquiryRecord, "id" | "createdAt" | "visitorI
   Partial<Pick<InquiryRecord, "visitorId" | "sessionId" | "landingPage" | "referrer" | "isTest" | "testReason">>;
 
 export async function saveInquiry(input: InquiryInput): Promise<InquiryRecord> {
-  const record: InquiryRecord = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    source: "website-rfq-form",
-    ...input,
-    visitorId: input.visitorId || "",
-    sessionId: input.sessionId || "",
-    landingPage: input.landingPage || "",
-    referrer: input.referrer || "",
-    isTest: Boolean(input.isTest),
-    testReason: input.testReason || "",
-    deliveryStatus: "pending",
-    deliveryProvider: "",
-    deliveryError: "",
-  };
-  if (isNonProductionInquiry(record)) {
-    record.isTest = true;
-    record.testReason ||= "Automated or explicitly marked test inquiry";
-  }
-  await persistInquiry(record);
-  return record;
+  return saveInquiryWithSource({ ...input, source: "website-rfq-form" });
 }
 
 export async function saveInquiryWithSource(input: InquiryInputWithSource): Promise<InquiryRecord> {
+  return (await saveInquiryOnce(input)).record;
+}
+
+export async function saveInquiryOnce(input: InquiryInputWithSource, id: string = crypto.randomUUID()) {
   const record: InquiryRecord = {
-    id: crypto.randomUUID(),
+    id,
     createdAt: new Date().toISOString(),
     ...input,
     visitorId: input.visitorId || "",
@@ -518,25 +471,66 @@ export async function saveInquiryWithSource(input: InquiryInputWithSource): Prom
     record.isTest = true;
     record.testReason ||= "Automated or explicitly marked test inquiry";
   }
-  await persistInquiry(record);
-  return record;
+  if (await persistInquiry(record)) return { record, created: true };
+  const existing = await getInquiryById(record.id);
+  if (!existing) throw new InquiryPersistenceError();
+  return { record: existing, created: false };
 }
 
 export async function updateInquiryDelivery(id: string, input: Pick<InquiryRecord, "deliveryStatus" | "deliveryProvider" | "deliveryError">) {
   const sql = getSql();
-  if (!sql) return false;
+  if (!sql) {
+    if (process.env.VERCEL) return false;
+    const records = readJsonFile<InquiryRecord[]>(inquiryFile, []);
+    if (!records.some((record) => record.id === id)) return false;
+    writeJsonFile(inquiryFile, records.map((record) => record.id === id ? { ...record, ...input } : record));
+    return true;
+  }
   try {
     await ensureCoreSchema();
-    await sql`
+    const rows = await sql`
       UPDATE cowin_inquiries
       SET delivery_status = ${input.deliveryStatus}, delivery_provider = ${input.deliveryProvider}, delivery_error = ${input.deliveryError.slice(0, 500)}
       WHERE id = ${id}
-    `;
-    return true;
+      RETURNING id
+    ` as { id: string }[];
+    return rows.length > 0;
   } catch (error) {
     console.error("Inquiry delivery status update failed.", error);
     return false;
   }
+}
+
+export async function getInquiryById(id: string): Promise<InquiryRecord | null> {
+  const sql = getSql();
+  if (!sql) {
+    if (process.env.VERCEL) throw new InquiryPersistenceError("Inquiry storage is not configured.");
+    return readJsonFile<InquiryRecord[]>(inquiryFile, []).find((record) => record.id === id) || null;
+  }
+  await ensureCoreSchema();
+  const rows = await sql`SELECT * FROM cowin_inquiries WHERE id = ${id} LIMIT 1` as InquiryRow[];
+  return rows[0] ? inquiryFromRow(rows[0]) : null;
+}
+
+export async function claimInquiryNotificationRetry(id: string): Promise<InquiryRecord | null> {
+  const sql = getSql();
+  if (!sql) {
+    if (process.env.VERCEL) throw new InquiryPersistenceError("Inquiry storage is not configured.");
+    const records = readJsonFile<InquiryRecord[]>(inquiryFile, []);
+    const record = records.find((item) => item.id === id && !item.isTest && item.deliveryStatus === "failed");
+    if (!record) return null;
+    record.deliveryStatus = "pending";
+    record.deliveryProvider = "retry-in-progress";
+    writeJsonFile(inquiryFile, records);
+    return record;
+  }
+  await ensureCoreSchema();
+  const rows = await sql`
+    UPDATE cowin_inquiries SET delivery_status = 'pending', delivery_provider = 'retry-in-progress'
+    WHERE id = ${id} AND is_test = FALSE AND delivery_status = 'failed'
+    RETURNING *
+  ` as InquiryRow[];
+  return rows[0] ? inquiryFromRow(rows[0]) : null;
 }
 
 function hasJourneyIdentity(value: string) {
@@ -544,7 +538,7 @@ function hasJourneyIdentity(value: string) {
 }
 
 export async function getInquiryDetail(id: string): Promise<{ inquiry: InquiryRecord; journey: InquiryJourney } | null> {
-  const inquiry = (await getInquiries({ includeTests: true })).find((item) => item.id === id);
+  const inquiry = await getInquiryById(id);
   if (!inquiry) return null;
 
   if (!hasJourneyIdentity(inquiry.visitorId)) {
@@ -814,94 +808,6 @@ export async function getAdminUsers(): Promise<AdminUserRecord[]> {
       createdAt: now,
     },
   ];
-}
-
-export async function getSyncJobs(): Promise<SyncJobRecord[]> {
-  const sql = getSql();
-  if (sql) {
-    try {
-      await ensureCoreSchema();
-      const coreRows = await sql`
-        SELECT id, job_type, status, scheduled_at, started_at, completed_at, retry_count, error_message, metadata
-        FROM cowin_sync_jobs
-        ORDER BY started_at DESC NULLS LAST
-        LIMIT 100
-      ` as {
-        id: string;
-        job_type: string;
-        status: string;
-        scheduled_at: string | Date | null;
-        started_at: string | Date | null;
-        completed_at: string | Date | null;
-        retry_count: number;
-        error_message: string;
-        metadata: Record<string, unknown>;
-      }[];
-
-      const readOptionalRows = async (query: string) => {
-        try {
-          return await sql.query(query, []) as Array<{
-            id: string;
-            job_type: string;
-            status: string;
-            scheduled_at: string | Date | null;
-            started_at: string | Date | null;
-            completed_at: string | Date | null;
-            retry_count: number;
-            error_message: string;
-            metadata: Record<string, unknown>;
-          }>;
-        } catch {
-          return [];
-        }
-      };
-
-      const [ingestRows, publicationRows, blogRows] = await Promise.all([
-        readOptionalRows(`
-          SELECT id, 'news-ingest' AS job_type, status, NULL::timestamptz AS scheduled_at, started_at, completed_at,
-            0 AS retry_count, error_message,
-            jsonb_build_object('cycle', cycle_key, 'discovered', discovered_count, 'candidates', candidate_count, 'rejected', rejected_count, 'sourceHealth', source_health) AS metadata
-          FROM news_ingest_runs ORDER BY started_at DESC LIMIT 40
-        `),
-        readOptionalRows(`
-          SELECT id, 'news-publish' AS job_type, status, NULL::timestamptz AS scheduled_at, started_at, completed_at,
-            GREATEST(attempt_count - 1, 0) AS retry_count, error_message,
-            jsonb_build_object('cycle', cycle_key, 'candidateId', candidate_id, 'articleId', article_id) AS metadata
-          FROM news_publication_runs ORDER BY started_at DESC LIMIT 40
-        `),
-        readOptionalRows(`
-          SELECT id, CASE WHEN status = 'success' THEN 'blog-webhook' ELSE 'blog-webhook-rejected' END AS job_type,
-            status, NULL::timestamptz AS scheduled_at, created_at AS started_at, created_at AS completed_at,
-            0 AS retry_count, CASE WHEN status = 'failed' THEN detail ELSE '' END AS error_message,
-            jsonb_build_object('eventType', event_type, 'articleId', article_id, 'detail', detail) AS metadata
-          FROM blog_publication_events ORDER BY created_at DESC LIMIT 40
-        `),
-      ]);
-
-      const healthyStatuses = new Set(["正常", "completed", "published_success", "success", "unchanged"]);
-      const rows = [...coreRows, ...ingestRows, ...publicationRows, ...blogRows]
-        .sort((left, right) => new Date(right.started_at || 0).getTime() - new Date(left.started_at || 0).getTime())
-        .slice(0, 200);
-      if (rows.length) {
-        return rows.map((row) => ({
-          id: row.id,
-          jobType: row.job_type,
-          status: row.status,
-          scheduledAt: row.scheduled_at ? new Date(row.scheduled_at).toISOString() : "",
-          startedAt: row.started_at ? new Date(row.started_at).toISOString() : "",
-          completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : "",
-          retryCount: row.retry_count,
-          errorMessage: row.error_message,
-          metadata: row.metadata || {},
-          healthy: healthyStatuses.has(row.status) && !row.error_message,
-        }));
-      }
-    } catch (error) {
-      console.error("Sync job read failed.", error);
-    }
-  }
-
-  return [];
 }
 
 export function getSystemSettingsSnapshot() {

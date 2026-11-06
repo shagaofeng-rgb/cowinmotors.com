@@ -11,3 +11,25 @@ export function googleSubmissionWindow(now: Date, lastSubmission?: string | null
     nextScheduledAt: new Date(todayStart + daysUntilMonday * 86_400_000 + 10 * 3_600_000 + 10 * 60_000).toISOString(),
   };
 }
+
+export type GoogleSubmissionResult = {
+  status: "success" | "failed" | "not-configured";
+  message: string;
+  retryable?: boolean;
+};
+
+export function isRetryableGoogleStatus(status: number) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+export async function submitGoogleSitemapWithRetry(attempt: () => Promise<GoogleSubmissionResult>, wait = () => new Promise<void>((resolve) => setTimeout(resolve, 1500))) {
+  const run = () => attempt().catch((error: unknown): GoogleSubmissionResult => ({
+    status: "failed",
+    message: "Google Sitemap request failed before a response was confirmed.",
+    retryable: error instanceof TypeError || (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name)),
+  }));
+  const first = await run();
+  if (first.status !== "failed" || !first.retryable) return { ...first, retries: 0 };
+  await wait();
+  return { ...await run(), retries: 1 };
+}

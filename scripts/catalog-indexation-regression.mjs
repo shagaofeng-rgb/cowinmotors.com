@@ -37,5 +37,19 @@ for (const route of ['/products','/headlights','/tail-lights','/exhaust','/wheel
 const category=await fetch(`${base}/products?category=headlights&page=1`,{redirect:'manual'});
 assert.equal(category.status,308);
 assert.equal(new URL(category.headers.get('location'),base).search,'?category=headlights');
+const aliases = [
+  ['/products?sort=new', '/products'],
+  ['/products?sort=popular&q=Audi', '/products?q=Audi'],
+  ['/collections/maserati', '/products?make=Maserati'],
+  ['/collections?page_num=2', '/products?page=2'],
+  ['/news?page=01', '/news'],
+  ['/blog?page=1', '/blog'],
+];
+for (const [path, target] of aliases) {
+  const response = await fetch(base + path, { redirect: 'manual' });
+  assert.equal(response.status, 308, path);
+  const location = new URL(response.headers.get('location'), base);
+  assert.equal(location.pathname + location.search, target, path);
+}
 if(process.argv[3])await fs.writeFile(process.argv[3],JSON.stringify(rows,null,2)+'\n');
-console.log(`${rows.length+1} HTTP regression checks passed against ${base}`);
+console.log(`${rows.length+1+aliases.length} HTTP regression checks passed against ${base}`);

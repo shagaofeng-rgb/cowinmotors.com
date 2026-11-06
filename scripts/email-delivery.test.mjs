@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 test("SMTP uses authenticated sender and routes inquiry to the public inbox", async () => {
   const commands = [];
+  const messageLines = [];
   const server = net.createServer((socket) => {
     let buffer = "";
     let stage = "command";
@@ -18,8 +19,8 @@ test("SMTP uses authenticated sender and routes inquiry to the public inbox", as
         if (stage === "data") {
           if (line === ".") {
             stage = "command";
-            socket.write("250 Accepted\r\n");
-          }
+            socket.end("250 Accepted\r\n");
+          } else messageLines.push(line);
           continue;
         }
         commands.push(line);
@@ -30,7 +31,6 @@ test("SMTP uses authenticated sender and routes inquiry to the public inbox", as
         else if (line.startsWith("MAIL FROM:")) socket.write(line === "MAIL FROM:<smtp-account@example.com>" ? "250 Sender OK\r\n" : "501 Sender must match auth\r\n");
         else if (line.startsWith("RCPT TO:")) socket.write("250 Recipient OK\r\n");
         else if (line === "DATA") { stage = "data"; socket.write("354 End with dot\r\n"); }
-        else if (line === "QUIT") socket.write("221 Bye\r\n");
       }
     });
   });
@@ -51,13 +51,16 @@ test("SMTP uses authenticated sender and routes inquiry to the public inbox", as
   try {
     const { sendInquiryEmail } = await import("../lib/email.ts");
     const result = await sendInquiryEmail({
-      source: "test", name: "SMTP transport test", email: "customer@example.com", phone: "+1 555 0100",
+      id: "rfq-local-test", source: "test", name: "SMTP transport test\r\nBcc: injected@example.com", email: "customer@example.com", phone: "+1 555 0100",
       country: "", productType: "", product: "", vehicleInfo: "", quantity: "", requirement: "", createdAt: new Date().toISOString(),
     });
     assert.equal(result.sent, true);
     assert.ok(commands.includes("MAIL FROM:<smtp-account@example.com>"));
     assert.ok(commands.includes("RCPT TO:<info@cowinmotors.com>"));
     assert.ok(!commands.some((command) => command.includes("wrong-recipient@example.com")));
+    const headers = messageLines.slice(0, messageLines.indexOf(""));
+    assert.ok(!headers.some((line) => /^Bcc:/i.test(line)));
+    assert.ok(headers.includes("Message-ID: <rfq-local-test@cowinmotors.com>"));
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key];

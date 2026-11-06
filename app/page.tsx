@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SiteNav } from "@/components/SiteNav";
 import { getPublishedBlogPosts } from "@/lib/blog";
 import { getPublishedNews } from "@/lib/news";
-import { productPath, products, type Product } from "@/lib/products";
+import { productModelYears, productPath, products, type Product } from "@/lib/products";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
 const categories = [
@@ -81,7 +81,7 @@ export default async function HomePage() {
       <section className="catalog-finder" id="vehicle-finder" aria-labelledby="finder-title">
         <div><h2 id="finder-title">Start with your vehicle</h2><p>Find the right parts faster with vehicle fitment.</p></div>
         <form action="/products" className="catalog-finder-form">
-          <label><span>Year</span><select name="year" defaultValue=""><option value="">Select Year</option>{[2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016].map((year) => <option key={year}>{year}</option>)}</select></label>
+          <label><span>Year</span><select name="year" defaultValue=""><option value="">Select Year</option>{productModelYears.map((year) => <option key={year}>{year}</option>)}</select></label>
           <label><span>Make</span><select name="make" defaultValue=""><option value="">Select Make</option>{["Audi", "BMW", "Mercedes-Benz", "Porsche", "Volkswagen", "Toyota", "Honda"].map((make) => <option key={make}>{make}</option>)}</select></label>
           <label><span>Model</span><input name="q" placeholder="Select Model" /></label>
           <label><span>Category</span><select name="category" defaultValue=""><option value="">All Categories</option><option value="headlights">Headlights</option><option value="tail-lights">Tail Lights</option><option value="exhaust">Exhaust Systems</option><option value="wheels">Forged Wheels</option><option value="body-kits">Body Kits</option></select></label>
@@ -90,7 +90,7 @@ export default async function HomePage() {
       </section>
 
       <section className="catalog-browse" aria-labelledby="browse-title">
-        <aside className="catalog-category-nav"><h2 id="browse-title">Browse the catalog</h2><p>Explore product categories and featured items.</p><nav aria-label="Product category links">{categories.map((category, index) => <Link className={index === 0 ? "active" : ""} href={category.href} key={category.label}><img src={category.icon} alt="" />{category.label}<span>&rsaquo;</span></Link>)}</nav><Link className="catalog-text-link" href="/products">View All Products &rarr;</Link><div className="catalog-browse-shortcuts"><Link href="/products?sort=new">New Arrivals</Link><Link href="/products?sort=popular">Best Sellers</Link></div></aside>
+        <aside className="catalog-category-nav"><h2 id="browse-title">Browse the catalog</h2><p>Explore product categories and featured items.</p><nav aria-label="Product category links">{categories.map((category, index) => <Link className={index === 0 ? "active" : ""} href={category.href} key={category.label}><img src={category.icon} alt="" />{category.label}<span>&rsaquo;</span></Link>)}</nav><Link className="catalog-text-link" href="/products">View All Products &rarr;</Link><div className="catalog-browse-shortcuts"><Link href="#vehicle-finder">Find by Vehicle</Link><Link href="/sourcing-bulk-orders">Bulk Orders</Link></div></aside>
         <div className="catalog-product-showcase">
           <div className="catalog-section-heading"><div><h2>Headlights</h2><p>OE fitment. Premium quality. Global supply.</p></div><Link className="catalog-text-link" href="/headlights">View All Headlights &rarr;</Link></div>
           <div className="catalog-product-grid">

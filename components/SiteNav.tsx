@@ -18,6 +18,9 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerType = useRef("");
+  const categoryTrigger = useRef<HTMLButtonElement>(null);
+  const companyTrigger = useRef<HTMLButtonElement>(null);
   const [openMenu, setOpenMenu] = useState<MenuName | null>(null);
 
   const cancelScheduledClose = () => {
@@ -42,6 +45,11 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
     closeTimer.current = setTimeout(() => setOpenMenu(null), 160);
   };
 
+  const activate = (menu: MenuName, clickDetail: number) => {
+    if (openMenu === menu && (clickDetail === 0 || pointerType.current !== "mouse")) close();
+    else open(menu);
+  };
+
   useEffect(() => {
     close();
   }, [pathname]);
@@ -60,8 +68,14 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
     <nav
       className={["site-nav", className].filter(Boolean).join(" ")}
       aria-label="Primary navigation"
+      onPointerDown={(event) => { pointerType.current = event.pointerType; }}
       onKeyDown={(event) => {
-        if (event.key === "Escape") close();
+        if (event.key === "Escape" && openMenu) {
+          event.preventDefault();
+          const trigger = openMenu === "categories" ? categoryTrigger : companyTrigger;
+          close();
+          trigger.current?.focus();
+        }
       }}
       ref={navRef}
     >
@@ -69,9 +83,8 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
 
       <div
         className={"nav-drawer wide" + (openMenu === "categories" ? " open" : "")}
-        onPointerEnter={() => open("categories")}
-        onPointerLeave={scheduleClose}
-        onFocus={() => open("categories")}
+        onPointerEnter={(event) => { if (event.pointerType === "mouse") open("categories"); }}
+        onPointerLeave={(event) => { if (event.pointerType === "mouse") scheduleClose(); }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose();
         }}
@@ -79,16 +92,16 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
         <button
           aria-controls="product-category-menu"
           aria-expanded={openMenu === "categories"}
-          aria-haspopup="menu"
           className="nav-drawer-trigger"
-          onClick={() => open("categories")}
+          onClick={(event) => activate("categories", event.detail)}
+          ref={categoryTrigger}
           type="button"
         >
           Categories
         </button>
-        <div aria-label="Product categories" className="nav-panel category-panel" id="product-category-menu" role="menu">
+        <div aria-label="Product categories" className="nav-panel category-panel" id="product-category-menu" role="group">
           {categoryGroups.map((group) => (
-            <Link className="nav-category-group nav-category-card" href={group.href} key={group.title} onClick={close} role="menuitem">
+            <Link className="nav-category-group nav-category-card" href={group.href} key={group.title} onClick={close}>
               <span className="nav-category-title">{group.title}</span>
               <p>{group.text}</p>
             </Link>
@@ -103,9 +116,8 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
 
       <div
         className={"nav-drawer company" + (openMenu === "company" ? " open" : "")}
-        onPointerEnter={() => open("company")}
-        onPointerLeave={scheduleClose}
-        onFocus={() => open("company")}
+        onPointerEnter={(event) => { if (event.pointerType === "mouse") open("company"); }}
+        onPointerLeave={(event) => { if (event.pointerType === "mouse") scheduleClose(); }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) scheduleClose();
         }}
@@ -113,23 +125,23 @@ export function SiteNav({ className = "", includeSupport = false }: { className?
         <button
           aria-controls="company-menu"
           aria-expanded={openMenu === "company"}
-          aria-haspopup="menu"
           className="nav-drawer-trigger"
-          onClick={() => open("company")}
+          onClick={(event) => activate("company", event.detail)}
+          ref={companyTrigger}
           type="button"
         >
           Company
         </button>
-        <div aria-label="Company information" className="nav-panel company-panel" id="company-menu" role="menu">
-          <Link className="nav-company-card" href="/about" onClick={close} role="menuitem">
+        <div aria-label="Company information" className="nav-panel company-panel" id="company-menu" role="group">
+          <Link className="nav-company-card" href="/about" onClick={close}>
             <span>About Us</span>
             <small>Our company, sourcing approach, and buyer support.</small>
           </Link>
-          <Link className="nav-company-card" href="/contact" onClick={close} role="menuitem">
+          <Link className="nav-company-card" href="/contact" onClick={close}>
             <span>Contact Us</span>
             <small>Talk with the Cowinmotors parts and sourcing team.</small>
           </Link>
-          {includeSupport && <Link className="nav-company-card" href="/support" onClick={close} role="menuitem"><span>Buyer Support</span><small>Fitment, shipping and order help.</small></Link>}
+          {includeSupport && <Link className="nav-company-card" href="/support" onClick={close}><span>Buyer Support</span><small>Fitment, shipping and order help.</small></Link>}
         </div>
       </div>
     </nav>

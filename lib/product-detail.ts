@@ -15,21 +15,22 @@ function productKind(product: Product) {
 }
 
 function fitmentLabel(product: Product) {
-  return [product.brand, product.model, product.yearRange].filter(Boolean).join(" ").trim();
+  const fitment = productFitment(product);
+  return [fitment.vehicle, fitment.years].filter(Boolean).join(" ");
 }
 
 export function productDisplayTitle(product: Product) {
   const title = product.title.trim();
-  const reference = (product.partNumbers || []).find((value) => value && !/^sjc$/i.test(value.trim()));
+  const reference = productReferences(product)[0];
   if (reference && !title.toLowerCase().includes(reference.toLowerCase())) return `${title} | Ref. ${reference}`;
   return title;
 }
 
 export function productSeoDescription(product: Product) {
   const fitment = categorySlug(product) === "wheels" ? "" : fitmentLabel(product);
-  const reference = (product.partNumbers || []).find((value) => value && !/^sjc$/i.test(value.trim()));
+  const reference = productReferences(product)[0];
   const attributes = [reference ? `reference ${reference}` : "", product.side ? `${product.side} side` : "", product.material || ""].filter(Boolean).join(", ");
-  return `${productDisplayTitle(product)}${fitment ? `, compatible with ${fitment}` : ""}${attributes ? `; listed ${attributes}` : ""}. Request a fitment-led sourcing quote before ordering.`.slice(0, 158);
+  return `${product.title.trim()}${fitment ? `. Listed fitment: ${fitment}` : ""}${attributes ? `. ${attributes}` : ""}. Confirm specifications and fitment before ordering.`.slice(0, 158);
 }
 
 export function productReferences(product: Product) {
@@ -41,10 +42,13 @@ export function productReferences(product: Product) {
 export function productFitment(product: Product) {
   const category = categorySlug(product);
   if (category === "wheels") return { vehicle: "Vehicle-specific fitment", years: "" };
-  const yearFromTitle = product.title.match(/\b(?:19|20)\d{2}(?:\s*[-–]\s*(?:19|20)\d{2})?\b/)?.[0];
+  const brand = product.brand?.trim() || "";
+  const model = product.model?.trim() || "";
+  const modelIncludesBrand = brand && model.toLowerCase().startsWith(`${brand.toLowerCase()} `);
+  const titleYears = Array.from(product.title.matchAll(/\b(?:19|20)\d{2}(?:\s*[-\u2013]\s*(?:19|20)\d{2})?\b/g), (match) => match[0]);
   return {
-    vehicle: [product.brand, product.model].filter(Boolean).join(" "),
-    years: product.yearRange || yearFromTitle || "",
+    vehicle: modelIncludesBrand || model.toLowerCase() === brand.toLowerCase() ? model : [brand, model].filter(Boolean).join(" "),
+    years: product.yearRange || [...new Set(titleYears)].join(" / "),
   };
 }
 
@@ -126,10 +130,11 @@ export function productFitmentChecks(product: Product) {
 export function productFaqs(product: Product) {
   const vehicle = categorySlug(product) === "wheels" ? "my vehicle" : fitmentLabel(product) || "my vehicle";
   const kind = productKind(product).toLowerCase();
+  const reference = productReferences(product)[0];
   return [
-    { question: `How do I confirm this ${kind} fits ${vehicle}?`, answer: "Send the vehicle year, make, model, trim, engine, market version, and OE number or product photo where available. Fitment must be confirmed before ordering." },
+    { question: `How do I confirm this ${kind} fits ${vehicle}?`, answer: `${reference ? `Compare catalog reference ${reference} with the original part. ` : ""}Send ${productFitmentChecks(product)[1].toLowerCase()} with the vehicle year, make, model and trim. Fitment must be confirmed before ordering.` },
     { question: "What details should I provide before quotation?", answer: `${productFitmentChecks(product).join("; ")}. Please include your quantity and destination country.` },
-    { question: "Can I order a sample or wholesale quantity?", answer: "Both retail-friendly and wholesale inquiries can be reviewed. Quantity, packaging requirements, and destination are confirmed before quotation." },
+    { question: "What is the minimum order and lead time?", answer: "Minimum order quantity and lead time are confirmed in the quote. Include your sample or bulk quantity, packaging needs and destination." },
     { question: "Are product specifications fixed?", answer: "Only the details shown from the product record are confirmed. Connector, configuration, package contents, compliance requirements, and other unlisted specifications must be checked before ordering." },
     { question: "Can Cowinmotors help with packaging and export coordination?", answer: "Product photo confirmation, packaging review, pre-shipment QC coordination, and shipping or export-document support can be arranged subject to the product and destination requirements." },
     { question: "How should vehicle brand names be understood on this page?", answer: "Vehicle brand names are used only to indicate compatibility. Cowinmotors Automotive Parts is an independent automotive parts sourcing and export partner." },
@@ -146,6 +151,8 @@ export function productFaqSchema(product: Product) {
 
 export function productSchema(product: Product, photos: string[]) {
   const title = productDisplayTitle(product);
+  const fitment = productFitment(product);
+  const vehicle = categorySlug(product) === "wheels" || !product.model || !fitment.vehicle ? undefined : fitment.vehicle;
   return {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -153,9 +160,13 @@ export function productSchema(product: Product, photos: string[]) {
     ...(photos.length ? { image: photos.map((photo) => new URL(photo, SITE_URL).href) } : {}),
     description: productSeoDescription(product),
     category: product.category,
-    sku: product.partNumbers?.[0] || product.id || product.slug,
+    sku: productReferences(product)[0] || product.id || product.slug,
     url: `${SITE_URL}${productPath(product)}`,
-    additionalProperty: productSpecs(product).map((spec) => ({ "@type": "PropertyValue", name: spec.label, value: spec.value })),
+    ...(vehicle ? { isAccessoryOrSparePartFor: { "@type": "Vehicle", name: vehicle } } : {}),
+    additionalProperty: [
+      ...(vehicle && fitment.years ? [{ label: "Listed model years", value: fitment.years }] : []),
+      ...productSpecs(product),
+    ].map((spec) => ({ "@type": "PropertyValue", name: spec.label, value: spec.value })),
   };
 }
 

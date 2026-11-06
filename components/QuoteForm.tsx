@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowUpRight, ChevronDown } from "lucide-react";
 import { sessionAttribution } from "@/lib/visitorAttribution";
 
@@ -48,37 +48,38 @@ export function QuoteForm({ initialProduct = "", initialCategory = "", productUr
   const [note, setNote] = useState("");
   const [failed, setFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const inFlight = useRef(false);
+  const submissionKey = useRef<string | null>(null);
 
   return (
     <form
       className="cm-rfq"
       id="rfqForm"
+      aria-busy={submitting}
+      onChange={() => { submissionKey.current = null; }}
       onSubmit={async (event) => {
         event.preventDefault();
+        if (inFlight.current) return;
+        inFlight.current = true;
         setSubmitting(true);
         setNote("");
         setFailed(false);
 
         const form = event.currentTarget;
-        const formData = new FormData(form);
-        const file = formData.get("productPhoto");
-        if (file instanceof File && file.size > 3 * 1024 * 1024) {
-          setFailed(true);
-          setNote("Please upload an image or PDF up to 3 MB, or send a larger file over WhatsApp.");
-          setSubmitting(false);
-          return;
-        }
-        if (file instanceof File && file.size && !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) {
-          setFailed(true);
-          setNote("Please upload a JPG, PNG, WebP, or PDF reference file.");
-          setSubmitting(false);
-          return;
-        }
         try {
+          const formData = new FormData(form);
+          const file = formData.get("productPhoto");
+          if (file instanceof File && file.size > 3 * 1024 * 1024) throw new Error("Reference files must be 3 MB or smaller.");
+          if (file instanceof File && file.size && !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(file.type)) {
+            throw new Error("Please upload a JPG, PNG, WebP or PDF reference file.");
+          }
+          const idempotencyKey = (submissionKey.current ||= crypto.randomUUID());
           const attachment = file instanceof File && file.size
             ? { name: file.name, type: file.type, contentBase64: await encodeAttachment(file) }
             : undefined;
           const payload = {
+          idempotencyKey,
+          website: String(formData.get("website") || ""),
           name: String(formData.get("name") || ""),
           email: String(formData.get("email") || ""),
           phone: String(formData.get("phone") || ""),
@@ -115,19 +116,18 @@ export function QuoteForm({ initialProduct = "", initialCategory = "", productUr
 
           const result = await response.json().catch(() => ({}));
           if (response.ok && result.ok) {
-            window.dispatchEvent(new CustomEvent("cowinmotors:form-submit", { detail: payload }));
+            submissionKey.current = null;
             form.reset();
-            setNote(result.emailSent === false && !result.testExcluded
-              ? "Your request was saved, but email notification could not be sent. You can also reach us on WhatsApp."
-              : "Quote request received. We'll review fitment, quantity and shipping details.");
+            setNote("Quote request received. We'll review fitment, quantity and shipping details.");
           } else {
             setFailed(true);
             setNote(result.error || "We couldn't send your request. Try again or email info@cowinmotors.com.");
           }
-        } catch {
+        } catch (error) {
           setFailed(true);
-          setNote("We couldn't send your request. Check your connection and try again, or email info@cowinmotors.com.");
+          setNote(error instanceof Error && /file|upload/.test(error.message) ? error.message : "We couldn't send your request. Check your connection and try again, or email info@cowinmotors.com.");
         } finally {
+          inFlight.current = false;
           setSubmitting(false);
         }
       }}
@@ -137,7 +137,7 @@ export function QuoteForm({ initialProduct = "", initialCategory = "", productUr
         <div className="cm-form-grid">
           <label>Name <span aria-hidden="true">*</span><input name="name" autoComplete="name" required /></label>
           <label>Email <span aria-hidden="true">*</span><input name="email" type="email" autoComplete="email" required /></label>
-          <label>WhatsApp / phone <span aria-hidden="true">*</span><input name="phone" type="tel" autoComplete="tel" required /></label>
+          <label>WhatsApp / phone <span className="cm-field-note">Optional</span><input name="phone" type="tel" autoComplete="tel" /></label>
           <label>Country<input name="country" autoComplete="country-name" /></label>
         </div>
       </fieldset>
@@ -175,6 +175,7 @@ export function QuoteForm({ initialProduct = "", initialCategory = "", productUr
           <label className="cm-wide">Reference file <span className="cm-field-note">JPG, PNG, WebP or PDF, up to 3 MB</span><input name="productPhoto" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" /></label>
         </div>
       </details>
+      <div hidden><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <div className="cm-rfq-submit">
         <button className="cm-btn cm-btn-primary" type="submit" disabled={submitting}>{submitting ? "Sending..." : "Send quote request"} <ArrowUpRight size={18} aria-hidden="true" /></button>
         <a className="cm-text-link" href="/privacy-policy">Privacy policy</a>

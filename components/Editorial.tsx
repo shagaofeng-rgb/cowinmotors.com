@@ -41,8 +41,8 @@ function EditorialCard({ article, section, featured = false }: { article: Entry;
   );
 }
 
-export function EditorialListing({ section, articles, topics = [], activeTopic = "", page = 1, pageSize }: {
-  section: Section; articles: Entry[]; topics?: string[]; activeTopic?: string; page?: number; pageSize: number;
+export function EditorialListing({ section, articles, topics = [], activeTopic = "", page = 1, hasNext }: {
+  section: Section; articles: Entry[]; topics?: string[]; activeTopic?: string; page?: number; hasNext: boolean;
 }) {
   const view = sections[section];
   const featured = page === 1 ? articles[0] : undefined;
@@ -81,9 +81,9 @@ export function EditorialListing({ section, articles, topics = [], activeTopic =
             <Link className="cm-text-link" href={activeTopic || page > 1 ? basePath : "/support"}>{activeTopic || page > 1 ? "Browse all articles" : "Buyer support"} <ArrowRight size={17} aria-hidden="true" /></Link>
           </div>
         )}
-        {(page > 1 || articles.length === pageSize) && <nav className="cm-editorial-paging" aria-label="Article pagination">
+        {(page > 1 || hasNext) && <nav className="cm-editorial-paging" aria-label="Article pagination">
           {page > 1 && <Link className="cm-btn cm-btn-outline" href={pageHref(page - 1)} rel="prev"><ArrowLeft size={17} aria-hidden="true" /> Previous</Link>}
-          {articles.length === pageSize && <Link className="cm-btn cm-btn-outline" href={pageHref(page + 1)} rel="next">Next <ArrowRight size={17} aria-hidden="true" /></Link>}
+          {hasNext && <Link className="cm-btn cm-btn-outline" href={pageHref(page + 1)} rel="next">Next <ArrowRight size={17} aria-hidden="true" /></Link>}
         </nav>}
       </div>
     </InnerPage>

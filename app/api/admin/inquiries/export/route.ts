@@ -8,7 +8,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function csvCell(value: unknown) {
-  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+  const text = String(value ?? "");
+  const safe = /^[\s\uFEFF]*[=+@-]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
 }
 
 export async function GET(request: Request) {
@@ -19,10 +21,8 @@ export async function GET(request: Request) {
   const q = url.searchParams.get("q") || "";
   const range = getAdminDateRange(url.searchParams);
   const { startDate, endDate } = resolveDateRange(range);
-  const inquiriesInRange = (await getInquiries()).filter((inquiry) => {
-    const createdAt = new Date(inquiry.createdAt).getTime();
-    return createdAt >= startDate.getTime() && createdAt <= endDate.getTime();
-  });
+  const records = await getInquiries({ startDate, endDate });
+  const inquiriesInRange = url.searchParams.get("delivery") === "attention" ? records.filter(({ deliveryStatus }) => deliveryStatus === "failed" || deliveryStatus === "pending") : records;
   const inquiries = filterByQuery(inquiriesInRange, q, (inquiry) => [
     inquiry.name,
     inquiry.email,

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
+import { notFound, permanentRedirect } from "next/navigation";
 import { EditorialListing } from "@/components/Editorial";
-import { normalizedPage } from "@/lib/category-url";
-import { getNewsCategories, getPublishedNews } from "@/lib/news";
+import { categorySearchPath, normalizedPage, readCategorySearchParams, shouldNormalizeCategorySearch } from "@/lib/category-url";
+import { readPublicNewsCategories, readPublicNewsPage } from "@/lib/public-editorial";
 import { UI_ASSETS } from "@/lib/ui-assets";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
   title: "Automotive Parts News and Buyer Insights",
   description:
     "Editorially reviewed automotive parts news, sourcing analysis, and fitment notes for global buyers.",
@@ -20,14 +21,28 @@ export const metadata: Metadata = {
   },
 };
 
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
+  const { page, category } = readCategorySearchParams(await searchParams);
+  return { ...metadata, alternates: { canonical: category ? "/news" : categorySearchPath("/news", { page }) }, ...(category ? { robots: { index: false, follow: true } } : {}) };
+}
+
 export default async function NewsPage({ searchParams }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
-  const category = typeof params.category === "string" ? params.category.trim().slice(0, 100) : "";
-  const page = normalizedPage(typeof params.page === "string" ? params.page : undefined);
+  const params = readCategorySearchParams(await searchParams);
+  const category = params.category?.slice(0, 100) || "";
+  const page = normalizedPage(params.page);
+  if (shouldNormalizeCategorySearch(params, false)) {
+    const query = new URLSearchParams();
+    if (category) query.set("category", category);
+    if (page > 1) query.set("page", String(page));
+    permanentRedirect(`/news${query.size ? `?${query}` : ""}`);
+  }
   const pageSize = 12;
-  const articles = await getPublishedNews({ limit: pageSize, page, category });
-  const categories = await getNewsCategories();
-  return <EditorialListing section="news" articles={articles} topics={categories.map((item) => item.category)} activeTopic={category} page={page} pageSize={pageSize} />;
+  const categories = await readPublicNewsCategories();
+  const matching = category ? categories.find((item) => item.category === category) : undefined;
+  const total = category ? matching?.count || 0 : categories.reduce((count, item) => count + item.count, 0);
+  if ((category && !matching) || (page > 1 && (page - 1) * pageSize >= total)) notFound();
+  const articles = total ? await readPublicNewsPage({ limit: pageSize, page, category }) : [];
+  return <EditorialListing section="news" articles={articles} topics={categories.map((item) => item.category)} activeTopic={category} page={page} hasNext={page * pageSize < total} />;
 }

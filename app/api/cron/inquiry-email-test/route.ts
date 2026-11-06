@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { saveInquiryWithSource, updateInquiryDelivery } from "@/lib/adminData";
-import { sendInquiryEmail } from "@/lib/email";
+import { saveInquiryOnce } from "@/lib/adminData";
+import { deliverInquiryNotification } from "@/lib/inquiry-delivery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const inquiry = await saveInquiryWithSource({
+  const { record, created } = await saveInquiryOnce({
     source: "monthly-email-delivery-check",
     name: "Cowinmotors Monthly Form Test",
     email: process.env.INQUIRY_TO_EMAIL || "info@cowinmotors.com",
@@ -27,38 +27,14 @@ export async function GET(request: Request) {
     requirement: `Automated monthly test submitted at ${now.toISOString()} to verify that website form emails can still reach the Cowinmotors inbox.`,
     isTest: true,
     testReason: "Monthly automated inquiry email delivery check",
-  });
+  }, `smtp-check-${now.toISOString().slice(0, 7)}`);
 
-  const emailResult = await sendInquiryEmail(inquiry).catch((error: Error) => ({
-    sent: false,
-    provider: "error",
-    reason: error.message || "Email delivery failed.",
-  }));
-
-  await updateInquiryDelivery(inquiry.id, {
-    deliveryStatus: emailResult.sent ? "sent" : "failed",
-    deliveryProvider: emailResult.provider,
-    deliveryError: emailResult.sent ? "" : emailResult.reason || "Email delivery failed.",
-  });
-
-  if (!emailResult.sent) {
-    return NextResponse.json(
-      {
-        ok: false,
-        id: inquiry.id,
-        emailSent: false,
-        emailProvider: emailResult.provider,
-        error: emailResult.reason,
-      },
-      { status: 500 },
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    id: inquiry.id,
-    emailSent: true,
-    emailProvider: emailResult.provider,
-    checkedAt: now.toISOString(),
-  });
+  const result = created ? await deliverInquiryNotification(record, undefined, true) : {
+    emailSent: record.deliveryStatus === "sent",
+    emailProvider: record.deliveryProvider,
+    deliveryStatus: record.deliveryStatus,
+    statusSaved: true,
+  };
+  const ok = result.emailSent && result.statusSaved;
+  return NextResponse.json({ ok, id: record.id, duplicate: !created, ...result, checkedAt: now.toISOString() }, { status: ok ? 200 : 503 });
 }

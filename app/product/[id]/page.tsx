@@ -13,10 +13,12 @@ import { productBreadcrumbSchema, productDisplayTitle, productFaqs, productFaqSc
 import { catalogProductPhotos } from "@/lib/product-media";
 import "./detail.css";
 
-export const dynamic = "force-dynamic";
+// The catalog is bundled with the deployment; cache details when first requested.
+export const dynamic = "force-static";
+export const revalidate = 86400;
 
 export function generateStaticParams() {
-  return products.map((product) => ({ id: product.slug || String(product.__id) }));
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -117,8 +119,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {category === "wheels" && <WheelFitmentDiagram />}
           </section>
           <section id="shipping" className="cm-pd-section">
-            <h2><Truck aria-hidden="true" /> Shipping &amp; quality checks</h2>
-            <p>Ask for product photos, a packaging review and pre-shipment QC coordination. Freight options and export documentation depend on the part and destination.</p>
+            <h2><Truck aria-hidden="true" /> Ordering, shipping &amp; quality checks</h2>
+            <dl className="cm-spec-table">
+              <div><dt>Minimum order &amp; lead time</dt><dd>Confirmed by quote</dd></div>
+              <div><dt>Packaging &amp; quality checks</dt><dd>Packaging review and pre-shipment QC coordination on request</dd></div>
+              <div><dt>Freight &amp; export documents</dt><dd>Quoted for the part, quantity and destination</dd></div>
+            </dl>
             <div className="cm-pd-service-links">
               <Link href="/quality-control"><ClipboardCheck size={20} aria-hidden="true" /> Quality control <ArrowRight size={17} aria-hidden="true" /></Link>
               <Link href="/packaging-shipping"><PackageCheck size={20} aria-hidden="true" /> Packaging &amp; shipping <ArrowRight size={17} aria-hidden="true" /></Link>
@@ -158,9 +164,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
         )}
       </div>
       <MobileQuoteBar whatsapp={whatsapp} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema(product, photos)) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productFaqSchema(product)) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productBreadcrumbSchema(product)) }} />
+      {photos.length > 0 && isProductIndexable(product) && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema(product, photos)).replace(/</g, "\\u003c") }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productFaqSchema(product)).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productBreadcrumbSchema(product)).replace(/</g, "\\u003c") }} />
     </InnerPage>
   );
 }

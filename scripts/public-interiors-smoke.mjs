@@ -52,6 +52,17 @@ try {
       assert.ok(h1[0].trim(), `${route} has a title`);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `${route} overflows at ${width}`);
       assert.equal(await page.locator('main.cm-inner').count(), route === '/' ? 0 : 1, `${route} interior isolation`);
+      if (route === '/') {
+        assert.equal(await page.locator('select[name="year"] option').filter({ hasText: /^2015$/ }).count(), 1);
+        assert.equal(await page.locator('a[href*="?sort="]').count(), 0);
+        assert.ok(await page.locator('.home-catalog-nav').evaluate((nav) => {
+          const bounds = nav.getBoundingClientRect();
+          const items = [...nav.querySelectorAll(':scope > a, :scope > div > button')].map((el) => el.getBoundingClientRect());
+          return items.every((r, i) => r.width > 0 && r.left >= bounds.left - 1 && r.right <= bounds.right + 1 &&
+            items.slice(i + 1).every((other) => Math.min(r.right, other.right) - Math.max(r.left, other.left) <= 1 ||
+              Math.min(r.bottom, other.bottom) - Math.max(r.top, other.top) <= 1));
+        }), `home navigation clips or overlaps at ${width}px`);
+      }
       if (route === '/news' || route === '/blog') {
         const href = await page.locator(`main a[href^="${route}/"]`).first().getAttribute('href', { timeout: 1000 }).catch(() => null);
         if (href) { discovered.add(href); capture.add(href); }
@@ -91,9 +102,28 @@ try {
     await context.close();
   }
 
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, reducedMotion: 'reduce' });
   page.setDefaultTimeout(12000);
   await page.route('**/api/analytics**', (route) => route.fulfill({ json: { ok: true } }));
+  await page.goto(new URL('/', base).href);
+  const homeNav = page.locator('.home-catalog-nav');
+  const categories = homeNav.getByRole('button', { name: 'Categories' });
+  const company = homeNav.getByRole('button', { name: 'Company' });
+  await categories.tap();
+  assert.equal(await categories.getAttribute('aria-expanded'), 'true');
+  const panel = homeNav.getByRole('group', { name: 'Product categories' });
+  assert.ok(await panel.isVisible());
+  const frame = await panel.boundingBox();
+  assert.ok(frame && frame.x >= 0 && frame.x + frame.width <= 390);
+  if (out) await page.screenshot({ path: path.join(out, 'home-menu-390.png'), animations: 'disabled' });
+  await categories.tap();
+  assert.equal(await categories.getAttribute('aria-expanded'), 'false');
+  await company.focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await company.getAttribute('aria-expanded'), 'true');
+  await page.keyboard.press('Escape');
+  assert.equal(await company.getAttribute('aria-expanded'), 'false');
+  assert.ok(await company.evaluate((node) => document.activeElement === node));
   await page.goto(new URL('/products', base).href);
   await page.getByLabel('Navigation menu').click();
   await page.getByRole('navigation', { name: 'Mobile navigation' }).getByRole('link', { name: 'Headlights', exact: true }).click();
@@ -131,13 +161,15 @@ try {
   assert.equal(await form.locator('input[name="productUrl"]').inputValue(), `https://www.cowinmotors.com${productRoutes.headlight}`);
   await form.getByLabel('Name', { exact: false }).first().fill('Codex QA');
   await form.locator('input[name="email"]').fill('codex@example.com');
-  await form.getByLabel('WhatsApp / phone').fill('+12025550142');
+  assert.equal(await form.locator('input[name="phone"]').getAttribute('required'), null);
   await form.getByLabel('Vehicle model').fill('A3 8V');
   await form.getByLabel('Quantity').fill('2 sets');
   let payload;
+  const submissionKeys = [];
   let failNext = true;
   await page.route('**/api/inquiry', async (route) => {
     payload = route.request().postDataJSON();
+    submissionKeys.push(payload.idempotencyKey);
     if (failNext) { failNext = false; await route.abort(); }
     else await route.fulfill({ json: { ok: true, emailSent: true } });
   });
@@ -150,6 +182,8 @@ try {
   assert.ok(payload.requirement.includes(productRoutes.headlight));
   assert.match(payload.vehicleInfo, /A3 8V/);
   assert.equal(payload.quantity, '2 sets');
+  assert.equal(payload.phone, '');
+  assert.ok(submissionKeys[0] && submissionKeys[0] === submissionKeys[1]);
 
   await page.route('**/assets/catalog/tianju/id_dbebb9d655a34cd4b44b4efca86279d9.webp', (route) => route.fulfill({ status: 404 }));
   await page.reload();

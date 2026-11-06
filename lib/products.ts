@@ -144,6 +144,22 @@ export function findProduct(id: string) {
 
 export const productBrands = [...new Set(products.map((product) => product.brand).filter(Boolean) as string[])].sort();
 
+function listedYearRanges(value: string) {
+  return Array.from(value.matchAll(/\b((?:19|20)\d{2})(?:\s*[-\u2013]\s*((?:19|20)\d{2}))?\b/g), ([, start, end]) => [Number(start), Number(end || start)] as const)
+    .filter(([start, end]) => start <= end);
+}
+
+const catalogYearsByProduct = new Map(products.map((product) => {
+  const declared = listedYearRanges(product.yearRange || "");
+  return [product.__id, declared.length ? declared : listedYearRanges(product.title)];
+}));
+
+const catalogYears = new Set<number>();
+for (const ranges of catalogYearsByProduct.values()) {
+  for (const [start, end] of ranges) for (let year = start; year <= end; year += 1) catalogYears.add(year);
+}
+export const productModelYears = [...catalogYears].sort((a, b) => b - a);
+
 export const productCategoryOptions = [
   { slug: "headlights", label: "Headlights" },
   { slug: "tail-lights", label: "Tail Lights" },
@@ -171,10 +187,8 @@ export function filterProducts({
     if (category && categorySlug(product) !== category) return false;
     if (b && b !== "all" && String(product.brand || "").toLowerCase() !== b) return false;
     if (year) {
-      const listedYears = [product.yearRange, product.title].filter(Boolean).join(" ");
-      const matches = [...listedYears.matchAll(/\b((?:19|20)\d{2})(?:\s*[-–]\s*((?:19|20)\d{2}))?\b/g)];
       const modelYear = Number(year);
-      if (!/^\d{4}$/.test(year) || !matches.some(([, start, end]) => modelYear >= Number(start) && modelYear <= Number(end || start))) return false;
+      if (!/^\d{4}$/.test(year) || !catalogYearsByProduct.get(product.__id)?.some(([start, end]) => modelYear >= start && modelYear <= end)) return false;
     }
     if (!terms.length) return true;
     const haystack = [

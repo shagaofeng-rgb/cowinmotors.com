@@ -9,13 +9,14 @@ export const metadata = {
   title: "询盘数据 | Cowinmotors 后台",
 };
 
-function pageHref(params: { q: string; pageSize: number; page: number; range: string; startDate?: string; endDate?: string }) {
+function pageHref(params: { q: string; pageSize: number; page: number; range: string; startDate?: string; endDate?: string; delivery?: string }) {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   query.set("pageSize", String(params.pageSize));
   query.set("page", String(params.page));
   if (params.startDate) query.set("startDate", params.startDate);
   if (params.endDate) query.set("endDate", params.endDate);
+  if (params.delivery) query.set("delivery", params.delivery);
   query.set("range", params.range);
   return `/admin/inquiries?${query.toString()}`;
 }
@@ -29,12 +30,10 @@ export default async function AdminInquiriesPage({
   const params = getAdminListParams(rawParams);
   const range = getAdminDateRange(rawParams);
   const { startDate, endDate } = resolveDateRange(range);
-  const inquiries = await getInquiries();
-  const inRange = inquiries.filter((inquiry) => {
-    const createdAt = new Date(inquiry.createdAt).getTime();
-    return createdAt >= startDate.getTime() && createdAt <= endDate.getTime();
-  });
-  const filtered = filterByQuery(inRange, params.query, (inquiry) => [
+  const inRange = await getInquiries({ startDate, endDate });
+  const attention = inRange.filter(({ deliveryStatus }) => deliveryStatus === "failed" || deliveryStatus === "pending");
+  const delivery = rawParams?.delivery === "attention" ? "attention" : "";
+  const filtered = filterByQuery(delivery ? attention : inRange, params.query, (inquiry) => [
     inquiry.name,
     inquiry.email,
     inquiry.phone,
@@ -47,6 +46,8 @@ export default async function AdminInquiriesPage({
     inquiry.source,
   ]);
   const page = paginate(filtered, params.page, params.pageSize);
+  const paging = { q: params.query, pageSize: params.pageSize, range: range.preset, startDate: range.startDate, endDate: range.endDate, delivery };
+  const notificationLabel = { sent: "邮件服务已接收", failed: "通知失败", pending: "待确认", skipped: "已跳过" };
 
   return (
     <div className="admin-page">
@@ -56,13 +57,14 @@ export default async function AdminInquiriesPage({
           <h1>RFQ 表单提交记录</h1>
           <p>查看每次询盘的完整提交信息，并打开详情核对提交前的真实访问轨迹。</p>
         </div>
-        <div className="admin-page-actions"><span className="admin-status">{filtered.length}/{inRange.length} 条记录</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize) }} /></div>
+        <div className="admin-page-actions"><span className="admin-status">{filtered.length}/{inRange.length} 条记录</span><AdminDateRangeFilter range={range} preserve={{ q: params.query, pageSize: String(params.pageSize), delivery }} /></div>
       </header>
 
       <section className="admin-panel">
         <div className="admin-toolbar">
           <form action="/admin/inquiries">
             <input name="q" placeholder="搜索客户、邮箱、电话、车型、产品" defaultValue={params.query} />
+            <select name="delivery" defaultValue={delivery} aria-label="邮件通知状态"><option value="">全部通知</option><option value="attention">待确认 / 失败（{attention.length}）</option></select>
             <select name="pageSize" defaultValue={String(params.pageSize)}>
               <option value="25">25 / 页</option>
               <option value="50">50 / 页</option>
@@ -73,7 +75,7 @@ export default async function AdminInquiriesPage({
             {range.endDate ? <input type="hidden" name="endDate" value={range.endDate} /> : null}
             <button type="submit">筛选</button>
           </form>
-          <Link className="admin-secondary-button" href={`/api/admin/inquiries/export?${new URLSearchParams({ q: params.query, range: range.preset, ...(range.startDate ? { startDate: range.startDate } : {}), ...(range.endDate ? { endDate: range.endDate } : {}) }).toString()}`}>
+          <Link className="admin-secondary-button" href={`/api/admin/inquiries/export?${new URLSearchParams({ q: params.query, range: range.preset, delivery, ...(range.startDate ? { startDate: range.startDate } : {}), ...(range.endDate ? { endDate: range.endDate } : {}) }).toString()}`}>
             导出 CSV
           </Link>
         </div>
@@ -89,6 +91,7 @@ export default async function AdminInquiriesPage({
                   <th>车型</th>
                   <th>数量</th>
                   <th>需求</th>
+                  <th>邮件通知</th>
                   <th>客户归属</th>
                   <th aria-label="查看详情" />
                 </tr>
@@ -106,6 +109,7 @@ export default async function AdminInquiriesPage({
                     <td>{inquiry.vehicleInfo || "-"}</td>
                     <td>{inquiry.quantity || "-"}</td>
                     <td>{inquiry.requirement || "-"}</td>
+                    <td><span className={`admin-status ${inquiry.deliveryStatus === "sent" ? "good" : "warn"}`}>{notificationLabel[inquiry.deliveryStatus]}</span></td>
                     <td>{customerIdForInquiry(inquiry) ? <Link className="admin-table-action" href={`/admin/customers/${encodeURIComponent(customerIdForInquiry(inquiry))}`}>客户档案</Link> : <span className={`admin-status ${inquiry.visitorId ? "good" : "warn"}`}>{inquiry.visitorId ? "仅访客关联" : "历史记录"}</span>}</td>
                     <td><Link className="admin-table-action" href={`/admin/inquiries/${inquiry.id}`}>查看详情</Link></td>
                   </tr>
@@ -117,9 +121,9 @@ export default async function AdminInquiriesPage({
           <div className="admin-empty">暂无匹配的询盘记录。</div>
         )}
         <div className="admin-pagination">
-          {page.hasPrevious ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage - 1, range: range.preset, startDate: range.startDate, endDate: range.endDate })}>上一页</Link> : <span>上一页</span>}
+          {page.hasPrevious ? <Link href={pageHref({ ...paging, page: page.currentPage - 1 })}>上一页</Link> : <span>上一页</span>}
           <span>{page.currentPage} / {page.totalPages}</span>
-          {page.hasNext ? <Link href={pageHref({ q: params.query, pageSize: params.pageSize, page: page.currentPage + 1, range: range.preset, startDate: range.startDate, endDate: range.endDate })}>下一页</Link> : <span>下一页</span>}
+          {page.hasNext ? <Link href={pageHref({ ...paging, page: page.currentPage + 1 })}>下一页</Link> : <span>下一页</span>}
         </div>
       </section>
     </div>

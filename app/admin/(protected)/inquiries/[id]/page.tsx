@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RetryInquiryNotification } from "@/components/admin/RetryInquiryNotification";
 import { customerIdForInquiry, getInquiryDetail, type InquiryJourney } from "@/lib/adminData";
 
 export const dynamic = "force-dynamic";
@@ -122,10 +123,11 @@ export default async function AdminInquiryDetailPage({ params }: { params: Promi
           <p className="eyebrow">通知状态</p>
           <h2>邮件投递记录</h2>
           <dl className="admin-detail-fields">
-            <div><dt>状态</dt><dd>{inquiry.deliveryStatus}</dd></div>
+            <div><dt>状态</dt><dd>{{ pending: "待确认", sent: "邮件服务已接收", failed: "通知异常", skipped: "测试已跳过" }[inquiry.deliveryStatus]}</dd></div>
             <div><dt>通道</dt><dd>{displayValue(inquiry.deliveryProvider)}</dd></div>
             <div className="admin-detail-field-full"><dt>说明</dt><dd>{displayValue(inquiry.deliveryError)}</dd></div>
           </dl>
+          {!inquiry.isTest && inquiry.deliveryStatus === "failed" && <RetryInquiryNotification id={id} />}
         </article>
       </section>
 

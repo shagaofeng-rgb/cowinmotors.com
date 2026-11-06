@@ -1,121 +1,80 @@
 import { NextResponse } from "next/server";
-import { InquiryPersistenceError, isNonProductionInquiry, saveInquiryWithSource, updateInquiryDelivery } from "@/lib/adminData";
+import { saveInquiryOnce } from "@/lib/adminData";
 import { appendAnalyticsEvent, normalizeAnalyticsEvent } from "@/lib/analyticsStore";
-import { sendInquiryEmail } from "@/lib/email";
+import { deliverInquiryNotification } from "@/lib/inquiry-delivery";
+import { inquiryAttachment, inquirySubmissionId, inquiryText, isInquiryEmail, MAX_INQUIRY_BYTES } from "@/lib/inquiry-input";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function clean(value: unknown, maxLength = 2000) {
-  return String(value || "").trim().slice(0, maxLength);
-}
-
-function attachmentFrom(value: unknown) {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const name = clean(raw.name).replace(/[^a-zA-Z0-9._ -]/g, "_").slice(0, 120);
-  const type = clean(raw.type).slice(0, 80);
-  const contentBase64 = String(raw.contentBase64 || "").replace(/\s/g, "");
-  if (!name && !contentBase64) return null;
-  if (!name || !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(type) || !/^[A-Za-z0-9+/]*={0,2}$/.test(contentBase64)) {
-    throw new Error("Invalid product reference attachment.");
-  }
-  if (Buffer.from(contentBase64, "base64").length > 5 * 1024 * 1024) throw new Error("Attachment must be smaller than 5 MB.");
-  return { name, type, contentBase64 };
+function reject(error: string, status = 400) {
+  return NextResponse.json({ ok: false, error }, { status });
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const name = clean(body.name);
-  const email = clean(body.email);
-  const phone = clean(body.phone);
+  if (request.headers.get("sec-fetch-site") === "cross-site") return reject("Invalid request.", 403);
+  if (Number(request.headers.get("content-length")) > MAX_INQUIRY_BYTES) return reject("Reference files must be 3 MB or smaller.", 413);
+  const body: unknown = await request.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return reject("Invalid quote request.");
+  const raw = body as Record<string, unknown>;
+  if (inquiryText(raw.website)) return reject("Invalid quote request.");
 
-  if (!name || !email || !email.includes("@") || !phone) {
-    return NextResponse.json({ ok: false, error: "Name, email, and phone are required." }, { status: 400 });
-  }
+  const name = inquiryText(raw.name, 120);
+  const email = inquiryText(raw.email, 255);
+  if (!name || !isInquiryEmail(email)) return reject("Enter a name and a valid email address.");
+  const key = inquiryText(raw.idempotencyKey, 64);
+  const id = key ? inquirySubmissionId(key, email) : undefined;
+  if (key && !id) return reject("Invalid submission key.");
 
-  let attachment: ReturnType<typeof attachmentFrom>;
+  let attachment: ReturnType<typeof inquiryAttachment>;
   try {
-    attachment = attachmentFrom(body.attachment);
+    attachment = inquiryAttachment(raw.attachment);
   } catch (error) {
-    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Invalid attachment." }, { status: 400 });
+    return reject(error instanceof Error ? error.message : "Invalid reference file.");
   }
 
-  const source = clean(body.source) || "website-rfq-form";
-  const requirement = clean(body.requirement);
-  const testInquiry = isNonProductionInquiry({
-    name,
-    email,
-    source,
-    product: clean(body.product),
-    vehicleInfo: clean(body.vehicleInfo),
-    requirement,
-    visitorId: clean(body.visitorId, 80),
-    sessionId: clean(body.sessionId, 80),
-    isTest: false,
-  });
-  let inquiry;
+  let saved: Awaited<ReturnType<typeof saveInquiryOnce>>;
   try {
-    inquiry = await saveInquiryWithSource({
-      source,
+    saved = await saveInquiryOnce({
+      source: raw.source === "homepage-missing-model" ? raw.source : "website-rfq-form",
       name,
       email,
-      phone,
-      country: clean(body.country),
-      productType: clean(body.productType),
-      product: clean(body.product),
-      vehicleInfo: clean(body.vehicleInfo),
-      quantity: clean(body.quantity),
-      requirement,
-      visitorId: clean(body.visitorId, 80),
-      sessionId: clean(body.sessionId, 80),
-      landingPage: clean(body.landingPage, 240),
-      referrer: clean(body.referrer, 240),
-      isTest: testInquiry,
-      testReason: testInquiry ? "Automated or explicitly marked test inquiry" : "",
-    });
-  } catch (error) {
-    const message = error instanceof InquiryPersistenceError ? "We could not save your inquiry. Please try again shortly." : "Unable to submit your inquiry.";
-    return NextResponse.json({ ok: false, error: message }, { status: 503 });
+      phone: inquiryText(raw.phone, 80),
+      country: inquiryText(raw.country, 120),
+      productType: inquiryText(raw.productType, 120),
+      product: inquiryText(raw.product, 300),
+      vehicleInfo: inquiryText(raw.vehicleInfo),
+      quantity: inquiryText(raw.quantity, 120),
+      requirement: inquiryText(raw.requirement),
+      visitorId: inquiryText(raw.visitorId, 80),
+      sessionId: inquiryText(raw.sessionId, 80),
+      landingPage: inquiryText(raw.landingPage, 240),
+      referrer: inquiryText(raw.referrer, 240),
+    }, id || undefined);
+  } catch {
+    return reject("We could not save your inquiry. Please try again shortly.", 503);
   }
 
-  const analyticsEvent = normalizeAnalyticsEvent({
-    eventId: `form-${inquiry.id}`,
+  const { record, created } = saved;
+  const receipt = { ok: true, id: record.id, testExcluded: record.isTest };
+  if (!created) {
+    return NextResponse.json({ ...receipt, duplicate: true, emailSent: record.deliveryStatus === "sent", deliveryStatus: record.deliveryStatus });
+  }
+
+  // A stored inquiry is accepted even if analytics or the notification channel is down.
+  const storeAttribution = async () => appendAnalyticsEvent(normalizeAnalyticsEvent({
+    eventId: `form-${record.id}`,
     type: "form_submit",
-    page: inquiry.landingPage || "/quote",
+    page: record.landingPage || "/quote",
     pageTitle: "RFQ form submission",
-    referrer: inquiry.referrer,
-    utm: body.utm || {},
-    targetText: inquiry.product || inquiry.productType,
-    visitorId: inquiry.visitorId || "anonymous",
-    sessionId: inquiry.sessionId || "session",
-    qualityHint: testInquiry ? "test-inquiry" : "",
-  }, request);
-  const analyticsResult = await appendAnalyticsEvent(analyticsEvent);
-
-  const emailResult = testInquiry
-    ? { sent: false, provider: "skipped", reason: "Marked test inquiry; customer notification was not sent." }
-    : await sendInquiryEmail(inquiry, attachment || undefined).catch(() => ({
-        sent: false,
-        provider: "error",
-        reason: "Email delivery failed. Please check SMTP credentials and provider settings.",
-      }));
-
-  const deliveryStatus = emailResult.sent ? "sent" : testInquiry ? "skipped" : "failed";
-  await updateInquiryDelivery(inquiry.id, {
-    deliveryStatus,
-    deliveryProvider: emailResult.provider,
-    deliveryError: emailResult.sent ? "" : emailResult.reason || "Email delivery failed.",
-  });
-
-  return NextResponse.json({
-    ok: true,
-    id: inquiry.id,
-    emailSent: emailResult.sent,
-    emailProvider: emailResult.provider,
-    emailWarning: emailResult.sent ? "" : emailResult.reason,
-    deliveryStatus,
-    analyticsStored: analyticsResult.ok,
-    testExcluded: testInquiry,
-  });
+    referrer: record.referrer,
+    utm: raw.utm || {},
+    targetText: record.product || record.productType,
+    visitorId: record.visitorId || "anonymous",
+    sessionId: record.sessionId || "session",
+    qualityHint: record.isTest ? "test-inquiry" : "",
+  }, request));
+  const [delivery, analytics] = await Promise.allSettled([deliverInquiryNotification(record, attachment), storeAttribution()]);
+  const notification = delivery.status === "fulfilled" ? delivery.value : { emailSent: false, deliveryStatus: "pending" };
+  return NextResponse.json({ ...receipt, ...notification, analyticsStored: analytics.status === "fulfilled" && analytics.value.ok });
 }

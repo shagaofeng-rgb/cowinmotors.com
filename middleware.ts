@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { normalizedPage } from "@/lib/category-url";
 
 const retiredProductSlugs = new Set([
   "work-wheels-usa-emotion-sticker-work",
@@ -7,7 +8,14 @@ const retiredProductSlugs = new Set([
 ]);
 
 function legacyDestination(pathname: string, search: string) {
-  if (pathname === "/collections" || pathname.startsWith("/collections/")) return `/products${search}`;
+  if (pathname === "/collections" || pathname.startsWith("/collections/")) {
+    const params = new URLSearchParams(search);
+    const legacyPage = normalizedPage(params.get("page_num") || undefined);
+    params.delete("page_num");
+    if (legacyPage > 1 && !params.has("page")) params.set("page", String(legacyPage));
+    if (pathname === "/collections/maserati" && !params.has("make")) params.set("make", "Maserati");
+    return `/products${params.size ? `?${params}` : ""}`;
+  }
   if (pathname === "/search") return `/products${search}`;
   if (pathname === "/pages/order_tracking") return `/track-your-order${search}`;
   return `${pathname}${search}`;

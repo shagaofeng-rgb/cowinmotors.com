@@ -49,12 +49,12 @@ ok(/name="phone"/.test(quote), "Quote form is missing phone input.");
 ok(/type="tel"/.test(quote), "Quote phone input should use tel type.");
 ok(/WhatsApp \/ phone/i.test(quote), "Quote form is missing phone label.");
 
-const missingPhone = await fetch(`${siteUrl}/api/inquiry`, {
+const missingEmail = await fetch(`${siteUrl}/api/inquiry`, {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ name: "Audit Missing Phone", email: "audit@example.com" }),
+  body: JSON.stringify({ name: "Audit Missing Email" }),
 });
-ok(missingPhone.status === 400, "Inquiry API should reject missing phone.");
+ok(missingEmail.status === 400, "Inquiry API should reject missing email.");
 
 const protectedApi = await fetch(`${siteUrl}/api/admin/search-console/overview`);
 ok(protectedApi.status === 401, "Admin API should require authentication.");

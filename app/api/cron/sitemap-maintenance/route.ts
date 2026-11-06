@@ -17,7 +17,7 @@ async function handle(request: Request) {
       dryRun: url.searchParams.get("dryRun") === "1",
       verbose: url.searchParams.get("verbose") === "1",
     });
-    return NextResponse.json(result, { status: result.ok ? 200 : 409 });
+    return NextResponse.json(result, { status: !result.ok ? 409 : result.status === "partial-success" ? 503 : 200 });
   } catch (error) {
     return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Sitemap maintenance failed." }, { status: 500 });
   }

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { AdminDateRangeFilter } from "@/components/admin/AdminDateRangeFilter";
+import { getSyncSnapshot } from "@/lib/admin-sync";
 import { getAdminDateRange, resolveDateRange } from "@/lib/adminDateRange";
-import { getAdminListParams, getSyncJobs, paginate } from "@/lib/adminData";
+import { getAdminListParams, paginate } from "@/lib/adminData";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,9 @@ function pageHref(params: { pageSize: number; page: number; range?: string; days
   return `/admin/sync?${query.toString()}`;
 }
 
+const statusLabel = { healthy: "正常", failed: "最近运行异常", missing: "计划任务未到达", unavailable: "读取失败", empty: "暂无运行记录", paused: "自动任务已暂停" };
+const formatTime = (value: string) => value ? new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false }) : "未记录";
+
 export default async function AdminSyncPage({
   searchParams,
 }: {
@@ -25,18 +29,9 @@ export default async function AdminSyncPage({
 }) {
   const rawParams = await searchParams;
   const params = getAdminListParams(rawParams);
-  const range = getAdminDateRange(rawParams);
-  const { startDate, endDate } = resolveDateRange(range);
-  const jobs = (await getSyncJobs()).filter((job) => {
-    const timestamp = new Date(job.startedAt || job.scheduledAt || 0).getTime();
-    return timestamp >= startDate.getTime() && timestamp <= endDate.getTime();
-  });
-  const latestByType = new Map<string, (typeof jobs)[number]>();
-  for (const job of jobs) {
-    if (!latestByType.has(job.jobType)) latestByType.set(job.jobType, job);
-  }
-  const healthJobs = [...latestByType.values()].filter((job) => job.jobType !== "blog-webhook-rejected");
-  const hasWarning = !jobs.length || healthJobs.some((job) => !job.healthy);
+  const range = getAdminDateRange(rawParams?.range || rawParams?.days || rawParams?.startDate || rawParams?.endDate ? rawParams : { range: "week" });
+  const { jobs, sources, readable, truncated } = await getSyncSnapshot(resolveDateRange(range));
+  const hasWarning = sources.some((source) => source.status === "unavailable" || source.status === "missing" || source.status === "failed");
   const page = paginate(jobs, params.page, params.pageSize);
 
   return (
@@ -47,13 +42,26 @@ export default async function AdminSyncPage({
           <h1>Cron、SEO 与数据任务</h1>
           <p>查看签名 Blog 发布、站点地图维护、每月询盘测试邮件和 Search Console 数据读取状态。</p>
         </div>
-        <div className="admin-page-actions"><span className={hasWarning ? "admin-status warn" : "admin-status good"}>{!jobs.length ? "暂无运行日志" : hasWarning ? "需要检查" : "已配置"}</span><AdminDateRangeFilter range={range} preserve={{ pageSize: String(params.pageSize) }} /></div>
+        <div className="admin-page-actions"><span className={hasWarning ? "admin-status warn" : "admin-status good"}>{hasWarning ? "需要检查" : "计划任务正常"}</span><AdminDateRangeFilter range={range} preserve={{ pageSize: String(params.pageSize) }} /></div>
       </header>
+
+      <section className="admin-panel" aria-labelledby="sync-health">
+        <div className="admin-panel-headline"><h2 id="sync-health">任务状态</h2><p>北京时间 · 当前状态不受历史日期筛选影响</p></div>
+        <div className="admin-table-wrap"><table className="admin-table">
+          <thead><tr><th scope="col">链路</th><th scope="col">状态</th><th scope="col">最近尝试</th><th scope="col">最近成功</th></tr></thead>
+          <tbody>{sources.map((source) => <tr key={source.key}>
+            <th scope="row">{source.label}</th>
+            <td><span className={`admin-status ${source.status === "healthy" ? "good" : ["unavailable", "missing", "failed"].includes(source.status) ? "warn" : ""}`}>{statusLabel[source.status]}</span></td>
+            <td>{formatTime(source.latest?.startedAt || "")}</td>
+            <td>{formatTime(source.lastSuccessAt)}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </section>
 
       <section className="admin-panel">
         <div className="admin-toolbar">
           <div className="admin-badge-list">
-            <Link className="admin-secondary-button" href="/api/admin/sync">查看 API</Link>
+            <Link className="admin-secondary-button" href="/admin/inquiries?range=month&amp;delivery=attention">询盘通知异常</Link>
             <Link className="admin-secondary-button" href="/admin/news">新闻任务</Link>
             <Link className="admin-secondary-button" href="/admin/search-console">SEO 数据</Link>
             <Link className="admin-secondary-button" href="/api/admin/sitemap">Sitemap 状态</Link>
@@ -75,8 +83,8 @@ export default async function AdminSyncPage({
               <tr>
                 <th>任务</th>
                 <th>状态</th>
-                <th>计划</th>
                 <th>最近运行</th>
+                <th>重试</th>
                 <th>错误</th>
                 <th>备注</th>
               </tr>
@@ -86,15 +94,16 @@ export default async function AdminSyncPage({
                 <tr key={job.id}>
                   <td>{job.jobType}</td>
                   <td><span className={job.healthy ? "admin-status good" : "admin-status warn"}>{job.status}</span></td>
-                  <td>{job.scheduledAt || "-"}</td>
-                  <td>{job.startedAt ? new Date(job.startedAt).toLocaleString("zh-CN") : "-"}</td>
+                  <td>{formatTime(job.startedAt)}</td>
+                  <td>{job.retryCount}</td>
                   <td>{job.errorMessage || "-"}</td>
-                  <td><pre className="admin-code">{JSON.stringify(job.metadata, null, 2)}</pre></td>
+                  <td>{Object.keys(job.metadata).length > 0 ? <details><summary>查看结果</summary><pre className="admin-code">{JSON.stringify(job.metadata, null, 2)}</pre></details> : "-"}</td>
                 </tr>
               ))}
             </tbody>
-          </table> : <div className="admin-empty">暂无可验证的任务运行记录。系统不会再用“已配置”的静态占位数据代替真实运行状态。</div>}
+          </table> : <div className="admin-empty">{readable ? "所选日期内没有可读取的运行记录。" : "无法读取任务数据，请查看上方状态。"}</div>}
         </div>
+        {truncated && <p className="admin-muted">历史记录已达显示上限，缩小日期范围可查看更多结果。</p>}
         <div className="admin-pagination">
           {page.hasPrevious ? <Link href={pageHref({ pageSize: params.pageSize, page: page.currentPage - 1, range: range.preset, days: range.days, startDate: range.startDate, endDate: range.endDate })}>上一页</Link> : <span>上一页</span>}
           <span>{page.currentPage} / {page.totalPages} · {page.total} 条</span>

@@ -22,6 +22,7 @@ function htmlEscape(value: string) {
 
 function buildInquiryEmail(record: InquiryRecord) {
   const rows = [
+    ["Reference", record.id],
     ["Source", record.source],
     ["Name", record.name],
     ["Email", record.email],
@@ -54,6 +55,7 @@ async function sendViaResend(record: InquiryRecord, attachment?: InquiryAttachme
   const message = buildInquiryEmail(record);
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
+    signal: AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
@@ -81,6 +83,7 @@ function smtpRead(socket: net.Socket | tls.TLSSocket) {
     let buffer = "";
     const onData = (chunk: Buffer) => {
       buffer += chunk.toString("utf8");
+      if (!buffer.endsWith("\n")) return;
       const lines = buffer.split(/\r?\n/).filter(Boolean);
       const last = lines[lines.length - 1] || "";
       if (/^\d{3}\s/.test(last)) {
@@ -92,12 +95,15 @@ function smtpRead(socket: net.Socket | tls.TLSSocket) {
       cleanup();
       reject(error);
     };
+    const onClose = () => onError(new Error("SMTP closed before confirming the command."));
     const cleanup = () => {
       socket.off("data", onData);
       socket.off("error", onError);
+      socket.off("close", onClose);
     };
     socket.on("data", onData);
     socket.on("error", onError);
+    socket.once("close", onClose);
   });
 }
 
@@ -118,6 +124,7 @@ function connectSmtp(host: string, port: number, secure: boolean) {
     const socket = secure
       ? tls.connect({ host, port, servername: host })
       : net.connect({ host, port });
+    socket.setTimeout(10_000, () => socket.destroy(new Error("SMTP connection timed out.")));
     socket.once(secure ? "secureConnect" : "connect", () => resolve(socket));
     socket.once("error", reject);
   });
@@ -126,6 +133,7 @@ function connectSmtp(host: string, port: number, secure: boolean) {
 function upgradeToTls(socket: net.Socket, host: string) {
   return new Promise<tls.TLSSocket>((resolve, reject) => {
     const secureSocket = tls.connect({ socket, servername: host });
+    secureSocket.setTimeout(10_000, () => secureSocket.destroy(new Error("SMTP TLS handshake timed out.")));
     secureSocket.once("secureConnect", () => resolve(secureSocket));
     secureSocket.once("error", reject);
   });
@@ -133,13 +141,16 @@ function upgradeToTls(socket: net.Socket, host: string) {
 
 function mimeMessage(record: InquiryRecord, from: string, to: string, cc: string, attachment?: InquiryAttachment) {
   const message = buildInquiryEmail(record);
+  const headerText = (value: string) => value.replace(/[\r\n\x00-\x1f\x7f]+/g, " ").trim();
+  const subject = Array.from(headerText(message.subject)).slice(0, 160).join("");
   const boundary = `cowinmotors-${Date.now()}`;
   const mixedBoundary = `${boundary}-mixed`;
   const headers = [
     `From: ${from}`,
     `To: ${to}`,
-    `Reply-To: ${record.email}`,
-    `Subject: ${message.subject}`,
+    `Reply-To: ${headerText(record.email)}`,
+    `Subject: ${/[^\x20-\x7e]/.test(subject) ? `=?UTF-8?B?${Buffer.from(subject).toString("base64")}?=` : subject}`,
+    `Message-ID: <${headerText(record.id).replace(/[^\w-]/g, "")}@cowinmotors.com>`,
     "MIME-Version: 1.0",
     `Content-Type: ${attachment ? "multipart/mixed" : "multipart/alternative"}; boundary="${attachment ? mixedBoundary : boundary}"`,
   ];
@@ -214,7 +225,8 @@ async function sendViaSmtp(record: InquiryRecord, attachment?: InquiryAttachment
     await smtpCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
     await smtpCommand(socket, "DATA", [354]);
     await smtpCommand(socket, `${mimeMessage(record, from, to, cc, attachment)}\r\n.`, [250]);
-    await smtpCommand(socket, "QUIT", [221, 250]);
+    // DATA acceptance is authoritative even if the provider closes before QUIT.
+    if (socket.writable) socket.write("QUIT\r\n");
     return { provider: "smtp" };
   } finally {
     socket.destroy();
