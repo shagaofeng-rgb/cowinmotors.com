@@ -85,6 +85,14 @@ body:has(.admin-dashboard), body:has(.admin-login-page) { color: #16243a; backgr
 .admin-status.good { color: #087153; background: #e9f6ef; border-color: #b8dfc9; }
 .admin-status.warn { color: #8a600c; background: #fff7e6; border-color: #efd9a2; }
 .admin-status.danger { color: #b53131; background: #fff0f0; border-color: #edb5b5; }
+.admin-sync-health-list { margin: 0; padding: 0; border-top: 1px solid var(--admin-line); list-style: none; }
+.admin-sync-health-list > li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 8px 24px; padding: 12px 0; }
+.admin-sync-health-list > li + li { border-top: 1px solid var(--admin-line); }
+.admin-sync-job { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; min-width: 0; }
+.admin-sync-job strong { font-size: 14px; overflow-wrap: anywhere; }
+.admin-sync-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
+.admin-sync-times dt { color: var(--admin-muted); font-size: 12px; }
+.admin-sync-times dd { margin: 3px 0 0; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .admin-empty, .admin-mini-record { color: var(--admin-muted); background: var(--admin-soft); border-color: var(--admin-line); }
 .admin-empty svg { margin: 0 auto 4px; color: #8e9aad; }
 .admin-overview-breakdown .admin-empty, .admin-overview-inquiries .admin-empty { display: grid; min-height: 130px; place-content: center; gap: 8px; text-align: center; background: #fff; border: 0; }
@@ -135,4 +143,5 @@ body:has(.admin-dashboard), body:has(.admin-login-page) { color: #16243a; backgr
   .admin-overview-metrics .admin-metric:nth-child(-n+2) { border-bottom: 1px solid var(--admin-line); }
   .admin-metric-grid:not(.admin-overview-metrics) { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .admin-journey-timeline li { grid-template-columns: 1fr; }
+  .admin-sync-health-list > li { grid-template-columns: minmax(0, 1fr); }
 }

@@ -47,15 +47,18 @@ export default async function AdminSyncPage({
 
       <section className="admin-panel" aria-labelledby="sync-health">
         <div className="admin-panel-headline"><h2 id="sync-health">任务状态</h2><p>北京时间 · 当前状态不受历史日期筛选影响</p></div>
-        <div className="admin-table-wrap"><table className="admin-table">
-          <thead><tr><th scope="col">链路</th><th scope="col">状态</th><th scope="col">最近尝试</th><th scope="col">最近成功</th></tr></thead>
-          <tbody>{sources.map((source) => <tr key={source.key}>
-            <th scope="row">{source.label}</th>
-            <td><span className={`admin-status ${source.status === "healthy" ? "good" : ["unavailable", "missing", "failed"].includes(source.status) ? "warn" : ""}`}>{statusLabel[source.status]}</span></td>
-            <td>{formatTime(source.latest?.startedAt || "")}</td>
-            <td>{formatTime(source.lastSuccessAt)}</td>
-          </tr>)}</tbody>
-        </table></div>
+        <ul className="admin-sync-health-list">
+          {sources.map((source) => <li key={source.key}>
+            <div className="admin-sync-job">
+              <strong>{source.label}</strong>
+              <span className={`admin-status ${source.status === "healthy" ? "good" : ["unavailable", "missing", "failed"].includes(source.status) ? "warn" : ""}`}>{statusLabel[source.status]}</span>
+            </div>
+            <dl className="admin-sync-times">
+              <div><dt>最近尝试</dt><dd>{source.latest?.startedAt ? <time dateTime={source.latest.startedAt}>{formatTime(source.latest.startedAt)}</time> : "未记录"}</dd></div>
+              <div><dt>最近成功</dt><dd>{source.lastSuccessAt ? <time dateTime={source.lastSuccessAt}>{formatTime(source.lastSuccessAt)}</time> : "未记录"}</dd></div>
+            </dl>
+          </li>)}
+        </ul>
       </section>
 
       <section className="admin-panel">
